@@ -115,7 +115,7 @@ func (t *Telemetry) GetUnparsedCommands() ([]struct {
 }
 
 func (t *Telemetry) GetStats() (totalOriginal, totalCompressed int, err error) {
-	query := `SELECT SUM(original_tokens), SUM(compressed_tokens) FROM executions`
+	query := `SELECT COALESCE(SUM(original_tokens), 0), COALESCE(SUM(compressed_tokens), 0) FROM executions`
 	err = t.db.QueryRow(query).Scan(&totalOriginal, &totalCompressed)
 	if err == sql.ErrNoRows {
 		return 0, 0, nil
