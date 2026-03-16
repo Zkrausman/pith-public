@@ -35,9 +35,6 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 		return fmt.Errorf("no command provided")
 	}
 
-	cmdName := args[0]
-	cmdArgs := args[1:]
-
 	fullCmd := strings.Join(args, " ")
 	start := time.Now()
 	
@@ -48,7 +45,15 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 		cmd = exec.Command("cmd", "/c", fullCmd)
 		// On Linux/macOS you'd use "sh", "-c", fullCmd
 	} else {
-		cmd = exec.Command(cmdName, cmdArgs...)
+		// IMPORTANT: If 'args' has more than one element, they are the arguments.
+		// If 'args' has only one element but it contains spaces, it's a combined string 
+		// that needs splitting (often happens when called via proxy).
+		if len(args) == 1 && strings.Contains(args[0], " ") {
+			parts := strings.Fields(args[0])
+			cmd = exec.Command(parts[0], parts[1:]...)
+		} else {
+			cmd = exec.Command(args[0], args[1:]...)
+		}
 	}
 
 	var out bytes.Buffer
@@ -70,7 +75,6 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	if !skipParsing {
 		for _, parser := range r.parsers {
 			enabled, ok := r.cfg.EnabledParsers[parser.Name()]
-			// If not in config, default to enabled. If in config, check boolean.
 			if (!ok || enabled) && parser.CanParse(fullCmd, []string{}) {
 				p = parser
 				break
@@ -83,10 +87,8 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	isPassthrough := true
 
 	if p != nil {
-		finalOutput = p.Parse(stdoutStr)
-		if stderrStr != "" {
-			finalOutput += "\nERRORS:\n" + stderrStr
-		}
+		// Pass fullOutput to parser instead of just stdout
+		finalOutput = p.Parse(fullOutput)
 		parserUsed = p.Name()
 		isPassthrough = false
 	} else {

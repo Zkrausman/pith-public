@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -135,10 +136,14 @@ type GitHubParser struct{}
 
 func (g *GitHubParser) Name() string { return "github" }
 func (g *GitHubParser) CanParse(cmd string, args []string) bool {
-	if cmd != "gh" || len(args) < 2 { return false }
-	sub := args[0]
-	action := args[1]
-	return (sub == "issue" || sub == "pr" || sub == "release" || sub == "repo") && action == "list"
+	full := cmd
+	if len(args) > 0 {
+		full += " " + strings.Join(args, " ")
+	}
+	
+	return strings.HasPrefix(full, "gh ") && strings.Contains(full, " list") && 
+		   (strings.Contains(full, "issue") || strings.Contains(full, "pr") || 
+		    strings.Contains(full, "release") || strings.Contains(full, "repo"))
 }
 func (g *GitHubParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
@@ -148,28 +153,28 @@ func (g *GitHubParser) Parse(output string) string {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" { continue }
 		
-		// If it's a table-like output from gh list, it usually has tabs or multiple spaces
-		fields := strings.Split(trimmed, "\t")
-		if len(fields) < 2 {
-			fields = strings.Fields(trimmed)
+		// Skip header lines if present
+		if strings.HasPrefix(trimmed, "Showing ") || strings.HasPrefix(trimmed, "NAME") || strings.HasPrefix(trimmed, "TITLE") {
+			continue
 		}
-		
-		if len(fields) >= 3 {
-			// For issues/PRs: #NUMBER  TITLE  STATE/DATE  LABELS
-			// For releases: TITLE  STATE  TAG  DATE
-			
-			// Heuristic: Keep ID/Tag (field 0) and Title/Name (field 1)
+
+		fields := strings.Fields(trimmed)
+		if len(fields) >= 2 {
+			// For issues/PRs/repos: ID/NAME  TITLE/DESCRIPTION  STATUS/DATE
 			id := fields[0]
 			title := fields[1]
 			
-			// If field 2 looks like a state (OPEN, MERGED, etc.) or date, keep it briefly
 			status := ""
 			if len(fields) >= 3 {
 				status = fields[2]
-				if len(status) > 10 { status = status[:10] } // Truncate long dates
+				if len(status) > 15 { status = status[:15] }
 			}
 			
-			result = append(result, fmt.Sprintf("%s | %s | %s", id, title, status))
+			if status != "" {
+				result = append(result, fmt.Sprintf("%s | %s | %s", id, title, status))
+			} else {
+				result = append(result, fmt.Sprintf("%s | %s", id, title))
+			}
 		} else {
 			result = append(result, trimmed)
 		}
