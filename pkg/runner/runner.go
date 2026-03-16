@@ -54,7 +54,9 @@ func (r *Runner) Run(args []string) error {
 
 	var p parser.Parser
 	for _, parser := range r.parsers {
-		if enabled, ok := r.cfg.EnabledParsers[parser.Name()]; ok && enabled && parser.CanParse(cmdName, cmdArgs) {
+		enabled, ok := r.cfg.EnabledParsers[parser.Name()]
+		// If not in config, default to enabled. If in config, check boolean.
+		if (!ok || enabled) && parser.CanParse(cmdName, cmdArgs) {
 			p = parser
 			break
 		}

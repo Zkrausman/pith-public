@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.2.0"
+const version = "v0.3.0"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -200,7 +200,8 @@ var hookCmd = &cobra.Command{
 		pArgs := cmdParts[1:]
 
 		for _, parser := range parsers {
-			if enabled, ok := cfg.EnabledParsers[parser.Name()]; ok && enabled && parser.CanParse(cmdName, pArgs) {
+			enabled, ok := cfg.EnabledParsers[parser.Name()]
+			if (!ok || enabled) && parser.CanParse(cmdName, pArgs) {
 				p = parser
 				break
 			}
