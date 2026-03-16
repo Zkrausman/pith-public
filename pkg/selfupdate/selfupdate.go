@@ -22,7 +22,7 @@ type Release struct {
 
 func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/releases", repo), nil)
 	if err != nil {
 		return false, err
 	}
@@ -38,10 +38,16 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 		return false, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
 	}
 
-	var release Release
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+	var releases []Release
+	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
 		return false, err
 	}
+
+	if len(releases) == 0 {
+		return false, fmt.Errorf("no releases found")
+	}
+
+	release := releases[0] // Latest is first
 
 	if release.TagName == currentVersion {
 		return false, nil
