@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.1.7"
+const version = "v0.1.8"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -292,6 +292,14 @@ var updateCmd = &cobra.Command{
 	},
 }
 
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version number of Diet",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("Diet %s\n", version)
+	},
+}
+
 func init() {
 	installCmd.Flags().Bool("all", false, "Setup hooks for all supported CLIs")
 	installCmd.Flags().Bool("gemini", false, "Setup hook for Gemini CLI")
@@ -303,10 +311,12 @@ func init() {
 	rootCmd.AddCommand(hookCmd)
 	rootCmd.AddCommand(installCmd)
 	rootCmd.AddCommand(updateCmd)
+	rootCmd.AddCommand(versionCmd)
 }
 
 func main() {
 	if len(os.Args) > 1 {
+		// List of internal subcommands and flags that SHOULD NOT be proxied
 		subcmds := []string{"config", "gain", "discover", "_hook", "install", "update", "version", "--version", "-v", "help", "--help", "-h"}
 		isSub := false
 		for _, s := range subcmds {
