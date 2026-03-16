@@ -77,14 +77,6 @@ func (r *Runner) Run(args []string) error {
 
 	compressedTokens := estimateTokens(finalOutput)
 
-	// Enforce max tokens if needed (simplified truncation for now)
-	if compressedTokens > r.cfg.MaxTokens {
-		limit := r.cfg.MaxTokens * 4
-		if len(finalOutput) > limit {
-			finalOutput = finalOutput[:limit] + "\n...[Output Truncated by Diet]..."
-		}
-	}
-
 	// Output to stdout
 	fmt.Print(finalOutput)
 

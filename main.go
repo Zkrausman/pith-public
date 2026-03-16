@@ -68,7 +68,14 @@ var configCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return cfg.InteractiveConfig()
+
+		parsers := parser.GetAllParsers()
+		var names []string
+		for _, p := range parsers {
+			names = append(names, p.Name())
+		}
+
+		return cfg.InteractiveConfig(names)
 	},
 }
 

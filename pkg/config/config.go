@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/AlecAivazis/survey/v2"
 )
 
 type Config struct {
-	MaxTokens       int             `json:"max_tokens"`
-	EnabledParsers  map[string]bool `json:"enabled_parsers"`
+	EnabledParsers map[string]bool `json:"enabled_parsers"`
 }
 
 func GetConfigPath() (string, error) {
@@ -28,10 +28,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	cfg := &Config{
-		MaxTokens: 4000,
-		EnabledParsers: map[string]bool{
-			"git_status": true,
-		},
+		EnabledParsers: make(map[string]bool),
 	}
 
 	data, err := os.ReadFile(path)
@@ -61,45 +58,35 @@ func (c *Config) Save() error {
 	return os.WriteFile(path, data, 0644)
 }
 
-func (c *Config) InteractiveConfig() error {
-	var qs = []*survey.Question{
-		{
-			Name: "max_tokens",
-			Prompt: &survey.Input{
-				Message: "Maximum output token limit:",
-				Default: "4000",
-			},
-		},
+func (c *Config) InteractiveConfig(availableParsers []string) error {
+	// Sync available parsers into map (enable new ones by default)
+	for _, p := range availableParsers {
+		if _, ok := c.EnabledParsers[p]; !ok {
+			c.EnabledParsers[p] = true
+		}
 	}
-
-	answers := struct {
-		MaxTokens int
-	}{}
-
-	err := survey.Ask(qs, &answers)
-	if err != nil {
-		return err
-	}
-
-	c.MaxTokens = answers.MaxTokens
 
 	// Toggle parsers
 	var parserOpts []string
 	var defaultSelected []string
-	for k, v := range c.EnabledParsers {
-		parserOpts = append(parserOpts, k)
-		if v {
-			defaultSelected = append(defaultSelected, k)
+	
+	// Sort for consistent UI
+	sort.Strings(availableParsers)
+	
+	for _, p := range availableParsers {
+		parserOpts = append(parserOpts, p)
+		if c.EnabledParsers[p] {
+			defaultSelected = append(defaultSelected, p)
 		}
 	}
 
 	var selectedParsers []string
 	prompt := &survey.MultiSelect{
-		Message: "Enable/Disable Parsers:",
+		Message: "Enable/Disable Parsers (unchecked will passthrough):",
 		Options: parserOpts,
 		Default: defaultSelected,
 	}
-	err = survey.AskOne(prompt, &selectedParsers)
+	err := survey.AskOne(prompt, &selectedParsers)
 	if err != nil {
 		return err
 	}
