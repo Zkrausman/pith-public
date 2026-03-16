@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.1.0"
+const version = "v0.1.1"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -187,7 +187,7 @@ var hookCmd = &cobra.Command{
 		}
 
 		// Use the parser directly
-		parsers := []parser.Parser{&parser.GitStatusParser{}}
+		parsers := parser.GetAllParsers()
 		var p parser.Parser
 		cmdName := cmdParts[0]
 		pArgs := cmdParts[1:]
@@ -239,12 +239,34 @@ func respondAllow() error {
 
 var installCmd = &cobra.Command{
 	Use:   "install",
-	Short: "Install Diet to your system PATH and setup Gemini hook",
+	Short: "Install Diet to your system PATH and setup CLI hooks",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := install.Install(); err != nil {
 			return err
 		}
-		return install.SetupGeminiHook()
+
+		all, _ := cmd.Flags().GetBool("all")
+		gemini, _ := cmd.Flags().GetBool("gemini")
+		claude, _ := cmd.Flags().GetBool("claude")
+
+		// Default to Gemini if nothing specified (for backward compatibility)
+		if !all && !gemini && !claude {
+			gemini = true
+		}
+
+		if all || gemini {
+			if err := install.SetupGeminiHook(); err != nil {
+				fmt.Fprintf(os.Stderr, "Gemini hook failed: %v\n", err)
+			}
+		}
+
+		if all || claude {
+			if err := install.SetupClaudeHook(); err != nil {
+				fmt.Fprintf(os.Stderr, "Claude hook failed: %v\n", err)
+			}
+		}
+
+		return nil
 	},
 }
 
@@ -264,6 +286,10 @@ var updateCmd = &cobra.Command{
 }
 
 func init() {
+	installCmd.Flags().Bool("all", false, "Setup hooks for all supported CLIs")
+	installCmd.Flags().Bool("gemini", false, "Setup hook for Gemini CLI")
+	installCmd.Flags().Bool("claude", false, "Setup hook for Claude Code")
+
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(gainCmd)
 	rootCmd.AddCommand(discoverCmd)

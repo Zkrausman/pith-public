@@ -22,9 +22,7 @@ func NewRunner(cfg *config.Config, tel *telemetry.Telemetry) *Runner {
 	return &Runner{
 		cfg:       cfg,
 		telemetry: tel,
-		parsers: []parser.Parser{
-			&parser.GitStatusParser{},
-		},
+		parsers:   parser.GetAllParsers(),
 	}
 }
 

@@ -95,3 +95,45 @@ func SetupGeminiHook() error {
 	fmt.Println("Successfully created .gemini/settings.json with Diet hook.")
 	return nil
 }
+
+func SetupClaudeHook() error {
+	configDir := ".claude"
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return err
+	}
+
+	settingsPath := filepath.Join(configDir, "settings.json")
+	if _, err := os.Stat(settingsPath); err == nil {
+		fmt.Println(".claude/settings.json already exists. Skipping.")
+		return nil
+	}
+
+	exePath, _ := os.Executable()
+	// Escape backslashes for JSON
+	escapedPath := strings.ReplaceAll(exePath, "\\", "\\\\")
+
+	settings := fmt.Sprintf(`{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "name": "diet-optimizer",
+            "type": "command",
+            "command": "%s _hook",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}`, escapedPath)
+
+	if err := os.WriteFile(settingsPath, []byte(settings), 0644); err != nil {
+		return err
+	}
+
+	fmt.Println("Successfully created .claude/settings.json with Diet hook.")
+	return nil
+}
