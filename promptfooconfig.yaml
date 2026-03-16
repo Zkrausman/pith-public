@@ -1,0 +1,152 @@
+prompts: [tests/prompts.txt]
+
+providers:
+  - id: google:gemini-2.5-flash
+    config:
+      temperature: 0
+
+defaultTest:
+  options:
+    provider: google:gemini-2.5-flash
+
+tests:
+  # --- 1. GIT STATUS (Core context) ---
+  - vars:
+      command: "git status"
+      output: |
+        modified:   main.go
+        new file:   pkg/parser/git.go
+        untracked:  pkg/parser/git_test.go
+    assert:
+      - type: llm-rubric
+        value: "The model correctly identifies that main.go is modified and git_test.go is untracked."
+
+  # --- 2. GIT LOG (History) ---
+  - vars:
+      command: "git log"
+      output: |
+        7726b05 | Zachary Krausman | Mar 16 2026 | Release v0.4.7: GitHub parser and Runner fixes
+        66a9cd2 | Zachary Krausman | Mar 16 2026 | Release v0.4.6: Add GitHubParser for gh list commands
+    assert:
+      - type: icontains
+        value: "v0.4.7"
+      - type: llm-rubric
+        value: "The model identifies the latest release version and the author."
+
+  # --- 3. GIT DIFF (Code changes) ---
+  - vars:
+      command: "git diff"
+      output: |
+        --- main.go
+        +++ main.go
+        @@
+        - const version = "v0.4.6"
+        + const version = "v0.4.7"
+    assert:
+      - type: llm-rubric
+        value: "The model identifies that the version was bumped from 0.4.6 to 0.4.7."
+
+  # --- 4. LS (Metadata context) ---
+  - vars:
+      command: "ls -l"
+      output: |
+        -rw-r--r-- 12799 main.go
+        -rwxr-xr-x 19467776 diet.exe
+        drwxr-xr-x 4096 pkg
+    assert:
+      - type: llm-rubric
+        value: "The model identifies main.go as a file and pkg as a directory, noting the large size of diet.exe."
+
+  # --- 5. COMPOSITE GIT (Combined context) ---
+  - vars:
+      command: "git status & git log -n 1"
+      output: |
+        modified:   pkg/parser/git.go
+        7726b05 | Zachary Krausman | Mar 16 2026 | Release v0.4.7: GitHub parser and Runner fixes
+    assert:
+      - type: llm-rubric
+        value: "The model understands both the current uncommitted changes and the most recent commit."
+
+  # --- 6. GITHUB (External state) ---
+  - vars:
+      command: "gh pr list"
+      output: |
+        #582 | Fix context blindness in compression | OPEN
+        #581 | Improve runner split logic | MERGED
+    assert:
+      - type: llm-rubric
+        value: "The model identifies PR #582 as OPEN and knows its title."
+
+  # --- 7. DOCKER (Infra state) ---
+  - vars:
+      command: "docker ps"
+      output: |
+        abc123456789	diet-db-container
+        def987654321	diet-app-service
+    assert:
+      - type: llm-rubric
+        value: "The model lists two running containers with their IDs and names."
+
+  # --- 8. DEPENDENCIES (Package state) ---
+  - vars:
+      command: "npm list"
+      output: |
+        diet@0.4.7
+        github.com/spf13/cobra@v1.8.0
+        github.com/AlecAivazis/survey/v2@v2.3.7
+    assert:
+      - type: icontains
+        value: "cobra"
+      - type: llm-rubric
+        value: "The model identifies cobra as a dependency."
+
+  # --- 9. TESTS (Validation state) ---
+  - vars:
+      command: "go test ./..."
+      output: |
+        FAIL: TestMinifyParser
+        PASS: TestLsParser
+        DONE: 15 passed, 1 failed
+    assert:
+      - type: llm-rubric
+        value: "The model identifies that TestMinifyParser failed and 15 others passed."
+
+  # --- 10. MINIFY (Code read) ---
+  - vars:
+      command: "cat config.json"
+      output: |
+        {
+        "max_lines": 100,
+        "head_lines": 20,
+        "tail_lines": 20,
+        "enabled_parsers": {
+        "git_status": true
+        }
+        }
+    assert:
+      - type: llm-rubric
+        value: "The model identifies the max_lines setting as 100 even though indentation was collapsed."
+
+  # --- 11. ENV (Config state) ---
+  - vars:
+      command: "env"
+      output: |
+        PATH=/usr/bin:/usr/local/bin
+        USER=zkrau
+        LANG=en_US.UTF-8
+    assert:
+      - type: llm-rubric
+        value: "The model identifies that the user is zkrau based on the environment variables."
+
+  # --- 12. FIND/TREE (FS Structure) ---
+  - vars:
+      command: "tree"
+      output: |
+        pkg
+        parser
+        git.go
+        fs.go
+        main.go
+    assert:
+      - type: llm-rubric
+        value: "The model understands that git.go is located inside the pkg/parser directory structure."

@@ -1,0 +1,8 @@
+You are a helpful software engineering assistant.
+Below is the output of a CLI command that has been processed by "Diet", a tool that removes noise and compresses output for LLMs.
+
+COMMAND: {{command}}
+OUTPUT:
+{{output}}
+
+TASK: Based on the output above, identify the status of the project and list any specific files that require attention (modified, untracked, or have errors). If the output is truncated or missing information, state that clearly.

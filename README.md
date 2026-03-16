@@ -111,6 +111,14 @@ main.go README.md
 
 ---
 
+## 🧪 Testing & Quality
+Diet uses [promptfoo](https://promptfoo.dev/) to evaluate the performance and quality of its token-optimization strategies.
+
+- **Status:** **Work In Progress (WIP)** 🛠️
+- **Latest Evaluation:** [tests/report.md](tests/report.md)
+
+---
+
 ## ⌨️ CLI Usage
 - `diet <command>`: Proxy any command manually.
 - `diet config`: Toggle parsers on/off.
