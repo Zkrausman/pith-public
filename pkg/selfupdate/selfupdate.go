@@ -13,6 +13,7 @@ const repo = "Zkrausman/Diet"
 
 type Release struct {
 	TagName string `json:"tag_name"`
+	Body    string `json:"body"`
 	Assets  []struct {
 		Name               string `json:"name"`
 		BrowserDownloadURL string `json:"browser_download_url"`
@@ -36,6 +37,9 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	}
 
 	fmt.Printf("New version found: %s (current: %s)\n", release.TagName, currentVersion)
+	if release.Body != "" {
+		fmt.Printf("\n--- Changelog ---\n%s\n-----------------\n\n", release.Body)
+	}
 	
 	var downloadURL string
 	expectedName := "diet"
