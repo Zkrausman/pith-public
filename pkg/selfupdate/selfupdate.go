@@ -1,12 +1,15 @@
 package selfupdate
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"runtime"
+	"strings"
 )
 
 const repo = "Zkrausman/Diet"
@@ -20,6 +23,22 @@ type Release struct {
 	} `json:"assets"`
 }
 
+func getAuthToken() string {
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		return token
+	}
+
+	// Fallback: Try to get token from GitHub CLI
+	cmd := exec.Command("gh", "auth", "token")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	if err := cmd.Run(); err == nil {
+		return strings.TrimSpace(out.String())
+	}
+
+	return ""
+}
+
 func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/releases", repo), nil)
@@ -28,8 +47,8 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	}
 	req.Header.Set("User-Agent", "Diet-Updater")
 
-	// Support private repos via GITHUB_TOKEN
-	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+	// Support private repos via GITHUB_TOKEN or gh CLI
+	if token := getAuthToken(); token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
@@ -99,7 +118,7 @@ func CheckForUpdateSilent(currentVersion string) (string, error) {
 	}
 	req.Header.Set("User-Agent", "Diet-Updater")
 
-	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+	if token := getAuthToken(); token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
