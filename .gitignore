@@ -5,3 +5,5 @@ vendor/
 
 # Dolt database files (added by bd init)
 .dolt/
+.beads/
+test_hook_input.json

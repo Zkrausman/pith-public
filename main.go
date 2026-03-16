@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.4.2"
+const version = "v0.4.3"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -186,9 +186,12 @@ type HookInput struct {
 	ToolResponse struct {
 		LlmContent string `json:"llmContent"`
 	} `json:"tool_response"`
+	// Older schema
 	ToolCallRequest struct {
 		Arguments string `json:"arguments"`
 	} `json:"tool_call_request"`
+	// Newer schema
+	ToolInput map[string]interface{} `json:"tool_input"`
 }
 
 type HookOutput struct {
@@ -216,9 +219,16 @@ var hookCmd = &cobra.Command{
 			return err
 		}
 
-		var toolArgs ToolArgs
-		if err := json.Unmarshal([]byte(input.ToolCallRequest.Arguments), &toolArgs); err != nil {
-			return err
+		var command string
+		// Try newer schema first
+		if cmdVal, ok := input.ToolInput["command"].(string); ok {
+			command = cmdVal
+		} else if input.ToolCallRequest.Arguments != "" {
+			// Fallback to older schema
+			var toolArgs ToolArgs
+			if err := json.Unmarshal([]byte(input.ToolCallRequest.Arguments), &toolArgs); err == nil {
+				command = toolArgs.Command
+			}
 		}
 
 		cfg, _ := config.LoadConfig()
@@ -235,15 +245,17 @@ var hookCmd = &cobra.Command{
 			go func() {
 				newTag, _ := selfupdate.CheckForUpdateSilent(version)
 				if newTag != "" {
-					// We don't print to stdout here because it's a hook return JSON
-					// We can use stderr which Gemini CLI might log
 					fmt.Fprintf(os.Stderr, "\n[Diet] A new version is available: %s. Run 'diet update' to upgrade!\n", newTag)
 				}
 			}()
 		}
 
 		originalOutput := input.ToolResponse.LlmContent
-		cmdParts := strings.Fields(toolArgs.Command)
+		if command == "" {
+			return respondAllow()
+		}
+
+		cmdParts := strings.Fields(command)
 		if len(cmdParts) == 0 {
 			return respondAllow()
 		}
@@ -265,7 +277,7 @@ var hookCmd = &cobra.Command{
 		if p == nil {
 			if tel != nil {
 				_ = tel.Record(telemetry.ExecutionRecord{
-					Command:          toolArgs.Command,
+					Command:          command,
 					OriginalTokens:   len(originalOutput) / 4,
 					CompressedTokens: len(originalOutput) / 4,
 					ParserUsed:       "none",
@@ -283,7 +295,7 @@ var hookCmd = &cobra.Command{
 
 		if tel != nil {
 			_ = tel.Record(telemetry.ExecutionRecord{
-				Command:          toolArgs.Command,
+				Command:          command,
 				OriginalTokens:   len(originalOutput) / 4,
 				CompressedTokens: len(compressed) / 4,
 				ParserUsed:       p.Name(),
