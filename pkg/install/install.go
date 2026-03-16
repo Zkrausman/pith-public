@@ -10,39 +10,51 @@ import (
 )
 
 func Install() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	dietBinDir := filepath.Join(home, ".diet", "bin")
+	if err := os.MkdirAll(dietBinDir, 0755); err != nil {
+		return fmt.Errorf("failed to create bin directory: %v", err)
+	}
+
 	exePath, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	exeDir := filepath.Dir(exePath)
+
+	destPath := filepath.Join(dietBinDir, filepath.Base(exePath))
+	
+	// Copy the executable to ~/.diet/bin
+	input, err := os.ReadFile(exePath)
+	if err != nil {
+		return fmt.Errorf("failed to read executable: %v", err)
+	}
+	if err := os.WriteFile(destPath, input, 0755); err != nil {
+		return fmt.Errorf("failed to copy executable: %v", err)
+	}
+
+	fmt.Printf("Copied Diet to %s\n", destPath)
 
 	if runtime.GOOS == "windows" {
-		return installWindows(exeDir)
+		return installWindows(dietBinDir)
 	}
 	return fmt.Errorf("install command not yet supported on %s", runtime.GOOS)
 }
 
-func installWindows(exeDir string) error {
-	// Use setx to add to user PATH
-	// Note: setx is limited to 1024 chars, which is a risk for PATH, but for a simple tool it usually works
-	// A better way would be using the registry, but setx is more standard for quick CLIs
-	
-	path := os.Getenv("PATH")
-	if strings.Contains(strings.ToLower(path), strings.ToLower(exeDir)) {
-		fmt.Println("Diet directory is already in your PATH.")
-		return nil
-	}
-
-	fmt.Printf("Adding %s to your PATH...\n", exeDir)
-	
-	// We use powershell to safely append to PATH
+func installWindows(binDir string) error {
+	// Use powershell to safely append to User PATH
 	cmd := exec.Command("powershell", "-Command", fmt.Sprintf(`
 		$oldPath = [Environment]::GetEnvironmentVariable("Path", "User");
 		if ($oldPath -notlike "*%s*") {
 			[Environment]::SetEnvironmentVariable("Path", $oldPath + ";%s", "User");
 			Write-Host "Success";
+		} else {
+			Write-Host "Already in PATH";
 		}
-	`, exeDir, exeDir))
+	`, binDir, binDir))
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -74,7 +86,12 @@ func SetupGeminiHook(global bool) error {
 		return nil
 	}
 
-	exePath, _ := os.Executable()
+	home, _ := os.UserHomeDir()
+	exePath := filepath.Join(home, ".diet", "bin", "diet.exe")
+	if runtime.GOOS != "windows" {
+		exePath = filepath.Join(home, ".diet", "bin", "diet")
+	}
+	
 	// Escape backslashes for JSON
 	escapedPath := strings.ReplaceAll(exePath, "\\", "\\\\")
 
@@ -124,7 +141,12 @@ func SetupClaudeHook(global bool) error {
 		return nil
 	}
 
-	exePath, _ := os.Executable()
+	home, _ := os.UserHomeDir()
+	exePath := filepath.Join(home, ".diet", "bin", "diet.exe")
+	if runtime.GOOS != "windows" {
+		exePath = filepath.Join(home, ".diet", "bin", "diet")
+	}
+	
 	// Escape backslashes for JSON
 	escapedPath := strings.ReplaceAll(exePath, "\\", "\\\\")
 

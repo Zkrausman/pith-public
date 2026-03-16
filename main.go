@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.4.8"
+const version = "v0.4.9"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
