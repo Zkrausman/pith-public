@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.5.1"
+const version = "v0.5.2"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -109,15 +109,17 @@ var gainCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\n=== Diet: Overall Token Savings ===\n")
-		if totalOrig > 0 {
-			saved := totalOrig - totalComp
-			percent := (float64(saved) / float64(totalOrig)) * 100
-			fmt.Printf("Raw Tokens:        %d\n", totalOrig)
-			fmt.Printf("Compressed:        %d\n", totalComp)
-			fmt.Printf("Tokens Saved:      %d (%.2f%%)\n", saved, percent)
-		} else {
-			fmt.Println("No telemetry data recorded yet.")
+		if totalOrig == 0 {
+			fmt.Println("No telemetry data recorded yet. Run some commands through Diet to start tracking savings!")
+			fmt.Println()
+			return nil
 		}
+
+		saved := totalOrig - totalComp
+		percent := (float64(saved) / float64(totalOrig)) * 100
+		fmt.Printf("Raw Tokens:        %d\n", totalOrig)
+		fmt.Printf("Compressed:        %d\n", totalComp)
+		fmt.Printf("Tokens Saved:      %d (%.2f%%)\n", saved, percent)
 
 		byCmd, err := tel.GetStatsByCommand()
 		if err == nil && len(byCmd) > 0 {
@@ -166,6 +168,11 @@ var discoverCmd = &cobra.Command{
 		unparsed, err := tel.GetUnparsedCommands()
 		if err != nil {
 			return err
+		}
+
+		if len(unparsed) == 0 {
+			fmt.Println("No unparsed commands discovered yet. Run some commands through Diet to gather data!")
+			return nil
 		}
 
 		fmt.Printf("--- Opportunity Discovery (Unparsed Commands) ---\n")
