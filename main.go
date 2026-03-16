@@ -316,6 +316,7 @@ var installCmd = &cobra.Command{
 		all, _ := cmd.Flags().GetBool("all")
 		gemini, _ := cmd.Flags().GetBool("gemini")
 		claude, _ := cmd.Flags().GetBool("claude")
+		global, _ := cmd.Flags().GetBool("global")
 
 		// Default to Gemini if nothing specified (for backward compatibility)
 		if !all && !gemini && !claude {
@@ -323,13 +324,13 @@ var installCmd = &cobra.Command{
 		}
 
 		if all || gemini {
-			if err := install.SetupGeminiHook(); err != nil {
+			if err := install.SetupGeminiHook(global); err != nil {
 				fmt.Fprintf(os.Stderr, "Gemini hook failed: %v\n", err)
 			}
 		}
 
 		if all || claude {
-			if err := install.SetupClaudeHook(); err != nil {
+			if err := install.SetupClaudeHook(global); err != nil {
 				fmt.Fprintf(os.Stderr, "Claude hook failed: %v\n", err)
 			}
 		}
@@ -425,6 +426,7 @@ func init() {
 	installCmd.Flags().Bool("all", false, "Setup hooks for all supported CLIs")
 	installCmd.Flags().Bool("gemini", false, "Setup hook for Gemini CLI")
 	installCmd.Flags().Bool("claude", false, "Setup hook for Claude Code")
+	installCmd.Flags().BoolP("global", "g", false, "Install hooks globally in the home directory")
 
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(gainCmd)

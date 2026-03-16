@@ -54,15 +54,23 @@ func installWindows(exeDir string) error {
 	return nil
 }
 
-func SetupGeminiHook() error {
+func SetupGeminiHook(global bool) error {
 	configDir := ".gemini"
+	if global {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		configDir = filepath.Join(home, ".gemini")
+	}
+
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return err
 	}
 
 	settingsPath := filepath.Join(configDir, "settings.json")
 	if _, err := os.Stat(settingsPath); err == nil {
-		fmt.Println(".gemini/settings.json already exists. Skipping.")
+		fmt.Printf("%s already exists. Skipping.\n", settingsPath)
 		return nil
 	}
 
@@ -92,19 +100,27 @@ func SetupGeminiHook() error {
 		return err
 	}
 
-	fmt.Println("Successfully created .gemini/settings.json with Diet hook.")
+	fmt.Printf("Successfully created %s with Diet hook.\n", settingsPath)
 	return nil
 }
 
-func SetupClaudeHook() error {
+func SetupClaudeHook(global bool) error {
 	configDir := ".claude"
+	if global {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		configDir = filepath.Join(home, ".claude")
+	}
+
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return err
 	}
 
 	settingsPath := filepath.Join(configDir, "settings.json")
 	if _, err := os.Stat(settingsPath); err == nil {
-		fmt.Println(".claude/settings.json already exists. Skipping.")
+		fmt.Printf("%s already exists. Skipping.\n", settingsPath)
 		return nil
 	}
 
@@ -134,6 +150,6 @@ func SetupClaudeHook() error {
 		return err
 	}
 
-	fmt.Println("Successfully created .claude/settings.json with Diet hook.")
+	fmt.Printf("Successfully created %s with Diet hook.\n", settingsPath)
 	return nil
 }
