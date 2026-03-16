@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.1.1"
+const version = "v0.1.4"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -307,7 +307,7 @@ func init() {
 
 func main() {
 	if len(os.Args) > 1 {
-		subcmds := []string{"config", "gain", "discover", "_hook", "install", "update", "help", "--help", "-h"}
+		subcmds := []string{"config", "gain", "discover", "_hook", "install", "update", "version", "--version", "-v", "help", "--help", "-h"}
 		isSub := false
 		for _, s := range subcmds {
 			if os.Args[1] == s {
