@@ -1,33 +1,96 @@
 # Diet: Token-Optimized CLI Proxy
 
-`diet` is a high-performance CLI tool that intercepts terminal command outputs, compresses them, and filters out noise to save tokens for LLMs (like Claude Code, OpenCode, etc.).
+`diet` is a high-performance CLI tool that intercepts terminal command outputs, compresses them, and filters out noise to save tokens for LLMs (like Claude Code, Gemini CLI, etc.).
 
-## Features
+## 🚀 Features
 - **Zero-Overhead Proxy:** Fast Go-based binary for near-instant command interception.
-- **Smart Parsers:** Specialized logic for commands like `git status` to strip boilerplate.
-- **Telemetry & Discovery:** Tracks token usage and identifies common commands that need dedicated parsers.
-- **Interactive Configuration:** Simple CLI for toggling parsers and setting token limits.
+- **Smart Parsers:** 14+ specialized optimizers for common developer commands.
+- **Multi-LLM Integration:** Automated hook setup for Gemini CLI and Claude Code.
+- **Telemetry & Discovery:** Tracks exact token savings and identifies new optimization targets.
+- **Interactive Configuration:** Easily toggle parsers via `diet config`.
 
-## Installation
-Build from source:
-```bash
-go build -o diet
+## 📦 Installation
+1. Download the latest `diet.exe` from [Releases](https://github.com/Zkrausman/Diet/releases).
+2. Run the installer:
+   ```bash
+   ./diet.exe install --all
+   ```
+3. Restart your terminal.
+
+## 🛠️ Supported Parsers
+Diet currently optimizes the following commands:
+- **Git:** `status`, `log`, `diff`, `branch`
+- **Filesystem:** `ls`, `dir`, `find`, `tree`, `du`
+- **Text:** `grep`, `rg`, `cat` (JSON/XML/CSS/HTML minification)
+- **Infra/Dev:** `docker ps`, `npm list`, `pip list`, `npm test`, `go test`, `pytest`, `env`, `set`
+
+---
+
+## 📊 Compression Examples
+
+### 1. `git status`
+**Raw Output (~80 tokens):**
+```text
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   main.go
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   pkg/parser/git.go
 ```
 
-## Usage
-Proxy any command:
-```bash
-diet git status
-diet whoami
+**Diet Output (~25 tokens):**
+```text
+new file:   main.go
+modified:   pkg/parser/git.go
 ```
 
-Manage Diet:
-- `diet config`: Interactive configuration.
-- `diet gain`: View token savings report.
-- `diet discover`: Identify new parser opportunities.
+### 2. `git log`
+**Raw Output (~120 tokens):**
+```text
+commit 3f7d7f7b12345678
+Author: Zachary Krausman <zkrausman@gmail.com>
+Date:   Sun Mar 15 22:49:38 2026 -0400
 
-## Project Structure
-- `pkg/telemetry`: SQLite-based logging for token usage and discovery.
-- `pkg/parser`: Interface and implementations for command-specific optimizers.
-- `pkg/runner`: Core execution engine with token estimation.
-- `pkg/config`: Configuration management using JSON and interactive prompts.
+    Update: Display changelog during diet update
+
+commit 1cd63311f8330490
+Author: Zachary Krausman <zkrausman@gmail.com>
+Date:   Sun Mar 15 22:30:00 2026 -0400
+
+    Initial commit
+```
+
+**Diet Output (~35 tokens):**
+```text
+3f7d7f7 | Zachary Krausman | Mar 15 2026 | Update: Display changelog
+1cd6331 | Zachary Krausman | Mar 15 2026 | Initial commit
+```
+
+### 3. `ls -l`
+**Raw Output (~50 tokens):**
+```text
+total 8
+-rw-r--r--  1 user  group  123 Mar 15 22:30 main.go
+-rw-r--r--  1 user  group  456 Mar 15 22:31 README.md
+```
+
+**Diet Output (~10 tokens):**
+```text
+main.go README.md
+```
+
+---
+
+## ⌨️ CLI Usage
+- `diet <command>`: Proxy any command manually.
+- `diet config`: Toggle parsers on/off.
+- `diet gain`: View total tokens saved.
+- `diet discover`: See unparsed commands costing you tokens.
+- `diet reset --all`: Clear all telemetry data.
+- `diet update`: Auto-update to the latest version.
