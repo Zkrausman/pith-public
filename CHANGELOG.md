@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.1] - 2026-03-16
+
+### Fixed
+- Fixed an issue where commands intercepted by the Gemini CLI hook were not being logged to the Snag log. Diet now correctly parses exit codes from the hook payload to ensure accurate behavioral tracking.
+
 ## [v0.5.0] - 2026-03-16
 
 ### Added

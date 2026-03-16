@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.5.0"
+const version = "v0.5.1"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -257,13 +257,23 @@ var hookCmd = &cobra.Command{
 
 		// Handle common tool output prefixes from Gemini CLI (Output: / Error: )
 		var prefix string
+		exitCode := 0
 		if strings.HasPrefix(originalOutput, "Output: ") {
 			prefix = "Output: "
 			originalOutput = strings.TrimPrefix(originalOutput, "Output: ")
 		} else if strings.HasPrefix(originalOutput, "Error: ") {
 			prefix = "Error: "
 			originalOutput = strings.TrimPrefix(originalOutput, "Error: ")
+			exitCode = 1
 		}
+
+		if strings.Contains(originalOutput, "Exit Code: ") && !strings.Contains(originalOutput, "Exit Code: 0") {
+			exitCode = 1
+		}
+
+		run := runner.NewRunner(cfg, tel)
+		// Log to Snag using the raw intercepted hook data
+		run.LogForSnag(command, originalOutput, exitCode)
 
 		cmdParts := strings.Fields(command)
 		if len(cmdParts) == 0 {
@@ -300,7 +310,6 @@ var hookCmd = &cobra.Command{
 		compressed := p.Parse(originalOutput)
 		
 		// Apply truncation to hook output as well
-		run := runner.NewRunner(cfg, tel)
 		compressed = run.ApplyMiddleOutTruncation(compressed)
 
 		if tel != nil {

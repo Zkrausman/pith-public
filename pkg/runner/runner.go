@@ -31,7 +31,7 @@ func (r *Runner) Run(args []string) error {
 	return r.RunWithOptions(args, false)
 }
 
-func (r *Runner) logForSnag(cmdStr string, output string, exitCode int) {
+func (r *Runner) LogForSnag(cmdStr string, output string, exitCode int) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return // Silently fail if home dir can't be found
@@ -117,7 +117,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	fullOutput := stdoutStr + stderrStr
 	
 	// Log for Snag before doing any compression/truncation
-	r.logForSnag(fullCmd, fullOutput, exitCode)
+	r.LogForSnag(fullCmd, fullOutput, exitCode)
 
 	originalTokens := estimateTokens(fullOutput)
 
