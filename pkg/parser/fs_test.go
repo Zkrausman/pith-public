@@ -12,11 +12,11 @@ func TestLsParser(t *testing.T) {
 -rw-r--r--  1 user  group  456 Mar 15 22:31 README.md
 `
 	output := p.Parse(input)
-	if !strings.Contains(output, "main.go") || !strings.Contains(output, "README.md") {
-		t.Errorf("Expected filenames in output, got: %s", output)
+	if !strings.Contains(output, "main.go") || !strings.Contains(output, "123") || !strings.Contains(output, "-rw-r--r--") {
+		t.Errorf("Expected filenames, sizes, and modes in output, got: %s", output)
 	}
 	if strings.Contains(output, "total") || strings.Contains(output, "user") {
-		t.Errorf("Output contains metadata: %s", output)
+		t.Errorf("Output contains redundant metadata: %s", output)
 	}
 }
 

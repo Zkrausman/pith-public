@@ -24,6 +24,7 @@ func TestMinifyParser(t *testing.T) {
 	p := &MinifyParser{}
 	input := `{
   "name": "diet",
+  // This is a comment
   "version": "0.3.0",
   "enabled_parsers": {
     "git_status": true
@@ -36,10 +37,13 @@ func TestMinifyParser(t *testing.T) {
 	}
 
 	output := p.Parse(input)
-	if strings.Contains(output, "\n") {
-		t.Error("Minified output should not contain newlines")
+	if strings.Contains(output, "//") {
+		t.Error("Minified output should not contain comments")
+	}
+	if !strings.Contains(output, "\n") {
+		t.Error("Balanced minification should preserve some newlines for readability")
 	}
 	if strings.Contains(output, "  ") {
-		t.Error("Minified output should not contain double spaces")
+		t.Error("Minified output should have collapsed indentation")
 	}
 }

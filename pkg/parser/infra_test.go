@@ -61,3 +61,19 @@ DONE: 1 passed, 1 failed
 		t.Errorf("TestParser missing summary or failure: %s", output)
 	}
 }
+
+func TestGitHubParser(t *testing.T) {
+	p := &GitHubParser{}
+	input := `Zkrausman/Diet         private 2026-03-16T06:01:28Z
+Zkrausman/resume       public  2026-01-01T12:00:00Z
+`
+	// Test CanParse
+	if !p.CanParse("gh repo list", []string{}) {
+		t.Error("GitHubParser should handle gh list commands")
+	}
+
+	output := p.Parse(input)
+	if !strings.Contains(output, "Zkrausman/Diet | private | 2026-03-16T06:0") {
+		t.Errorf("GitHubParser failed to format repo list, got:\n%s", output)
+	}
+}

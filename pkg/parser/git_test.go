@@ -97,3 +97,28 @@ func TestGitBranchParser(t *testing.T) {
 		t.Errorf("Expected branch count summary, got: %s", output)
 	}
 }
+
+func TestCompositeGitParser(t *testing.T) {
+	p := &CompositeGitParser{}
+	input := `On branch main
+modified:   main.go
+
+commit 58fa1e900190f04d75832d77acaa0eaccf823b0b
+Author: Zachary Krausman <zkrausman@gmail.com>
+Date:   Mon Mar 16 01:51:29 2026 -0400
+
+    chore: update changelog for v0.4.3
+`
+	// Test CanParse
+	if !p.CanParse("git status & git log", []string{}) {
+		t.Error("CompositeGitParser should handle shell-joined git commands")
+	}
+
+	output := p.Parse(input)
+	if !strings.Contains(output, "modified:   main.go") {
+		t.Error("Output should contain status info")
+	}
+	if !strings.Contains(output, "58fa1e9 | Zachary Krausman | Mar 16 2026 | chore: update changelog for v0.4.3") {
+		t.Errorf("Output should contain condensed log info, got:\n%s", output)
+	}
+}

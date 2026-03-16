@@ -59,4 +59,32 @@ func TestTelemetry(t *testing.T) {
 	if len(unparsed) != 0 {
 		t.Error("Expected 0 unparsed commands")
 	}
+
+	// Test passthrough recording
+	passthroughRec := ExecutionRecord{
+		Command:       "unknown command",
+		IsPassthrough: true,
+	}
+	_ = tel.Record(passthroughRec)
+	unparsed, _ = tel.GetUnparsedCommands()
+	if len(unparsed) == 0 {
+		t.Error("Expected unparsed commands to be populated")
+	}
+
+	// Test Reset
+	if err := tel.ResetPassthrough(); err != nil {
+		t.Error(err)
+	}
+	unparsed, _ = tel.GetUnparsedCommands()
+	if len(unparsed) != 0 {
+		t.Error("ResetPassthrough failed")
+	}
+
+	if err := tel.ResetAll(); err != nil {
+		t.Error(err)
+	}
+	orig, _, _ = tel.GetStats()
+	if orig != 0 {
+		t.Error("ResetAll failed")
+	}
 }
