@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.3.1"
+const version = "v0.3.2"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -94,21 +94,47 @@ var gainCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("--- Diet Token Savings Report ---\n")
-		fmt.Printf("Total Raw Tokens:        %d\n", totalOrig)
-		fmt.Printf("Total Compressed Tokens: %d\n", totalComp)
-		fmt.Printf("Total Tokens Saved:      %d (%.2f%%)\n", totalOrig-totalComp, float64(totalOrig-totalComp)/float64(totalOrig)*100)
-		fmt.Println()
+		fmt.Printf("\n=== Diet: Overall Token Savings ===\n")
+		if totalOrig > 0 {
+			saved := totalOrig - totalComp
+			percent := (float64(saved) / float64(totalOrig)) * 100
+			fmt.Printf("Raw Tokens:        %d\n", totalOrig)
+			fmt.Printf("Compressed:        %d\n", totalComp)
+			fmt.Printf("Tokens Saved:      %d (%.2f%%)\n", saved, percent)
+		} else {
+			fmt.Println("No telemetry data recorded yet.")
+		}
 
 		byCmd, err := tel.GetStatsByCommand()
-		if err == nil {
-			fmt.Printf("%-30s | %-10s | %-10s | %-10s\n", "Command Pattern", "Raw", "Diet", "Savings")
-			fmt.Println(strings.Repeat("-", 66))
+		if err == nil && len(byCmd) > 0 {
+			fmt.Printf("\n--- Breakdown by Command ---\n")
+			fmt.Printf("%-25s | %-10s | %-10s | %-10s\n", "Command Pattern", "Raw", "Diet", "Savings")
+			fmt.Println(strings.Repeat("-", 61))
 			for _, r := range byCmd {
 				savings := r.Original - r.Compressed
-				fmt.Printf("%-30s | %-10d | %-10d | %-10d\n", r.Command, r.Original, r.Compressed, savings)
+				fmt.Printf("%-25s | %-10d | %-10d | %-10d\n", r.Command, r.Original, r.Compressed, savings)
 			}
 		}
+
+		unparsed, err := tel.GetUnparsedCommands()
+		if err == nil && len(unparsed) > 0 {
+			fmt.Printf("\n--- Top Unparsed Commands (Discovery) ---\n")
+			fmt.Printf("%-25s | %-8s | %-12s | %-12s\n", "Command Pattern", "Count", "Raw Tokens", "Est. Savings")
+			fmt.Println(strings.Repeat("-", 65))
+			// Only show top 5 in gain summary
+			limit := len(unparsed)
+			if limit > 5 { limit = 5 }
+			for i := 0; i < limit; i++ {
+				r := unparsed[i]
+				estSavings := float64(r.TotalRawTokens) * 0.7
+				fmt.Printf("%-25s | %-8d | %-12d | %-12.0f\n", r.Pattern, r.InvocationCount, r.TotalRawTokens, estSavings)
+			}
+			if len(unparsed) > 5 {
+				fmt.Printf("... and %d more. Run 'diet discover' for full list.\n", len(unparsed)-5)
+			}
+		}
+
+		fmt.Println()
 		return nil
 	},
 }
@@ -301,7 +327,43 @@ var versionCmd = &cobra.Command{
 	},
 }
 
+var resetCmd = &cobra.Command{
+	Use:   "reset",
+	Short: "Reset telemetry data",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		tel, err := telemetry.NewTelemetry()
+		if err != nil {
+			return err
+		}
+		defer tel.Close()
+
+		passthrough, _ := cmd.Flags().GetBool("discover")
+		all, _ := cmd.Flags().GetBool("all")
+
+		if all {
+			if err := tel.ResetAll(); err != nil {
+				return err
+			}
+			fmt.Println("All telemetry data has been reset.")
+			return nil
+		}
+
+		if passthrough {
+			if err := tel.ResetPassthrough(); err != nil {
+				return err
+			}
+			fmt.Println("Discovery data (passthrough commands) has been reset.")
+			return nil
+		}
+
+		return fmt.Errorf("please specify what to reset using --all or --discover")
+	},
+}
+
 func init() {
+	resetCmd.Flags().Bool("all", false, "Reset ALL telemetry data (gain and discover)")
+	resetCmd.Flags().Bool("discover", false, "Reset only discovery data (passthrough commands)")
+
 	installCmd.Flags().Bool("all", false, "Setup hooks for all supported CLIs")
 	installCmd.Flags().Bool("gemini", false, "Setup hook for Gemini CLI")
 	installCmd.Flags().Bool("claude", false, "Setup hook for Claude Code")
@@ -313,6 +375,7 @@ func init() {
 	rootCmd.AddCommand(installCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(resetCmd)
 }
 
 func main() {

@@ -153,3 +153,13 @@ func (t *Telemetry) GetStatsByCommand() ([]struct {
 	}
 	return results, nil
 }
+
+func (t *Telemetry) ResetAll() error {
+	_, err := t.db.Exec("DELETE FROM executions")
+	return err
+}
+
+func (t *Telemetry) ResetPassthrough() error {
+	_, err := t.db.Exec("DELETE FROM executions WHERE is_passthrough = 1")
+	return err
+}
