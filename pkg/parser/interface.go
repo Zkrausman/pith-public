@@ -9,6 +9,7 @@ type Parser interface {
 func GetAllParsers() []Parser {
 	return []Parser{
 		// Git
+		&CompositeGitParser{},
 		&GitStatusParser{},
 		&GitLogParser{},
 		&GitDiffParser{},

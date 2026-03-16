@@ -129,3 +129,114 @@ func (g *GitBranchParser) Parse(output string) string {
 	}
 	return res
 }
+
+// CompositeGitParser (NEW) - Handles things like "git status; git diff"
+type CompositeGitParser struct {
+	statusParser *GitStatusParser
+	logParser    *GitLogParser
+	diffParser   *GitDiffParser
+}
+
+func (c *CompositeGitParser) Name() string { return "git_composite" }
+func (c *CompositeGitParser) CanParse(cmd string, args []string) bool {
+	// Check if it's a shell-joined command containing git
+	return strings.Contains(cmd, "git ") && (strings.Contains(cmd, ";") || strings.Contains(cmd, "&"))
+}
+func (c *CompositeGitParser) Parse(output string) string {
+	// A more effective approach for composite git output: 
+	// 1. Split into lines
+	// 2. Filter out known git noise (headers, use-instructions, etc.)
+	// 3. For logs, condense the commit headers
+	// 4. For diffs, keep only +/- lines and @@ markers
+	
+	lines := strings.Split(output, "\n")
+	var result []string
+	
+	// Track state for log condensation within composite output
+	var currentCommit, currentAuthor, currentDate, currentSubject string
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		
+		// Skip standard status/branch noise
+		if trimmed == "" || strings.HasPrefix(trimmed, "(use ") ||
+			strings.HasPrefix(trimmed, "On branch") || strings.HasPrefix(trimmed, "Your branch") ||
+			strings.Contains(trimmed, "nothing to commit") || strings.Contains(trimmed, "no changes added") ||
+			strings.HasPrefix(trimmed, "Changes not staged") || strings.HasPrefix(trimmed, "Changes to be committed") ||
+			strings.HasPrefix(trimmed, "Untracked files") {
+			continue
+		}
+
+		// Handle diff noise
+		if strings.HasPrefix(line, "index ") || strings.HasPrefix(line, "diff --git") {
+			continue
+		}
+		if strings.HasPrefix(line, "@@") {
+			result = append(result, "@@")
+			continue
+		}
+		if strings.HasPrefix(line, "--- a/") {
+			result = append(result, "--- "+strings.TrimPrefix(line, "--- a/"))
+			continue
+		}
+		if strings.HasPrefix(line, "+++ b/") {
+			result = append(result, "+++ "+strings.TrimPrefix(line, "+++ b/"))
+			continue
+		}
+
+		// Log processing
+		if strings.HasPrefix(line, "commit ") {
+			if currentCommit != "" {
+				result = append(result, formatCommit(currentCommit, currentAuthor, currentDate, currentSubject))
+			}
+			currentCommit = strings.TrimPrefix(line, "commit ")
+			if len(currentCommit) > 7 { currentCommit = currentCommit[:7] }
+			currentAuthor, currentDate, currentSubject = "", "", ""
+			continue
+		} else if strings.HasPrefix(line, "Author: ") {
+			currentAuthor = strings.TrimPrefix(line, "Author: ")
+			if idx := strings.Index(currentAuthor, " <"); idx != -1 { currentAuthor = currentAuthor[:idx] }
+			continue
+		} else if strings.HasPrefix(line, "Date: ") {
+			currentDate = strings.TrimPrefix(line, "Date: ")
+			fields := strings.Fields(currentDate)
+			if len(fields) >= 3 { currentDate = fields[1] + " " + fields[2] + " " + fields[4] }
+			continue
+		} else if strings.HasPrefix(line, "    ") && currentSubject == "" && currentCommit != "" {
+			currentSubject = strings.TrimSpace(line)
+			continue
+		}
+
+		// If we finished a log entry and moved on to something else (status/diff lines)
+		if currentCommit != "" && !strings.HasPrefix(line, "    ") {
+			result = append(result, formatCommit(currentCommit, currentAuthor, currentDate, currentSubject))
+			currentCommit = ""
+		}
+
+		// Keep diff changes
+		if strings.HasPrefix(line, "+") || strings.HasPrefix(line, "-") {
+			result = append(result, line)
+			continue
+		}
+
+		// Default to keeping the line (like status file names)
+		result = append(result, trimmed)
+	}
+
+	// Final flush if log was at the end
+	if currentCommit != "" {
+		result = append(result, formatCommit(currentCommit, currentAuthor, currentDate, currentSubject))
+	}
+
+	// Post-processing to remove duplicates that might occur from the multi-parser approach
+	var final []string
+	seen := make(map[string]bool)
+	for _, l := range result {
+		if !seen[l] || l == "@@" { // Allow multiple hunk markers
+			final = append(final, l)
+			seen[l] = true
+		}
+	}
+	
+	return strings.Join(final, "\n")
+}

@@ -38,9 +38,19 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	cmdName := args[0]
 	cmdArgs := args[1:]
 
+	fullCmd := strings.Join(args, " ")
 	start := time.Now()
 	
-	cmd := exec.Command(cmdName, cmdArgs...)
+	var cmd *exec.Cmd
+	// If it's a composite command or has shell redirects, run through shell
+	if strings.ContainsAny(fullCmd, ";|&><") {
+		// Windows
+		cmd = exec.Command("cmd", "/c", fullCmd)
+		// On Linux/macOS you'd use "sh", "-c", fullCmd
+	} else {
+		cmd = exec.Command(cmdName, cmdArgs...)
+	}
+
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
@@ -61,7 +71,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 		for _, parser := range r.parsers {
 			enabled, ok := r.cfg.EnabledParsers[parser.Name()]
 			// If not in config, default to enabled. If in config, check boolean.
-			if (!ok || enabled) && parser.CanParse(cmdName, cmdArgs) {
+			if (!ok || enabled) && parser.CanParse(fullCmd, []string{}) {
 				p = parser
 				break
 			}
