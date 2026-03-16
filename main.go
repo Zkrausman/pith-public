@@ -2,8 +2,10 @@ package main
 
 import (
 	"diet/pkg/config"
+	"diet/pkg/install"
 	"diet/pkg/parser"
 	"diet/pkg/runner"
+	"diet/pkg/selfupdate"
 	"diet/pkg/telemetry"
 	"encoding/json"
 	"fmt"
@@ -14,12 +16,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const version = "v0.1.0"
+
 var rootCmd = &cobra.Command{
-	Use:   "diet [command]",
-	Short: "Diet is a token-optimized CLI proxy",
-	Long:  `Diet intercepts terminal commands, compresses their output, and filters out noise to save tokens for LLMs.`,
+	Use:     "diet [command]",
+	Short:   "Diet is a token-optimized CLI proxy",
+	Version: version,
+	Long:    `Diet intercepts terminal commands, compresses their output, and filters out noise to save tokens for LLMs.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
+// ...
+
 			return cmd.Help()
 		}
 
@@ -232,16 +238,44 @@ func respondAllow() error {
 	return json.NewEncoder(os.Stdout).Encode(output)
 }
 
+var installCmd = &cobra.Command{
+	Use:   "install",
+	Short: "Install Diet to your system PATH and setup Gemini hook",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := install.Install(); err != nil {
+			return err
+		}
+		return install.SetupGeminiHook()
+	},
+}
+
+var updateCmd = &cobra.Command{
+	Use:   "update",
+	Short: "Update Diet to the latest version from GitHub",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		updated, err := selfupdate.CheckAndApplyUpdate(version)
+		if err != nil {
+			return err
+		}
+		if !updated {
+			fmt.Println("Diet is already up to date.")
+		}
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(gainCmd)
 	rootCmd.AddCommand(discoverCmd)
 	rootCmd.AddCommand(hookCmd)
+	rootCmd.AddCommand(installCmd)
+	rootCmd.AddCommand(updateCmd)
 }
 
 func main() {
 	if len(os.Args) > 1 {
-		subcmds := []string{"config", "gain", "discover", "_hook", "help", "--help", "-h"}
+		subcmds := []string{"config", "gain", "discover", "_hook", "install", "update", "help", "--help", "-h"}
 		isSub := false
 		for _, s := range subcmds {
 			if os.Args[1] == s {
