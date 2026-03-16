@@ -1,152 +1,429 @@
 prompts: [tests/prompts.txt]
 
 providers:
-  - id: google:gemini-2.5-flash
+  - id: google:gemini-3-flash
     config:
       temperature: 0
 
 defaultTest:
   options:
-    provider: google:gemini-2.5-flash
+    provider: google:gemini-3-flash
 
 tests:
-  # --- 1. GIT STATUS (Core context) ---
+  # --- 1. GitStatusParser ---
   - vars:
       command: "git status"
+      task: "List the modified and untracked files."
       output: |
-        modified:   main.go
-        new file:   pkg/parser/git.go
-        untracked:  pkg/parser/git_test.go
+        On branch main
+        Your branch is up to date with 'origin/main'.
+        
+        Changes not staged for commit:
+          (use "git add <file>..." to update what will be committed)
+          (use "git restore <file>..." to discard changes in working directory)
+            modified:   main.go
+        
+        Untracked files:
+          (use "git add <file>..." to include in what will be committed)
+            pkg/parser/git.go
+            pkg/parser/git_test.go
+        
+        no changes added to commit (use "git add" and/or "git commit -a")
     assert:
       - type: llm-rubric
-        value: "The model correctly identifies that main.go is modified and git_test.go is untracked."
+        value: "The model correctly identifies that main.go is modified and git.go, git_test.go are untracked."
+  - vars:
+      command: "git status"
+      task: "List the modified and untracked files."
+      output: |
+        modified:   main.go
+        pkg/parser/git.go
+        pkg/parser/git_test.go
+    assert:
+      - type: llm-rubric
+        value: "The model correctly identifies that main.go is modified and git.go, git_test.go are untracked."
 
-  # --- 2. GIT LOG (History) ---
+  # --- 2. GitLogParser ---
   - vars:
       command: "git log"
+      task: "Identify the author and subject of the most recent commit."
+      output: |
+        commit 7726b0559ebaa0459b9c922ed35b0b1cc369e5d4
+        Author: Zachary Krausman <zkrau@example.com>
+        Date:   Mon Mar 16 14:00:00 2026 -0400
+        
+            Release v0.4.7: GitHub parser and Runner fixes
+        
+        commit 66a9cd215dfaa92a2a0e417a8de929b9fca554a9
+        Author: Zachary Krausman <zkrau@example.com>
+        Date:   Mon Mar 16 12:00:00 2026 -0400
+        
+            Release v0.4.6: Add GitHubParser for gh list commands
+    assert:
+      - type: llm-rubric
+        value: "The model identifies Zachary Krausman as the author and 'Release v0.4.7: GitHub parser and Runner fixes' as the subject."
+  - vars:
+      command: "git log"
+      task: "Identify the author and subject of the most recent commit."
       output: |
         7726b05 | Zachary Krausman | Mar 16 2026 | Release v0.4.7: GitHub parser and Runner fixes
         66a9cd2 | Zachary Krausman | Mar 16 2026 | Release v0.4.6: Add GitHubParser for gh list commands
     assert:
-      - type: icontains
-        value: "v0.4.7"
       - type: llm-rubric
-        value: "The model identifies the latest release version and the author."
+        value: "The model identifies Zachary Krausman as the author and 'Release v0.4.7: GitHub parser and Runner fixes' as the subject."
 
-  # --- 3. GIT DIFF (Code changes) ---
+  # --- 3. GitDiffParser ---
   - vars:
       command: "git diff"
+      task: "What was the version changed to?"
+      output: |
+        diff --git a/main.go b/main.go
+        index 8f3d2a1..9e4b5c2 10064
+        --- a/main.go
+        +++ b/main.go
+        @@ -10,3 +10,3 @@ func init() {
+        -    const version = "v0.4.6"
+        +    const version = "v0.4.7"
+             fmt.Println(version)
+    assert:
+      - type: llm-rubric
+        value: "The model states the version was changed to v0.4.7."
+  - vars:
+      command: "git diff"
+      task: "What was the version changed to?"
       output: |
         --- main.go
         +++ main.go
         @@
-        - const version = "v0.4.6"
-        + const version = "v0.4.7"
+        -    const version = "v0.4.6"
+        +    const version = "v0.4.7"
     assert:
       - type: llm-rubric
-        value: "The model identifies that the version was bumped from 0.4.6 to 0.4.7."
+        value: "The model states the version was changed to v0.4.7."
 
-  # --- 4. LS (Metadata context) ---
+  # --- 4. GitBranchParser ---
+  - vars:
+      command: "git branch"
+      task: "What is the current active branch?"
+      output: |
+        * main
+          feature/auth
+          bugfix/typo
+          v0.4.7-release
+    assert:
+      - type: llm-rubric
+        value: "The model identifies 'main' as the active branch."
+  - vars:
+      command: "git branch"
+      task: "What is the current active branch?"
+      output: |
+        * main
+        (+ 3 other branches)
+    assert:
+      - type: llm-rubric
+        value: "The model identifies 'main' as the active branch."
+
+  # --- 5. CompositeGitParser ---
+  - vars:
+      command: "git status & git diff"
+      task: "List the modified file and the new version number."
+      output: |
+        On branch main
+        Changes not staged for commit:
+            modified:   main.go
+        
+        diff --git a/main.go b/main.go
+        index 8f3d2a1..9e4b5c2 10064
+        --- a/main.go
+        +++ b/main.go
+        @@ -10,3 +10,3 @@ func init() {
+        -    const version = "v0.4.6"
+        +    const version = "v0.4.7"
+    assert:
+      - type: llm-rubric
+        value: "The model identifies main.go as modified and v0.4.7 as the new version."
+  - vars:
+      command: "git status & git diff"
+      task: "List the modified file and the new version number."
+      output: |
+        modified:   main.go
+        --- main.go
+        +++ main.go
+        @@
+        -    const version = "v0.4.6"
+        +    const version = "v0.4.7"
+    assert:
+      - type: llm-rubric
+        value: "The model identifies main.go as modified and v0.4.7 as the new version."
+
+  # --- 6. LsParser ---
   - vars:
       command: "ls -l"
+      task: "Identify the file size of diet.exe."
       output: |
+        total 20000
+        drwxr-xr-x 4 zkrau users     4096 Mar 16 12:00 pkg
+        -rw-r--r-- 1 zkrau users    12799 Mar 16 12:00 main.go
+        -rwxr-xr-x 1 zkrau users 19467776 Mar 16 12:00 diet.exe
+    assert:
+      - type: llm-rubric
+        value: "The model identifies 19467776 as the file size of diet.exe."
+  - vars:
+      command: "ls -l"
+      task: "Identify the file size of diet.exe."
+      output: |
+        drwxr-xr-x 4096 pkg
         -rw-r--r-- 12799 main.go
         -rwxr-xr-x 19467776 diet.exe
-        drwxr-xr-x 4096 pkg
     assert:
       - type: llm-rubric
-        value: "The model identifies main.go as a file and pkg as a directory, noting the large size of diet.exe."
+        value: "The model identifies 19467776 as the file size of diet.exe."
 
-  # --- 5. COMPOSITE GIT (Combined context) ---
+  # --- 7. FindParser ---
   - vars:
-      command: "git status & git log -n 1"
+      command: "find ."
+      task: "List the go files found in pkg/parser."
       output: |
-        modified:   pkg/parser/git.go
-        7726b05 | Zachary Krausman | Mar 16 2026 | Release v0.4.7: GitHub parser and Runner fixes
+        ./main.go
+        ./pkg/parser/fs.go
+        ./pkg/parser/git.go
     assert:
       - type: llm-rubric
-        value: "The model understands both the current uncommitted changes and the most recent commit."
-
-  # --- 6. GITHUB (External state) ---
+        value: "The model lists fs.go and git.go."
   - vars:
-      command: "gh pr list"
+      command: "find ."
+      task: "List the go files found in pkg/parser."
       output: |
-        #582 | Fix context blindness in compression | OPEN
-        #581 | Improve runner split logic | MERGED
+        ./main.go
+        ./pkg/parser/fs.go
+        ./pkg/parser/git.go
     assert:
       - type: llm-rubric
-        value: "The model identifies PR #582 as OPEN and knows its title."
+        value: "The model lists fs.go and git.go."
 
-  # --- 7. DOCKER (Infra state) ---
+  # --- 8. TreeParser ---
   - vars:
-      command: "docker ps"
+      command: "tree"
+      task: "What directory contains fs.go?"
       output: |
-        abc123456789	diet-db-container
-        def987654321	diet-app-service
+        .
+        ├── main.go
+        ├── pkg
+        │   └── parser
+        │       ├── fs.go
+        │       └── git.go
+        └── tests
+            └── prompts.txt
     assert:
       - type: llm-rubric
-        value: "The model lists two running containers with their IDs and names."
-
-  # --- 8. DEPENDENCIES (Package state) ---
+        value: "The model states that parser (or pkg/parser) contains fs.go."
   - vars:
-      command: "npm list"
+      command: "tree"
+      task: "What directory contains fs.go?"
       output: |
-        diet@0.4.7
-        github.com/spf13/cobra@v1.8.0
-        github.com/AlecAivazis/survey/v2@v2.3.7
+        .
+          main.go
+          pkg
+              parser
+                  fs.go
+                  git.go
+          tests
+              prompts.txt
     assert:
-      - type: icontains
-        value: "cobra"
       - type: llm-rubric
-        value: "The model identifies cobra as a dependency."
+        value: "The model states that parser (or pkg/parser) contains fs.go."
 
-  # --- 9. TESTS (Validation state) ---
+  # --- 9. DuParser ---
   - vars:
-      command: "go test ./..."
+      command: "du"
+      task: "What is the size of ./pkg/parser?"
       output: |
-        FAIL: TestMinifyParser
-        PASS: TestLsParser
-        DONE: 15 passed, 1 failed
+        12      ./tests
+        48      ./pkg/parser
+        52      ./pkg
+        200     .
     assert:
       - type: llm-rubric
-        value: "The model identifies that TestMinifyParser failed and 15 others passed."
-
-  # --- 10. MINIFY (Code read) ---
+        value: "The model states the size is 48."
   - vars:
-      command: "cat config.json"
+      command: "du"
+      task: "What is the size of ./pkg/parser?"
       output: |
-        {
-        "max_lines": 100,
-        "head_lines": 20,
-        "tail_lines": 20,
-        "enabled_parsers": {
-        "git_status": true
-        }
-        }
+        12      ./tests
+        48      ./pkg/parser
+        52      ./pkg
+        200     .
     assert:
       - type: llm-rubric
-        value: "The model identifies the max_lines setting as 100 even though indentation was collapsed."
+        value: "The model states the size is 48."
 
-  # --- 11. ENV (Config state) ---
+  # --- 10. EnvParser ---
   - vars:
       command: "env"
+      task: "Identify the user running the environment."
       output: |
-        PATH=/usr/bin:/usr/local/bin
+        PATH=/usr/bin:/bin
+        USER=zkrau
+        SECRET_KEY=supersecret123
+        LANG=en_US.UTF-8
+    assert:
+      - type: llm-rubric
+        value: "The model states the user is zkrau."
+  - vars:
+      command: "env"
+      task: "Identify the user running the environment."
+      output: |
+        PATH=/usr/bin:/bin
         USER=zkrau
         LANG=en_US.UTF-8
     assert:
       - type: llm-rubric
-        value: "The model identifies that the user is zkrau based on the environment variables."
+        value: "The model states the user is zkrau."
 
-  # --- 12. FIND/TREE (FS Structure) ---
+  # --- 11. DockerPsParser ---
   - vars:
-      command: "tree"
+      command: "docker ps"
+      task: "List the IDs and names of the running containers."
       output: |
-        pkg
-        parser
-        git.go
-        fs.go
-        main.go
+        CONTAINER ID   IMAGE         COMMAND    CREATED   STATUS    PORTS     NAMES
+        abc123456789   ubuntu:latest "bash"     1m ago    Up 1m               diet-db-container
+        def987654321   nginx:alpine  "nginx -g" 5m ago    Up 5m     80/tcp    diet-app-service
     assert:
       - type: llm-rubric
-        value: "The model understands that git.go is located inside the pkg/parser directory structure."
+        value: "The model lists abc123456789 with diet-db-container, and def987654321 with diet-app-service."
+  - vars:
+      command: "docker ps"
+      task: "List the IDs and names of the running containers."
+      output: |
+        abc123456789    diet-db-container
+        def987654321    diet-app-service
+    assert:
+      - type: llm-rubric
+        value: "The model lists abc123456789 with diet-db-container, and def987654321 with diet-app-service."
+
+  # --- 12. DependencyParser ---
+  - vars:
+      command: "npm list"
+      task: "Identify the version of cobra being used."
+      output: |
+        diet@0.4.7 /path/to/diet
+        ├── github.com/spf13/cobra@v1.8.0
+        ├── github.com/AlecAivazis/survey/v2@v2.3.7
+        └── gopkg.in/yaml.v3@v3.0.1
+    assert:
+      - type: llm-rubric
+        value: "The model states the version is v1.8.0."
+  - vars:
+      command: "npm list"
+      task: "Identify the version of cobra being used."
+      output: |
+        diet@0.4.7 /path/to/diet
+        github.com/spf13/cobra@v1.8.0
+        github.com/AlecAivazis/survey/v2@v2.3.7
+        gopkg.in/yaml.v3@v3.0.1
+    assert:
+      - type: llm-rubric
+        value: "The model states the version is v1.8.0."
+
+  # --- 13. TestParser ---
+  - vars:
+      command: "go test"
+      task: "Which test failed?"
+      output: |
+        === RUN   TestGitParser
+        --- PASS: TestGitParser (0.01s)
+        === RUN   TestLsParser
+        --- PASS: TestLsParser (0.01s)
+        === RUN   TestMinifyParser
+            minify_test.go:45: Expected "{ a: 1 }", got "{a: 1}"
+        --- FAIL: TestMinifyParser (0.02s)
+        FAIL
+        FAIL	diet/pkg/parser	0.05s
+    assert:
+      - type: llm-rubric
+        value: "The model identifies TestMinifyParser as the failed test."
+  - vars:
+      command: "go test"
+      task: "Which test failed?"
+      output: |
+        --- FAIL: TestMinifyParser (0.02s)
+        FAIL
+        FAIL	diet/pkg/parser	0.05s
+    assert:
+      - type: llm-rubric
+        value: "The model identifies TestMinifyParser as the failed test."
+
+  # --- 14. GitHubParser ---
+  - vars:
+      command: "gh issue list"
+      task: "What is the title of the OPEN issue?"
+      output: |
+        Showing 2 of 2 issues
+        
+        NUMBER  TITLE                                         STATE   UPDATED
+        #582    Fix context blindness in compression          OPEN    about 1 hour ago
+        #581    Improve runner split logic                    CLOSED  about 2 days ago
+    assert:
+      - type: llm-rubric
+        value: "The model identifies the title as 'Fix context blindness in compression'."
+  - vars:
+      command: "gh issue list"
+      task: "What is the title of the OPEN issue?"
+      output: |
+        #582 | Fix context blindness in compression | OPEN
+        #581 | Improve runner split logic | CLOSED
+    assert:
+      - type: llm-rubric
+        value: "The model identifies the title as 'Fix context blindness in compression'."
+
+  # --- 15. GrepParser ---
+  - vars:
+      command: "grep -n Parse"
+      task: "List the file names where Parse functions are located."
+      output: |
+        pkg/parser/git.go:15:func (g *GitStatusParser) Parse(output string) string {
+        pkg/parser/git.go:39:func (g *GitLogParser) Parse(output string) string {
+        pkg/parser/fs.go:15:func (l *LsParser) Parse(output string) string {
+    assert:
+      - type: llm-rubric
+        value: "The model lists pkg/parser/git.go and pkg/parser/fs.go."
+  - vars:
+      command: "grep -n Parse"
+      task: "List the file names where Parse functions are located."
+      output: |
+        pkg/parser/git.go:
+          15: func (g *GitStatusParser) Parse(output string) string {
+          39: func (g *GitLogParser) Parse(output string) string {
+        
+        pkg/parser/fs.go:
+          15: func (l *LsParser) Parse(output string) string {
+    assert:
+      - type: llm-rubric
+        value: "The model lists pkg/parser/git.go and pkg/parser/fs.go."
+
+  # --- 16. MinifyParser ---
+  - vars:
+      command: "cat config.json"
+      task: "What is the value of max_lines?"
+      output: |
+        {
+          // Configuration for diet
+          "max_lines":   100,
+          "head_lines":  20,
+          "tail_lines":  20
+        }
+    assert:
+      - type: llm-rubric
+        value: "The model states the value is 100."
+  - vars:
+      command: "cat config.json"
+      task: "What is the value of max_lines?"
+      output: |
+        {
+        "max_lines": 100,
+        "head_lines": 20,
+        "tail_lines": 20
+        }
+    assert:
+      - type: llm-rubric
+        value: "The model states the value is 100."

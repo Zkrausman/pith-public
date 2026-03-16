@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.4.8] - 2026-03-16
+
+### Fixed
+- Fixed Gemini CLI hook to correctly handle `Output: ` and `Error: ` prefixes in tool responses, ensuring parsers like `git_status` work correctly when called via hooks.
+
+### Changed
+- Updated `promptfooconfig.yaml` with more comprehensive evaluation cases for all major parsers.
+- Updated `tests/prompts.txt` to be more flexible for different evaluation tasks.
+
 ## [v0.4.7] - 2026-03-16
 
 ### Fixed

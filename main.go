@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.4.7"
+const version = "v0.4.8"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -255,6 +255,16 @@ var hookCmd = &cobra.Command{
 			return respondAllow()
 		}
 
+		// Handle common tool output prefixes from Gemini CLI (Output: / Error: )
+		var prefix string
+		if strings.HasPrefix(originalOutput, "Output: ") {
+			prefix = "Output: "
+			originalOutput = strings.TrimPrefix(originalOutput, "Output: ")
+		} else if strings.HasPrefix(originalOutput, "Error: ") {
+			prefix = "Error: "
+			originalOutput = strings.TrimPrefix(originalOutput, "Error: ")
+		}
+
 		cmdParts := strings.Fields(command)
 		if len(cmdParts) == 0 {
 			return respondAllow()
@@ -305,7 +315,7 @@ var hookCmd = &cobra.Command{
 
 		output := HookOutput{
 			Decision:      "deny",
-			Reason:        compressed,
+			Reason:        prefix + compressed,
 			SystemMessage: fmt.Sprintf("Output compressed by Diet (%s parser)", p.Name()),
 		}
 		return json.NewEncoder(os.Stdout).Encode(output)
