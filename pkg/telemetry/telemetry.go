@@ -34,6 +34,10 @@ func NewTelemetry() (*Telemetry, error) {
 		return nil, err
 	}
 	dbPath := filepath.Join(dir, "diet.db")
+	return NewTelemetryWithPath(dbPath)
+}
+
+func NewTelemetryWithPath(dbPath string) (*Telemetry, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, err

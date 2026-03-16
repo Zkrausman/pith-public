@@ -66,14 +66,27 @@ func (d *DependencyParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
 	var result []string
 	count := 0
+	
+	// Characters to strip from the beginning of dependency lines
+	replacer := strings.NewReplacer("├── ", "", "└── ", "", "│   ", "", "├─ ", "", "└─ ", "")
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" || strings.Contains(trimmed, "empty") { continue }
-		// Only keep lines that look like packages (don't have too many spaces or visual lines)
-		if !strings.Contains(trimmed, "│") && !strings.Contains(trimmed, "├") {
-			result = append(result, trimmed)
-			count++
+		
+		cleaned := replacer.Replace(trimmed)
+		if cleaned == trimmed && (strings.Contains(trimmed, "├──") || strings.Contains(trimmed, "└──")) {
+			// Fallback if formatting is slightly different
+			cleaned = strings.Map(func(r rune) rune {
+				if r == '├' || r == '─' || r == '└' || r == '│' {
+					return -1
+				}
+				return r
+			}, trimmed)
 		}
+		
+		result = append(result, strings.TrimSpace(cleaned))
+		count++
 		if count > 30 { break }
 	}
 	res := strings.Join(result, "\n")
