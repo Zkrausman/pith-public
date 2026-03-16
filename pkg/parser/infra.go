@@ -127,5 +127,58 @@ func (t *TestParser) Parse(output string) string {
 		}
 	}
 	if len(result) == 0 { return "Tests finished. (No summary captured)" }
+return strings.Join(result, "\n")
+}
+
+// GitHubParser (NEW)
+type GitHubParser struct{}
+
+func (g *GitHubParser) Name() string { return "github" }
+func (g *GitHubParser) CanParse(cmd string, args []string) bool {
+	if cmd != "gh" || len(args) < 2 { return false }
+	sub := args[0]
+	action := args[1]
+	return (sub == "issue" || sub == "pr" || sub == "release" || sub == "repo") && action == "list"
+}
+func (g *GitHubParser) Parse(output string) string {
+	lines := strings.Split(output, "\n")
+	var result []string
+	
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" { continue }
+		
+		// If it's a table-like output from gh list, it usually has tabs or multiple spaces
+		fields := strings.Split(trimmed, "\t")
+		if len(fields) < 2 {
+			fields = strings.Fields(trimmed)
+		}
+		
+		if len(fields) >= 3 {
+			// For issues/PRs: #NUMBER  TITLE  STATE/DATE  LABELS
+			// For releases: TITLE  STATE  TAG  DATE
+			
+			// Heuristic: Keep ID/Tag (field 0) and Title/Name (field 1)
+			id := fields[0]
+			title := fields[1]
+			
+			// If field 2 looks like a state (OPEN, MERGED, etc.) or date, keep it briefly
+			status := ""
+			if len(fields) >= 3 {
+				status = fields[2]
+				if len(status) > 10 { status = status[:10] } // Truncate long dates
+			}
+			
+			result = append(result, fmt.Sprintf("%s | %s | %s", id, title, status))
+		} else {
+			result = append(result, trimmed)
+		}
+		
+		if len(result) > 25 {
+			result = append(result, "... (truncated gh list)")
+			break
+		}
+	}
+	
 	return strings.Join(result, "\n")
 }

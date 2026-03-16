@@ -25,6 +25,7 @@ func GetAllParsers() []Parser {
 		// Infra
 		&EnvParser{},
 		&DockerPsParser{},
+		&GitHubParser{},
 		&DependencyParser{},
 		&TestParser{},
 	}
