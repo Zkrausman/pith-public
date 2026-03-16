@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.3.5"
+const version = "v0.4.0"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -276,6 +276,11 @@ var hookCmd = &cobra.Command{
 		}
 
 		compressed := p.Parse(originalOutput)
+		
+		// Apply truncation to hook output as well
+		run := runner.NewRunner(cfg, tel)
+		compressed = run.ApplyMiddleOutTruncation(compressed)
+
 		if tel != nil {
 			_ = tel.Record(telemetry.ExecutionRecord{
 				Command:          toolArgs.Command,
@@ -389,6 +394,30 @@ var resetCmd = &cobra.Command{
 	},
 }
 
+var rawCmd = &cobra.Command{
+	Use:   "raw [command]",
+	Short: "Run a command and bypass all parsers (escape hatch)",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return cmd.Help()
+		}
+
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			return err
+		}
+
+		tel, err := telemetry.NewTelemetry()
+		if err != nil {
+			return err
+		}
+		defer tel.Close()
+
+		run := runner.NewRunner(cfg, tel)
+		return run.RunWithOptions(args, true)
+	},
+}
+
 func init() {
 	resetCmd.Flags().Bool("all", false, "Reset ALL telemetry data (gain and discover)")
 	resetCmd.Flags().Bool("discover", false, "Reset only discovery data (passthrough commands)")
@@ -405,12 +434,13 @@ func init() {
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(resetCmd)
+	rootCmd.AddCommand(rawCmd)
 }
 
 func main() {
 	if len(os.Args) > 1 {
 		// List of internal subcommands and flags that SHOULD NOT be proxied
-		subcmds := []string{"config", "gain", "discover", "reset", "_hook", "install", "update", "version", "--version", "-v", "help", "--help", "-h"}
+		subcmds := []string{"config", "gain", "discover", "reset", "raw", "_hook", "install", "update", "version", "--version", "-v", "help", "--help", "-h"}
 		isSub := false
 		for _, s := range subcmds {
 			if os.Args[1] == s {

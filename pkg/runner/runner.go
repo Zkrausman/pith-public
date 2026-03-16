@@ -27,6 +27,10 @@ func NewRunner(cfg *config.Config, tel *telemetry.Telemetry) *Runner {
 }
 
 func (r *Runner) Run(args []string) error {
+	return r.RunWithOptions(args, false)
+}
+
+func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	if len(args) == 0 {
 		return fmt.Errorf("no command provided")
 	}
@@ -53,12 +57,14 @@ func (r *Runner) Run(args []string) error {
 	originalTokens := estimateTokens(fullOutput)
 
 	var p parser.Parser
-	for _, parser := range r.parsers {
-		enabled, ok := r.cfg.EnabledParsers[parser.Name()]
-		// If not in config, default to enabled. If in config, check boolean.
-		if (!ok || enabled) && parser.CanParse(cmdName, cmdArgs) {
-			p = parser
-			break
+	if !skipParsing {
+		for _, parser := range r.parsers {
+			enabled, ok := r.cfg.EnabledParsers[parser.Name()]
+			// If not in config, default to enabled. If in config, check boolean.
+			if (!ok || enabled) && parser.CanParse(cmdName, cmdArgs) {
+				p = parser
+				break
+			}
 		}
 	}
 
@@ -76,6 +82,9 @@ func (r *Runner) Run(args []string) error {
 	} else {
 		finalOutput = fullOutput
 	}
+
+	// Apply Middle-Out Truncation
+	finalOutput = r.ApplyMiddleOutTruncation(finalOutput)
 
 	compressedTokens := estimateTokens(finalOutput)
 
@@ -95,6 +104,27 @@ func (r *Runner) Run(args []string) error {
 	_ = r.telemetry.Record(record)
 
 	return err
+}
+
+func (r *Runner) ApplyMiddleOutTruncation(output string) string {
+	lines := strings.Split(output, "\n")
+	if len(lines) <= r.cfg.MaxLines {
+		return output
+	}
+
+	head := r.cfg.HeadLines
+	tail := r.cfg.TailLines
+
+	// Safety check to ensure we don't try to keep more lines than exist
+	if head+tail >= len(lines) {
+		return output
+	}
+
+	resultLines := append([]string{}, lines[:head]...)
+	resultLines = append(resultLines, fmt.Sprintf("\n... [%d lines removed by Diet middle-out truncation] ...\n", len(lines)-(head+tail)))
+	resultLines = append(resultLines, lines[len(lines)-tail:]...)
+
+	return strings.Join(resultLines, "\n")
 }
 
 func estimateTokens(s string) int {

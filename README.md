@@ -5,9 +5,11 @@
 ## 🚀 Features
 - **Zero-Overhead Proxy:** Fast Go-based binary for near-instant command interception.
 - **Smart Parsers:** 14+ specialized optimizers for common developer commands.
+- **Escape Hatch (`diet raw`):** Bypass all parsers when you need the exact, unformatted truth.
+- **Middle-Out Truncation:** Automatically keep the start and end of massive outputs, removing the redundant middle.
 - **Multi-LLM Integration:** Automated hook setup for Gemini CLI and Claude Code.
 - **Telemetry & Discovery:** Tracks exact token savings and identifies new optimization targets.
-- **Interactive Configuration:** Easily toggle parsers via `diet config`.
+- **Interactive Configuration:** Toggle parsers and adjust truncation limits via `diet config`.
 
 ## 📦 Installation
 1. Download the latest `diet.exe` from [Releases](https://github.com/Zkrausman/Diet/releases).
@@ -16,6 +18,27 @@
    ./diet.exe install --all
    ```
 3. Restart your terminal.
+
+---
+
+## 🛠️ Power User Features
+
+### 1. The Escape Hatch (`diet raw`)
+If a parser is being too aggressive and you need to see the raw, bit-for-bit output of a command, prefix it with `raw`:
+```bash
+diet raw git diff
+```
+This bypasses all logic and returns the original system output.
+
+### 2. Middle-Out Truncation
+When a command returns thousands of lines (like a massive log file), Diet prevents context overflow by keeping the most important parts: the **beginning** (setup/context) and the **end** (errors/results).
+
+**Configurable via `diet config`:**
+- `MaxLines`: Total lines allowed before truncation kicks in (default: 500).
+- `HeadLines`: Lines to preserve at the top (default: 100).
+- `TailLines`: Lines to preserve at the bottom (default: 100).
+
+---
 
 ## 🛠️ Supported Parsers
 Diet currently optimizes the following commands:

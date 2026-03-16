@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,8 +13,10 @@ import (
 type Config struct {
 	EnabledParsers  map[string]bool `json:"enabled_parsers"`
 	LastUpdateCheck int64           `json:"last_update_check"`
+	MaxLines        int             `json:"max_lines"`
+	HeadLines       int             `json:"head_lines"`
+	TailLines       int             `json:"tail_lines"`
 }
-
 
 func GetConfigPath() (string, error) {
 	home, err := os.UserHomeDir()
@@ -31,6 +34,9 @@ func LoadConfig() (*Config, error) {
 
 	cfg := &Config{
 		EnabledParsers: make(map[string]bool),
+		MaxLines:       500,
+		HeadLines:      100,
+		TailLines:      100,
 	}
 
 	data, err := os.ReadFile(path)
@@ -43,6 +49,17 @@ func LoadConfig() (*Config, error) {
 
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return cfg, nil
+	}
+
+	// Ensure defaults if missing from JSON
+	if cfg.MaxLines == 0 {
+		cfg.MaxLines = 500
+	}
+	if cfg.HeadLines == 0 {
+		cfg.HeadLines = 100
+	}
+	if cfg.TailLines == 0 {
+		cfg.TailLines = 100
 	}
 
 	return cfg, nil
@@ -101,6 +118,45 @@ func (c *Config) InteractiveConfig(availableParsers []string) error {
 		newEnabled[p] = true
 	}
 	c.EnabledParsers = newEnabled
+
+	// Truncation settings
+	var qs = []*survey.Question{
+		{
+			Name: "MaxLines",
+			Prompt: &survey.Input{
+				Message: "Max lines before middle-out truncation:",
+				Default: fmt.Sprintf("%d", c.MaxLines),
+			},
+		},
+		{
+			Name: "HeadLines",
+			Prompt: &survey.Input{
+				Message: "Number of lines to keep at the START:",
+				Default: fmt.Sprintf("%d", c.HeadLines),
+			},
+		},
+		{
+			Name: "TailLines",
+			Prompt: &survey.Input{
+				Message: "Number of lines to keep at the END:",
+				Default: fmt.Sprintf("%d", c.TailLines),
+			},
+		},
+	}
+
+	answers := struct {
+		MaxLines  int
+		HeadLines int
+		TailLines int
+	}{}
+
+	if err := survey.Ask(qs, &answers); err != nil {
+		return err
+	}
+
+	c.MaxLines = answers.MaxLines
+	c.HeadLines = answers.HeadLines
+	c.TailLines = answers.TailLines
 
 	return c.Save()
 }
