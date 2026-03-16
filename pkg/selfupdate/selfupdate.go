@@ -21,11 +21,22 @@ type Release struct {
 }
 
 func CheckAndApplyUpdate(currentVersion string) (bool, error) {
-	resp, err := http.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo))
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo), nil)
+	if err != nil {
+		return false, err
+	}
+	req.Header.Set("User-Agent", "Diet-Updater")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
+	}
 
 	var release Release
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
