@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -28,6 +29,43 @@ func NewRunner(cfg *config.Config, tel *telemetry.Telemetry) *Runner {
 
 func (r *Runner) Run(args []string) error {
 	return r.RunWithOptions(args, false)
+}
+
+func (r *Runner) logForSnag(cmdStr string, output string, exitCode int) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return // Silently fail if home dir can't be found
+	}
+	
+	logDir := filepath.Join(home, ".diet")
+	_ = os.MkdirAll(logDir, 0755)
+	
+	logPath := filepath.Join(logDir, "diet.log")
+	
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	// Truncate output for Snag to the last 50 lines to prevent log bloat
+	lines := strings.Split(output, "\n")
+	if len(lines) > 50 {
+		output = "[... output truncated by Diet for Snag log ...]\n" + strings.Join(lines[len(lines)-50:], "\n")
+	}
+
+	// Format: [CMD] command\n<output>\n[EXIT] code\n
+	entry := fmt.Sprintf("[CMD] %s\n", cmdStr)
+	if output != "" {
+		// Ensure output ends with a newline so [EXIT] is on its own line
+		if !strings.HasSuffix(output, "\n") {
+			output += "\n"
+		}
+		entry += output
+	}
+	entry += fmt.Sprintf("[EXIT] %d\n", exitCode)
+
+	_, _ = f.WriteString(entry)
 }
 
 func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
@@ -64,11 +102,23 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 
 	err := cmd.Run()
 	duration := time.Since(start).Milliseconds()
+	
+	exitCode := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode = exitErr.ExitCode()
+		} else {
+			exitCode = 1 // Generic failure
+		}
+	}
 
 	stdoutStr := out.String()
 	stderrStr := stderr.String()
 	fullOutput := stdoutStr + stderrStr
 	
+	// Log for Snag before doing any compression/truncation
+	r.logForSnag(fullCmd, fullOutput, exitCode)
+
 	originalTokens := estimateTokens(fullOutput)
 
 	var p parser.Parser

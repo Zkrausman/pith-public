@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.0] - 2026-03-16
+
+### Added
+- **Snag Integration:** Diet now actively exports a plain text log file specifically formatted for the [Snag](https://github.com/zkrau/snag) behavioral learning tool. Every intercepted command, its output (truncated to the last 50 lines to prevent bloat), and its exit code are appended to `~/.diet/diet.log` using the `[CMD]` and `[EXIT]` syntax required by Snag's collector.
+
 ## [v0.4.9] - 2026-03-16
 
 ### Improved
