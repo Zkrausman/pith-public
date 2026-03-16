@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -79,6 +80,10 @@ func (c *Config) InteractiveConfig(availableParsers []string) error {
 			defaultSelected = append(defaultSelected, p)
 		}
 	}
+
+	fmt.Println("\n--- Diet Configuration ---")
+	fmt.Println("Use [Space] to toggle, [Enter] to save, or [Ctrl+C] to cancel and exit.")
+	fmt.Println("--------------------------")
 
 	var selectedParsers []string
 	prompt := &survey.MultiSelect{
