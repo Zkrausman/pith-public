@@ -28,12 +28,20 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	}
 	req.Header.Set("User-Agent", "Diet-Updater")
 
+	// Support private repos via GITHUB_TOKEN
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return false, err
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return false, fmt.Errorf("repository not found (if it is private, set GITHUB_TOKEN)")
+	}
 	if resp.StatusCode != http.StatusOK {
 		return false, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
 	}
