@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.3.2"
+const version = "v0.3.3"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -29,7 +29,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Check if first arg is a known subcommand
-		subcmds := []string{"config", "gain", "discover"}
+		subcmds := []string{"config", "gain", "discover", "reset"}
 		isSub := false
 		for _, s := range subcmds {
 			if args[0] == s {
@@ -381,7 +381,7 @@ func init() {
 func main() {
 	if len(os.Args) > 1 {
 		// List of internal subcommands and flags that SHOULD NOT be proxied
-		subcmds := []string{"config", "gain", "discover", "_hook", "install", "update", "version", "--version", "-v", "help", "--help", "-h"}
+		subcmds := []string{"config", "gain", "discover", "reset", "_hook", "install", "update", "version", "--version", "-v", "help", "--help", "-h"}
 		isSub := false
 		for _, s := range subcmds {
 			if os.Args[1] == s {
