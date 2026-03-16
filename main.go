@@ -24,8 +24,7 @@ var rootCmd = &cobra.Command{
 	Version: version,
 	Long:    `Diet intercepts terminal commands, compresses their output, and filters out noise to save tokens for LLMs.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-// ...
-
+		if len(args) == 0 {
 			return cmd.Help()
 		}
 
