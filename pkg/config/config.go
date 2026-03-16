@@ -10,8 +10,10 @@ import (
 )
 
 type Config struct {
-	EnabledParsers map[string]bool `json:"enabled_parsers"`
+	EnabledParsers  map[string]bool `json:"enabled_parsers"`
+	LastUpdateCheck int64           `json:"last_update_check"`
 }
+
 
 func GetConfigPath() (string, error) {
 	home, err := os.UserHomeDir()

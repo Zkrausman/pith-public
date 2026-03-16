@@ -49,6 +49,19 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
+		// Background update check (once a day)
+		now := time.Now().Unix()
+		if now-cfg.LastUpdateCheck > 86400 { // 24 hours
+			cfg.LastUpdateCheck = now
+			_ = cfg.Save()
+			go func() {
+				newTag, _ := selfupdate.CheckForUpdateSilent(version)
+				if newTag != "" {
+					fmt.Fprintf(os.Stderr, "\n[Diet] A new version is available: %s. Run 'diet update' to upgrade!\n", newTag)
+				}
+			}()
+		}
+
 		tel, err := telemetry.NewTelemetry()
 		if err != nil {
 			return err
@@ -211,6 +224,21 @@ var hookCmd = &cobra.Command{
 		tel, _ := telemetry.NewTelemetry()
 		if tel != nil {
 			defer tel.Close()
+		}
+
+		// Background update check (once a day)
+		now := time.Now().Unix()
+		if now-cfg.LastUpdateCheck > 86400 { // 24 hours
+			cfg.LastUpdateCheck = now
+			_ = cfg.Save()
+			go func() {
+				newTag, _ := selfupdate.CheckForUpdateSilent(version)
+				if newTag != "" {
+					// We don't print to stdout here because it's a hook return JSON
+					// We can use stderr which Gemini CLI might log
+					fmt.Fprintf(os.Stderr, "\n[Diet] A new version is available: %s. Run 'diet update' to upgrade!\n", newTag)
+				}
+			}()
 		}
 
 		originalOutput := input.ToolResponse.LlmContent

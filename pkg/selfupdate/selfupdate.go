@@ -91,6 +91,40 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	return true, nil
 }
 
+func CheckForUpdateSilent(currentVersion string) (string, error) {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/releases", repo), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "Diet-Updater")
+
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
+	}
+
+	var releases []Release
+	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
+		return "", err
+	}
+
+	if len(releases) > 0 && releases[0].TagName != currentVersion {
+		return releases[0].TagName, nil
+	}
+
+	return "", nil
+}
+
 func downloadAndReplace(url string) error {
 	executablePath, err := os.Executable()
 	if err != nil {
