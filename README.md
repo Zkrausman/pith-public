@@ -4,7 +4,8 @@
 
 ## 🚀 Features
 - **Zero-Overhead Proxy:** Fast Go-based binary for near-instant command interception.
-- **Smart Parsers:** 14+ specialized optimizers for common developer commands.
+- **Smart Parsers:** 15+ specialized optimizers for common developer commands.
+- **Composite Commands:** Intelligent handling of shell-joined commands (e.g., `git status & git log`).
 - **Escape Hatch (`diet raw`):** Bypass all parsers when you need the exact, unformatted truth.
 - **Middle-Out Truncation:** Automatically keep the start and end of massive outputs, removing the redundant middle.
 - **Multi-LLM Integration:** Automated hook setup for Gemini CLI and Claude Code.
@@ -42,7 +43,7 @@ When a command returns thousands of lines (like a massive log file), Diet preven
 
 ## 🛠️ Supported Parsers
 Diet currently optimizes the following commands:
-- **Git:** `status`, `log`, `diff`, `branch`
+- **Git:** `status`, `log`, `diff`, `branch`, and **composite commands** (e.g., `git status & git log`)
 - **Filesystem:** `ls`, `dir`, `find`, `tree`, `du`
 - **Text:** `grep`, `rg`, `cat` (JSON/XML/CSS/HTML minification)
 - **Infra/Dev:** `docker ps`, `npm list`, `pip list`, `npm test`, `go test`, `pytest`, `env`, `set`
