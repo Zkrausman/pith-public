@@ -1,0 +1,4 @@
+diet.exe
+.diet/
+vendor/
+*.db
