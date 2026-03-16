@@ -54,7 +54,29 @@ func (m *MinifyParser) CanParse(cmd string, args []string) bool {
 var whitespaceRegex = regexp.MustCompile(`\s+`)
 
 func (m *MinifyParser) Parse(output string) string {
-	// Simple minification: strip newlines and collapse spaces
-	res := whitespaceRegex.ReplaceAllString(output, " ")
-	return strings.TrimSpace(res)
+	// Moderated minification: 
+	// 1. Strip comments (simple heuristic)
+	// 2. Collapse extreme whitespace, but keep some structure if large
+	// 3. Keep first 50 and last 50 lines to avoid model confusion (middle-out is handled by runner)
+	
+	lines := strings.Split(output, "\n")
+	var result []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" { continue }
+		
+		// Skip typical comments for common file types
+		if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || 
+		   strings.HasPrefix(trimmed, "<!--") || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		
+		// Collapse excessive spaces within the line
+		collapsed := whitespaceRegex.ReplaceAllString(trimmed, " ")
+		result = append(result, collapsed)
+	}
+	
+	// If it's still huge, we'll let the middle-out truncation handle it,
+	// but we've at least removed the metadata/comment noise.
+	return strings.Join(result, "\n")
 }
