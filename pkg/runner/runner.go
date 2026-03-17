@@ -123,6 +123,14 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 
 	var p parser.Parser
 	if !skipParsing {
+		cmdParts := strings.Fields(fullCmd)
+		var cmdName string
+		var cmdArgs []string
+		if len(cmdParts) > 0 {
+			cmdName = cmdParts[0]
+			cmdArgs = cmdParts[1:]
+		}
+
 		// Special Case: ChainParser
 		if strings.ContainsAny(fullCmd, ";|&><") {
 			cp := &parser.ChainParser{}
@@ -145,9 +153,6 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 					}
 					
 					if bestP != nil {
-						// Note: This is a limitation; we don't have the individual output 
-						// for each sub-command here if they were run as one shell command.
-						// For now, we only use the ChainParser to mark it as parsed.
 						p = cp
 						break
 					}
@@ -158,7 +163,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 		if p == nil {
 			for _, parser := range r.parsers {
 				enabled, ok := r.cfg.EnabledParsers[parser.Name()]
-				if (!ok || enabled) && parser.CanParse(fullCmd, []string{}) {
+				if (!ok || enabled) && parser.CanParse(cmdName, cmdArgs) {
 					p = parser
 					break
 				}

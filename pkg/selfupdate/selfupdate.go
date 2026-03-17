@@ -48,7 +48,8 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	req.Header.Set("User-Agent", "Diet-Updater")
 
 	// Support private repos via GITHUB_TOKEN or gh CLI
-	if token := getAuthToken(); token != "" {
+	token := getAuthToken()
+	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
@@ -103,7 +104,7 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	}
 
 	fmt.Println("Downloading update...")
-	if err := downloadAndReplace(downloadURL, getAuthToken()); err != nil {
+	if err := downloadAndReplace(downloadURL, token); err != nil {
 		return false, err
 	}
 
@@ -150,7 +151,25 @@ func downloadAndReplace(url string, token string) error {
 		return err
 	}
 
-	client := &http.Client{}`r`n        req, err := http.NewRequest("GET", url, nil)`r`n        if err != nil {`r`n                return err`r`n        }`r`n        req.Header.Set("User-Agent", "Diet-Updater")`r`n        if token != "" {`r`n                req.Header.Set("Authorization", "Bearer "+token)`r`n        }`r`n        resp, err := client.Do(req)`r`n        if err != nil {`r`n                return err`r`n        }`r`n        defer resp.Body.Close()`r`n`r`n        if resp.StatusCode != http.StatusOK {`r`n                return fmt.Errorf("GitHub returned status %d while downloading asset", resp.StatusCode)`r`n        }
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "Diet-Updater")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("GitHub returned status %d while downloading asset", resp.StatusCode)
+	}
 
 	// Create a temporary file for the new binary
 	tmpPath := executablePath + ".tmp"
@@ -183,4 +202,3 @@ func downloadAndReplace(url string, token string) error {
 	fmt.Println("Update successful! Please restart the application.")
 	return nil
 }
-

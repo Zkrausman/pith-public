@@ -27,16 +27,22 @@ func Install() error {
 
 	destPath := filepath.Join(dietBinDir, filepath.Base(exePath))
 	
-	// Copy the executable to ~/.diet/bin
-	input, err := os.ReadFile(exePath)
-	if err != nil {
-		return fmt.Errorf("failed to read executable: %v", err)
+	// Skip copy if we are already running from the destination path
+	absExe, _ := filepath.Abs(exePath)
+	absDest, _ := filepath.Abs(destPath)
+	if strings.ToLower(absExe) == strings.ToLower(absDest) {
+		fmt.Printf("Diet is already running from %s. Skipping copy.\n", destPath)
+	} else {
+		// Copy the executable to ~/.diet/bin
+		input, err := os.ReadFile(exePath)
+		if err != nil {
+			return fmt.Errorf("failed to read executable: %v", err)
+		}
+		if err := os.WriteFile(destPath, input, 0755); err != nil {
+			return fmt.Errorf("failed to copy executable: %v", err)
+		}
+		fmt.Printf("Copied Diet to %s\n", destPath)
 	}
-	if err := os.WriteFile(destPath, input, 0755); err != nil {
-		return fmt.Errorf("failed to copy executable: %v", err)
-	}
-
-	fmt.Printf("Copied Diet to %s\n", destPath)
 
 	if runtime.GOOS == "windows" {
 		return installWindows(dietBinDir)

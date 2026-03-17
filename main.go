@@ -25,27 +25,17 @@ var rootCmd = &cobra.Command{
 	Short:   "Diet is a token-optimized CLI proxy",
 	Version: version,
 	Long:    `Diet intercepts terminal commands, compresses their output, and filters out noise to save tokens for LLMs.`,
+	Args:    cobra.ArbitraryArgs,
+	// By default, if no subcommand matches, Cobra runs Run or RunE
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			return cmd.Help()
 		}
 
-		// Check if first arg is a known subcommand
-		subcmds := []string{"config", "gain", "discover", "reset"}
-		isSub := false
-		for _, s := range subcmds {
-			if args[0] == s {
-				isSub = true
-				break
-			}
-		}
-
-		if isSub {
-			// This part shouldn't really be reached if Cobra matches subcommands,
-			// but just in case or if we want to force routing.
-			return nil
-		}
-
+		// Since RunE is only called if NO other subcommand matches,
+		// and we handled the empty args case above, any args here
+		// MUST be intended as a proxy target.
+		
 		cfg, err := config.LoadConfig()
 		if err != nil {
 			return err
@@ -497,42 +487,6 @@ func init() {
 }
 
 func main() {
-	if len(os.Args) > 1 {
-		// List of internal subcommands and flags that SHOULD NOT be proxied
-		subcmds := []string{"config", "gain", "discover", "reset", "raw", "_hook", "install", "update", "version", "--version", "-v", "help", "--help", "-h", "dashboard"}
-		isSub := false
-		for _, s := range subcmds {
-			if os.Args[1] == s {
-				isSub = true
-				break
-			}
-		}
-
-		if !isSub {
-			// Not a subcommand, treat as proxy target
-			cfg, err := config.LoadConfig()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
-				os.Exit(1)
-			}
-
-			tel, err := telemetry.NewTelemetry()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error loading telemetry: %v\n", err)
-				os.Exit(1)
-			}
-			defer tel.Close()
-
-			run := runner.NewRunner(cfg, tel)
-			if err := run.Run(os.Args[1:]); err != nil {
-				// We don't exit with error here because the underlying command might have failed
-				// and we already printed its output.
-				os.Exit(0) 
-			}
-			os.Exit(0)
-		}
-	}
-
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
