@@ -1,8 +1,7 @@
 # Diet: Token-Optimized CLI Proxy
 
-[![Tests](https://github.com/Zkrausman/Diet/actions/workflows/test.yml/badge.svg)](https://github.com/Zkrausman/Diet/actions/workflows/test.yml)
-[![Release](https://img.shields.io/github/v/release/Zkrausman/Diet)](https://github.com/Zkrausman/Diet/releases)
-[![License](https://img.shields.io/github/license/Zkrausman/Diet)](https://github.com/Zkrausman/Diet/blob/main/LICENSE)
+[![Test and Release](https://github.com/Zkrausman/Diet/actions/workflows/test.yml/badge.svg)](https://github.com/Zkrausman/Diet/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Zkrausman/Diet/blob/main/LICENSE)
 
 `diet` is a high-performance CLI tool that intercepts terminal command outputs, compresses them, and filters out noise to save tokens for LLMs (like Claude Code, Gemini CLI, etc.).
 
