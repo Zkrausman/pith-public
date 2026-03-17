@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.3] - 2026-03-16
+
+### Added
+- Added a GitHub Actions workflow to automate Go testing on all pushes and pull requests.
+- Integrated automated cross-platform releases; pushing a version tag now triggers a build for Windows, Linux, and macOS (amd64 and arm64) and creates a GitHub Release with the binaries attached.
+
 ## [v0.5.2] - 2026-03-16
 
 ### Improved
