@@ -123,11 +123,45 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 
 	var p parser.Parser
 	if !skipParsing {
-		for _, parser := range r.parsers {
-			enabled, ok := r.cfg.EnabledParsers[parser.Name()]
-			if (!ok || enabled) && parser.CanParse(fullCmd, []string{}) {
-				p = parser
-				break
+		// Special Case: ChainParser
+		if strings.ContainsAny(fullCmd, ";|&><") {
+			cp := &parser.ChainParser{}
+			subcmds := cp.SplitSubCommands(fullCmd)
+			if len(subcmds) > 1 {
+				for _, sub := range subcmds {
+					// Identify the best parser for this sub-command
+					var bestP parser.Parser
+					subParts := strings.Fields(sub)
+					if len(subParts) == 0 { continue }
+					subCmdName := subParts[0]
+					subArgs := subParts[1:]
+
+					for _, pCandidate := range r.parsers {
+						enabled, ok := r.cfg.EnabledParsers[pCandidate.Name()]
+						if (!ok || enabled) && pCandidate.CanParse(subCmdName, subArgs) {
+							bestP = pCandidate
+							break
+						}
+					}
+					
+					if bestP != nil {
+						// Note: This is a limitation; we don't have the individual output 
+						// for each sub-command here if they were run as one shell command.
+						// For now, we only use the ChainParser to mark it as parsed.
+						p = cp
+						break
+					}
+				}
+			}
+		}
+
+		if p == nil {
+			for _, parser := range r.parsers {
+				enabled, ok := r.cfg.EnabledParsers[parser.Name()]
+				if (!ok || enabled) && parser.CanParse(fullCmd, []string{}) {
+					p = parser
+					break
+				}
 			}
 		}
 	}

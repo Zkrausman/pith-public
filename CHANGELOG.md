@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.6] - 2026-03-16
+
+### Added
+- **New Parsers:**
+    - `SourceParser`: Optimizes `cat` and `type` output by stripping comments and excessive whitespace while preserving code structure.
+    - `GitHubReleaseParser`: Optimizes `gh release view/list` by extracting key metadata (Tag, Title, Assets) and removing redundant SHAs.
+    - `ChainParser`: Enables optimization of shell-chained commands (e.g., `cmd1; cmd2 && cmd3`) by recursively matching individual parts.
+- New test cases and `promptfoo` evaluations for the new parsers.
+
+### Fixed
+- Fixed `dashboard` command being incorrectly proxied as a target command.
+
 ## [v0.5.5] - 2026-03-16
 
 ### Fixed

@@ -7,7 +7,7 @@ type Parser interface {
 }
 
 func GetAllParsers() []Parser {
-	return []Parser{
+	parsers := []Parser{
 		// Git
 		&CompositeGitParser{},
 		&GitStatusParser{},
@@ -22,11 +22,14 @@ func GetAllParsers() []Parser {
 		// Text
 		&GrepParser{},
 		&MinifyParser{},
+		&SourceParser{},
 		// Infra
 		&EnvParser{},
 		&DockerPsParser{},
 		&GitHubParser{},
+		&GitHubReleaseParser{},
 		&DependencyParser{},
 		&TestParser{},
 	}
+	return append(parsers, &ChainParser{})
 }

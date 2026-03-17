@@ -427,3 +427,43 @@ tests:
     assert:
       - type: llm-rubric
         value: "The model states the value is 100."
+
+  # --- 17. SourceParser ---
+  - vars:
+      command: "cat main.go"
+      task: "What is the current version?"
+      output: |
+        package main
+        // Current version of the application
+        const version = "v0.5.5"
+    assert:
+      - type: llm-rubric
+        value: "The model identifies v0.5.5 as the version even if the comment is removed."
+
+  # --- 18. GitHubReleaseParser ---
+  - vars:
+      command: "gh release view v0.5.4"
+      task: "List the sizes of the windows and linux amd64 assets."
+      output: |
+        Tag: v0.5.4
+        Title: Release v0.5.4
+        Assets
+        diet-linux-amd64        sha256:9f6385346102d93580eba389bf24c7ea6c95e9e60b58b0c1ebe2f989863a897a  19.31 MiB
+        diet-windows-amd64.exe  sha256:5edcbe01c20005a3e24f088bdc7f34535684b29d07bd7ad35d0ed2b78bf11e49  19.71 MiB
+    assert:
+      - type: llm-rubric
+        value: "The model lists 19.31 MiB for linux and 19.71 MiB for windows."
+
+  # --- 19. ChainParser ---
+  - vars:
+      command: "git status; git log -n 1"
+      task: "What is the status and the last commit subject?"
+      output: |
+        On branch main
+        nothing to commit, working tree clean
+        commit f336abb
+        Author: Zachary Krausman
+        Fix: Self-update asset matching for cross-platform releases
+    assert:
+      - type: llm-rubric
+        value: "The model identifies the clean status and the 'Fix: Self-update asset matching...' subject."

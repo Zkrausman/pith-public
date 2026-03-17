@@ -103,7 +103,7 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	}
 
 	fmt.Println("Downloading update...")
-	if err := downloadAndReplace(downloadURL); err != nil {
+	if err := downloadAndReplace(downloadURL, getAuthToken()); err != nil {
 		return false, err
 	}
 
@@ -144,17 +144,13 @@ func CheckForUpdateSilent(currentVersion string) (string, error) {
 	return "", nil
 }
 
-func downloadAndReplace(url string) error {
+func downloadAndReplace(url string, token string) error {
 	executablePath, err := os.Executable()
 	if err != nil {
 		return err
 	}
 
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+	client := &http.Client{}`r`n        req, err := http.NewRequest("GET", url, nil)`r`n        if err != nil {`r`n                return err`r`n        }`r`n        req.Header.Set("User-Agent", "Diet-Updater")`r`n        if token != "" {`r`n                req.Header.Set("Authorization", "Bearer "+token)`r`n        }`r`n        resp, err := client.Do(req)`r`n        if err != nil {`r`n                return err`r`n        }`r`n        defer resp.Body.Close()`r`n`r`n        if resp.StatusCode != http.StatusOK {`r`n                return fmt.Errorf("GitHub returned status %d while downloading asset", resp.StatusCode)`r`n        }
 
 	// Create a temporary file for the new binary
 	tmpPath := executablePath + ".tmp"
@@ -187,3 +183,4 @@ func downloadAndReplace(url string) error {
 	fmt.Println("Update successful! Please restart the application.")
 	return nil
 }
+
