@@ -2,6 +2,7 @@ package main
 
 import (
 	"diet/pkg/config"
+	"diet/pkg/gui"
 	"diet/pkg/install"
 	"diet/pkg/parser"
 	"diet/pkg/runner"
@@ -17,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.5.2"
+const version = "v0.5.4"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -457,6 +458,21 @@ var rawCmd = &cobra.Command{
 	},
 }
 
+var dashboardCmd = &cobra.Command{
+	Use:   "dashboard",
+	Short: "Open the interactive analytics dashboard in your browser",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		tel, err := telemetry.NewTelemetry()
+		if err != nil {
+			return err
+		}
+		defer tel.Close()
+
+		port, _ := cmd.Flags().GetInt("port")
+		return gui.StartDashboard(tel, port)
+	},
+}
+
 func init() {
 	resetCmd.Flags().Bool("all", false, "Reset ALL telemetry data (gain and discover)")
 	resetCmd.Flags().Bool("discover", false, "Reset only discovery data (passthrough commands)")
@@ -465,6 +481,8 @@ func init() {
 	installCmd.Flags().Bool("gemini", false, "Setup hook for Gemini CLI")
 	installCmd.Flags().Bool("claude", false, "Setup hook for Claude Code")
 	installCmd.Flags().BoolP("global", "g", false, "Install hooks globally in the home directory")
+
+	dashboardCmd.Flags().IntP("port", "p", 8080, "Port to run the dashboard server on")
 
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(gainCmd)
@@ -475,6 +493,7 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(resetCmd)
 	rootCmd.AddCommand(rawCmd)
+	rootCmd.AddCommand(dashboardCmd)
 }
 
 func main() {

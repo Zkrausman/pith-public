@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.4] - 2026-03-16
+
+### Added
+- **Interactive Dashboard:** Introduced `diet dashboard`, a web-based GUI that provides a visual overview of token savings, command breakdowns, and opportunity discovery using Chart.js.
+- New `GetStatsByDay` method in telemetry to support historical analysis in the dashboard.
+
 ## [v0.5.3] - 2026-03-16
 
 ### Added

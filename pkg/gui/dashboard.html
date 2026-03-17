@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diet Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .card { background-color: #1e293b; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .accent { color: #38bdf8; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.75rem; border-bottom: 1px solid #334155; color: #94a3b8; font-size: 0.875rem; }
+        td { padding: 0.75rem; border-bottom: 1px solid #334155; font-size: 0.875rem; }
+        tr:hover { background-color: #334155; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold mb-1">Diet <span class="accent">Analytics</span></h1>
+                <p class="text-slate-400">Token optimization dashboard</p>
+            </div>
+            <div id="summary" class="text-right">
+                <div class="text-2xl font-bold accent" id="total-saved">0</div>
+                <div class="text-sm text-slate-400">Total Tokens Saved</div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4">Savings Over Time</h2>
+                <canvas id="timeChart" height="200"></canvas>
+            </div>
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4">Command Breakdown</h2>
+                <canvas id="commandChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4 text-sky-400">Discovery: Unparsed Commands</h2>
+            <p class="text-sm text-slate-400 mb-4">Commands that are passing through Diet without optimization. These are prime candidates for new parsers.</p>
+            <div class="overflow-x-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Command Pattern</th>
+                            <th>Invocations</th>
+                            <th>Total Raw Tokens</th>
+                            <th>Est. Potential Savings (70%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="discover-body">
+                        <!-- Filled by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadData() {
+            const stats = await fetch('/api/stats').then(res => res.json());
+            const discover = await fetch('/api/discover').then(res => res.json());
+
+            // Update Summary
+            const totalOrig = stats.total_original || 0;
+            const totalComp = stats.total_compressed || 0;
+            const saved = totalOrig - totalComp;
+            document.getElementById('total-saved').innerText = saved.toLocaleString();
+
+            // Render Time Chart
+            const daily = stats.daily || [];
+            new Chart(document.getElementById('timeChart'), {
+                type: 'line',
+                data: {
+                    labels: daily.map(d => d.Date),
+                    datasets: [{
+                        label: 'Original Tokens',
+                        data: daily.map(d => d.Original),
+                        borderColor: '#94a3b8',
+                        tension: 0.1
+                    }, {
+                        label: 'Compressed Tokens',
+                        data: daily.map(d => d.Compressed),
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#334155' } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { labels: { color: '#f8fafc' } } }
+                }
+            });
+
+            // Render Command Chart (Top 10)
+            const byCmd = (stats.by_command || []).slice(0, 10);
+            new Chart(document.getElementById('commandChart'), {
+                type: 'bar',
+                data: {
+                    labels: byCmd.map(c => c.Command),
+                    datasets: [{
+                        label: 'Tokens Saved',
+                        data: byCmd.map(c => c.Original - c.Compressed),
+                        backgroundColor: '#38bdf8'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: '#334155' } },
+                        y: { grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Render Discover Table
+            const tbody = document.getElementById('discover-body');
+            (discover || []).forEach(row => {
+                const tr = document.createElement('tr');
+                const est = Math.round(row.TotalRawTokens * 0.7);
+                tr.innerHTML = `
+                    <td class="font-mono text-sky-400">${row.Pattern}</td>
+                    <td>${row.InvocationCount}</td>
+                    <td>${row.TotalRawTokens.toLocaleString()}</td>
+                    <td class="accent font-bold">${est.toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

@@ -73,6 +73,43 @@ func (t *Telemetry) Record(rec ExecutionRecord) error {
 	return err
 }
 
+func (t *Telemetry) GetStatsByDay() ([]struct {
+	Date     string
+	Original int
+	Compressed int
+}, error) {
+	query := `
+		SELECT strftime('%Y-%m-%d', timestamp) as date, 
+		       SUM(original_tokens), 
+		       SUM(compressed_tokens) 
+		FROM executions 
+		GROUP BY date 
+		ORDER BY date ASC`
+	rows, err := t.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []struct {
+		Date     string
+		Original int
+		Compressed int
+	}
+	for rows.Next() {
+		var r struct {
+			Date     string
+			Original int
+			Compressed int
+		}
+		if err := rows.Scan(&r.Date, &r.Original, &r.Compressed); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, nil
+}
+
 func (t *Telemetry) Close() error {
 	return t.db.Close()
 }

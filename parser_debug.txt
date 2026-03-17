@@ -1,0 +1,15 @@
+Trying to parse: 'gh repo list Zkrausman --limit 5'
+  Parser git_composite: false
+  Parser git_status: false
+  Parser git_log: false
+  Parser git_diff: false
+  Parser git_branch: false
+  Parser ls: false
+  Parser find: false
+  Parser tree: false
+  Parser du: false
+  Parser grep: false
+  Parser minify: false
+  Parser env: false
+  Parser docker_ps: false
+  Parser github: true
