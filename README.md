@@ -126,7 +126,7 @@ Diet includes an interactive web dashboard to visualize your token savings and d
 
 - **Launch:** `diet dashboard`
 - **Visualization:** Powered by Chart.js for real-time analytics.
-- **Ecosystem:** For more information on building custom dashboards and visualizers, check out the [BuildABoard](https://github.com/Zkrausman/BuildABoard) project.
+- **Ecosystem:** Diet is **[BuildABoard](https://github.com/Zkrausman/BuildABoard) compatible**. The included `board.json` allows you to seamlessly integrate your Diet analytics into the broader BuildABoard dashboard ecosystem.
 
 ---
 
