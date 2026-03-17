@@ -86,13 +86,13 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	}
 	
 	var downloadURL string
-	expectedName := "diet"
+	expectedSuffix := fmt.Sprintf("-%s-%s", runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {
-		expectedName = "diet.exe"
+		expectedSuffix += ".exe"
 	}
 
 	for _, asset := range release.Assets {
-		if asset.Name == expectedName {
+		if strings.HasSuffix(asset.Name, expectedSuffix) {
 			downloadURL = asset.BrowserDownloadURL
 			break
 		}
