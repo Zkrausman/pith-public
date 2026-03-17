@@ -14,6 +14,7 @@
 - **Multi-LLM Integration:** Automated hook setup for Gemini CLI and Claude Code.
 - **Telemetry & Discovery:** Tracks exact token savings and identifies new optimization targets.
 - **Interactive Configuration:** Toggle parsers and adjust truncation limits via `diet config`.
+- **Interactive Dashboard:** Launch a local web-based analytics dashboard via `diet dashboard`.
 
 ## 📦 Installation
 1. Download the latest `diet.exe` from [Releases](https://github.com/Zkrausman/Diet/releases).
@@ -119,6 +120,13 @@ Diet uses [promptfoo](https://promptfoo.dev/) to evaluate the performance and qu
 
 - **Status:** **Work In Progress (WIP)** 🛠️
 - **Latest Evaluation:** [tests/report.md](tests/report.md)
+
+## 📊 Analytics Dashboard
+Diet includes an interactive web dashboard to visualize your token savings and discover new optimization opportunities.
+
+- **Launch:** `diet dashboard`
+- **Visualization:** Powered by Chart.js for real-time analytics.
+- **Ecosystem:** For more information on building custom dashboards and visualizers, check out the [BuildABoard](https://github.com/Zkrausman/BuildABoard) project.
 
 ---
 
