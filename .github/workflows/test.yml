@@ -1,25 +1,60 @@
-name: Test
+name: Test and Release
 
 on:
   push:
     branches: [ "main", "master" ]
+    tags: [ "v*.*.*" ]
   pull_request:
     branches: [ "main", "master" ]
+
+permissions:
+  contents: write
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
           cache: true
-
       - name: Install dependencies
         run: go mod download
-
       - name: Run tests
         run: go test -v ./...
+
+  release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          BINARY_NAME=diet
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            BINARY_NAME=diet.exe
+            EXT=".exe"
+          fi
+          mkdir -p dist
+          # Build with cross-compilation
+          go build -v -o "dist/diet-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}" .
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
