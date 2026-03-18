@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.7] - 2026-03-17
+
+### Added
+- **Hook Support:**
+    - Support for **Claude Code** CLI via `.claude/settings.json` (using `PostToolUse` event).
+    - Support for **Codex** (and compatible agents) via `.codex/settings.json` (using `AfterTool` event).
+    - New `--claude` and `--codex` flags for `diet install`.
+    - Generic `setupHook` internal helper for easier future hook additions.
+
 ## [v0.5.6] - 2026-03-16
 
 ### Added

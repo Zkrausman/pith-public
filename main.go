@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.5.6"
+const version = "v0.5.7"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -345,10 +345,11 @@ var installCmd = &cobra.Command{
 		all, _ := cmd.Flags().GetBool("all")
 		gemini, _ := cmd.Flags().GetBool("gemini")
 		claude, _ := cmd.Flags().GetBool("claude")
+		codex, _ := cmd.Flags().GetBool("codex")
 		global, _ := cmd.Flags().GetBool("global")
 
 		// Default to Gemini if nothing specified (for backward compatibility)
-		if !all && !gemini && !claude {
+		if !all && !gemini && !claude && !codex {
 			gemini = true
 		}
 
@@ -361,6 +362,12 @@ var installCmd = &cobra.Command{
 		if all || claude {
 			if err := install.SetupClaudeHook(global); err != nil {
 				fmt.Fprintf(os.Stderr, "Claude hook failed: %v\n", err)
+			}
+		}
+
+		if all || codex {
+			if err := install.SetupCodexHook(global); err != nil {
+				fmt.Fprintf(os.Stderr, "Codex hook failed: %v\n", err)
 			}
 		}
 
@@ -470,6 +477,7 @@ func init() {
 	installCmd.Flags().Bool("all", false, "Setup hooks for all supported CLIs")
 	installCmd.Flags().Bool("gemini", false, "Setup hook for Gemini CLI")
 	installCmd.Flags().Bool("claude", false, "Setup hook for Claude Code")
+	installCmd.Flags().Bool("codex", false, "Setup hook for Codex")
 	installCmd.Flags().BoolP("global", "g", false, "Install hooks globally in the home directory")
 
 	dashboardCmd.Flags().IntP("port", "p", 8080, "Port to run the dashboard server on")

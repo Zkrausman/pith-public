@@ -72,14 +72,14 @@ func installWindows(binDir string) error {
 	return nil
 }
 
-func SetupGeminiHook(global bool) error {
-	configDir := ".gemini"
+func setupHook(dirName, eventName, matcher string, global bool) error {
+	configDir := dirName
 	if global {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return err
 		}
-		configDir = filepath.Join(home, ".gemini")
+		configDir = filepath.Join(home, dirName)
 	}
 
 	if err := os.MkdirAll(configDir, 0755); err != nil {
@@ -103,23 +103,26 @@ func SetupGeminiHook(global bool) error {
 
 	settings := fmt.Sprintf(`{
   "hooks": {
-    "AfterTool": [
+    "%s": [
       {
-        "matcher": "run_shell_command",
+        "matcher": "%s",
         "hooks": [
           {
             "name": "diet-optimizer",
             "type": "command",
-            "command": "%s _hook",
+            "command": "%%s _hook",
             "timeout": 5000
           }
         ]
       }
     ]
   }
-}`, escapedPath)
+}`, eventName, matcher)
 
-	if err := os.WriteFile(settingsPath, []byte(settings), 0644); err != nil {
+	// Inject the escaped path into the settings template
+	finalSettings := fmt.Sprintf(settings, escapedPath)
+
+	if err := os.WriteFile(settingsPath, []byte(finalSettings), 0644); err != nil {
 		return err
 	}
 
@@ -127,57 +130,14 @@ func SetupGeminiHook(global bool) error {
 	return nil
 }
 
+func SetupGeminiHook(global bool) error {
+	return setupHook(".gemini", "AfterTool", "run_shell_command", global)
+}
+
 func SetupClaudeHook(global bool) error {
-	configDir := ".claude"
-	if global {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
-		configDir = filepath.Join(home, ".claude")
-	}
+	return setupHook(".claude", "PostToolUse", "Bash", global)
+}
 
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return err
-	}
-
-	settingsPath := filepath.Join(configDir, "settings.json")
-	if _, err := os.Stat(settingsPath); err == nil {
-		fmt.Printf("%s already exists. Skipping.\n", settingsPath)
-		return nil
-	}
-
-	home, _ := os.UserHomeDir()
-	exePath := filepath.Join(home, ".diet", "bin", "diet.exe")
-	if runtime.GOOS != "windows" {
-		exePath = filepath.Join(home, ".diet", "bin", "diet")
-	}
-	
-	// Escape backslashes for JSON
-	escapedPath := strings.ReplaceAll(exePath, "\\", "\\\\")
-
-	settings := fmt.Sprintf(`{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "name": "diet-optimizer",
-            "type": "command",
-            "command": "%s _hook",
-            "timeout": 5000
-          }
-        ]
-      }
-    ]
-  }
-}`, escapedPath)
-
-	if err := os.WriteFile(settingsPath, []byte(settings), 0644); err != nil {
-		return err
-	}
-
-	fmt.Printf("Successfully created %s with Diet hook.\n", settingsPath)
-	return nil
+func SetupCodexHook(global bool) error {
+	return setupHook(".codex", "AfterTool", "run_shell_command", global)
 }
