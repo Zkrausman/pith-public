@@ -47,14 +47,14 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          BINARY_NAME=diet
+          BINARY_NAME=pith
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            BINARY_NAME=diet.exe
+            BINARY_NAME=pith.exe
             EXT=".exe"
           fi
           mkdir -p dist
           # Build with cross-compilation
-          go build -v -o "dist/diet-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}" .
+          go build -v -o "dist/pith-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}" .
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
