@@ -43,7 +43,7 @@ func TestGitLogParser(t *testing.T) {
 Author: Zachary Krausman <zkrausman@gmail.com>
 Date:   Sun Mar 15 22:49:38 2026 -0400
 
-    Update: Display changelog during diet update
+    Update: Display changelog during pith update
 
 commit 1cd63311f8330490
 Author: Zachary Krausman <zkrausman@gmail.com>

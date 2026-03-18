@@ -1,7 +1,7 @@
 package gui
 
 import (
-	"diet/pkg/telemetry"
+	"pith/pkg/telemetry"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -46,7 +46,7 @@ func StartDashboard(tel *telemetry.Telemetry, port int) error {
 	})
 
 	url := fmt.Sprintf("http://localhost:%d", port)
-	fmt.Printf("Starting Diet Dashboard at %s\n", url)
+	fmt.Printf("Starting Pith Dashboard at %s\n", url)
 	
 	// Open browser in background
 	go openBrowser(url)

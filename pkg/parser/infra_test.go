@@ -35,7 +35,7 @@ func TestDockerPsParser(t *testing.T) {
 
 func TestDependencyParser(t *testing.T) {
 	p := &DependencyParser{}
-	input := `diet@0.3.0 E:\Repos\Diet
+	input := `pith@0.3.0 E:\Repos\Pith
 ├── github.com/spf13/cobra@v1.8.0
 └── github.com/AlecAivazis/survey/v2@v2.3.7
 `
@@ -64,7 +64,7 @@ DONE: 1 passed, 1 failed
 
 func TestGitHubParser(t *testing.T) {
 	p := &GitHubParser{}
-	input := `Zkrausman/Diet         private 2026-03-16T06:01:28Z
+	input := `Zkrausman/Pith         private 2026-03-16T06:01:28Z
 Zkrausman/resume       public  2026-01-01T12:00:00Z
 `
 	// Test CanParse
@@ -73,7 +73,7 @@ Zkrausman/resume       public  2026-01-01T12:00:00Z
 	}
 
 	output := p.Parse(input)
-	if !strings.Contains(output, "Zkrausman/Diet | private | 2026-03-16T06:0") {
+	if !strings.Contains(output, "Zkrausman/Pith | private | 2026-03-16T06:0") {
 		t.Errorf("GitHubParser failed to format repo list, got:\n%s", output)
 	}
 }

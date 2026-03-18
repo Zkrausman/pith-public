@@ -23,7 +23,7 @@ pkg/runner/runner.go:20:func NewRunner() {
 func TestMinifyParser(t *testing.T) {
 	p := &MinifyParser{}
 	input := `{
-  "name": "diet",
+  "name": "pith",
   // This is a comment
   "version": "0.3.0",
   "enabled_parsers": {

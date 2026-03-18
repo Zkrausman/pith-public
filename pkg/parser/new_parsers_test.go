@@ -38,16 +38,16 @@ Latest: true
 
 Assets
 NAME                    DIGEST                                                                   SIZE     
-diet-linux-amd64        sha256:9f6385346102d93580eba389bf24c7ea6c95e9e60b58b0c1ebe2f989863a897a  19.31 MiB
-diet-windows-amd64.exe  sha256:5edcbe01c20005a3e24f088bdc7f34535684b29d07bd7ad35d0ed2b78bf11e49  19.71 MiB
+pith-linux-amd64        sha256:9f6385346102d93580eba389bf24c7ea6c95e9e60b58b0c1ebe2f989863a897a  19.31 MiB
+pith-windows-amd64.exe  sha256:5edcbe01c20005a3e24f088bdc7f34535684b29d07bd7ad35d0ed2b78bf11e49  19.71 MiB
 
-View on GitHub: https://github.com/Zkrausman/Diet/releases/tag/v0.5.4`
+View on GitHub: https://github.com/Zkrausman/Pith/releases/tag/v0.5.4`
 
 	output := p.Parse(input)
 	if strings.Contains(output, "sha256:") {
 		t.Errorf("Expected SHA digests to be removed")
 	}
-	if !strings.Contains(output, "- diet-linux-amd64 (19.31 MiB)") {
+	if !strings.Contains(output, "- pith-linux-amd64 (19.31 MiB)") {
 		t.Errorf("Expected asset name and size to be preserved")
 	}
 }

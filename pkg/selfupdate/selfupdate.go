@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const repo = "Zkrausman/Diet"
+const repo = "Zkrausman/Pith"
 
 type Release struct {
 	TagName string `json:"tag_name"`
@@ -45,7 +45,7 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	req.Header.Set("User-Agent", "Diet-Updater")
+	req.Header.Set("User-Agent", "Pith-Updater")
 
 	// Support private repos via GITHUB_TOKEN or gh CLI
 	token := getAuthToken()
@@ -117,7 +117,7 @@ func CheckForUpdateSilent(currentVersion string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", "Diet-Updater")
+	req.Header.Set("User-Agent", "Pith-Updater")
 
 	if token := getAuthToken(); token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -156,7 +156,7 @@ func downloadAndReplace(url string, token string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "Diet-Updater")
+	req.Header.Set("User-Agent", "Pith-Updater")
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}

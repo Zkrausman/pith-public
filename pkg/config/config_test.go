@@ -7,7 +7,7 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "diet-config-test-*")
+	tmpDir, err := os.MkdirTemp("", "pith-config-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}

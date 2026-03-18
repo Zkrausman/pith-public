@@ -1,13 +1,13 @@
 package main
 
 import (
-	"diet/pkg/config"
-	"diet/pkg/gui"
-	"diet/pkg/install"
-	"diet/pkg/parser"
-	"diet/pkg/runner"
-	"diet/pkg/selfupdate"
-	"diet/pkg/telemetry"
+	"pith/pkg/config"
+	"pith/pkg/gui"
+	"pith/pkg/install"
+	"pith/pkg/parser"
+	"pith/pkg/runner"
+	"pith/pkg/selfupdate"
+	"pith/pkg/telemetry"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,10 +21,10 @@ import (
 const version = "v0.5.8"
 
 var rootCmd = &cobra.Command{
-	Use:     "diet [command]",
-	Short:   "Diet is a token-optimized CLI proxy",
+	Use:     "pith [command]",
+	Short:   "Pith is a token-optimized CLI proxy",
 	Version: version,
-	Long:    `Diet intercepts terminal commands, compresses their output, and filters out noise to save tokens for LLMs.`,
+	Long:    `Pith intercepts terminal commands, compresses their output, and filters out noise to save tokens for LLMs.`,
 	Args:    cobra.ArbitraryArgs,
 	// By default, if no subcommand matches, Cobra runs Run or RunE
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -49,7 +49,7 @@ var rootCmd = &cobra.Command{
 			go func() {
 				newTag, _ := selfupdate.CheckForUpdateSilent(version)
 				if newTag != "" {
-					fmt.Fprintf(os.Stderr, "\n[Diet] A new version is available: %s. Run 'diet update' to upgrade!\n", newTag)
+					fmt.Fprintf(os.Stderr, "\n[Pith] A new version is available: %s. Run 'pith update' to upgrade!\n", newTag)
 				}
 			}()
 		}
@@ -99,9 +99,9 @@ var gainCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("\n=== Diet: Overall Token Savings ===\n")
+		fmt.Printf("\n=== Pith: Overall Token Savings ===\n")
 		if totalOrig == 0 {
-			fmt.Println("No telemetry data recorded yet. Run some commands through Diet to start tracking savings!")
+			fmt.Println("No telemetry data recorded yet. Run some commands through Pith to start tracking savings!")
 			fmt.Println()
 			return nil
 		}
@@ -115,7 +115,7 @@ var gainCmd = &cobra.Command{
 		byCmd, err := tel.GetStatsByCommand()
 		if err == nil && len(byCmd) > 0 {
 			fmt.Printf("\n--- Breakdown by Command ---\n")
-			fmt.Printf("%-25s | %-10s | %-10s | %-10s\n", "Command Pattern", "Raw", "Diet", "Savings")
+			fmt.Printf("%-25s | %-10s | %-10s | %-10s\n", "Command Pattern", "Raw", "Pith", "Savings")
 			fmt.Println(strings.Repeat("-", 61))
 			for _, r := range byCmd {
 				savings := r.Original - r.Compressed
@@ -137,7 +137,7 @@ var gainCmd = &cobra.Command{
 				fmt.Printf("%-25s | %-8d | %-12d | %-12.0f\n", r.Pattern, r.InvocationCount, r.TotalRawTokens, estSavings)
 			}
 			if len(unparsed) > 5 {
-				fmt.Printf("... and %d more. Run 'diet discover' for full list.\n", len(unparsed)-5)
+				fmt.Printf("... and %d more. Run 'pith discover' for full list.\n", len(unparsed)-5)
 			}
 		}
 
@@ -162,7 +162,7 @@ var discoverCmd = &cobra.Command{
 		}
 
 		if len(unparsed) == 0 {
-			fmt.Println("No unparsed commands discovered yet. Run some commands through Diet to gather data!")
+			fmt.Println("No unparsed commands discovered yet. Run some commands through Pith to gather data!")
 			return nil
 		}
 
@@ -243,7 +243,7 @@ var hookCmd = &cobra.Command{
 			go func() {
 				newTag, _ := selfupdate.CheckForUpdateSilent(version)
 				if newTag != "" {
-					fmt.Fprintf(os.Stderr, "\n[Diet] A new version is available: %s. Run 'diet update' to upgrade!\n", newTag)
+					fmt.Fprintf(os.Stderr, "\n[Pith] A new version is available: %s. Run 'pith update' to upgrade!\n", newTag)
 				}
 			}()
 		}
@@ -323,7 +323,7 @@ var hookCmd = &cobra.Command{
 		output := HookOutput{
 			Decision:      "deny",
 			Reason:        prefix + compressed,
-			SystemMessage: fmt.Sprintf("Output compressed by Diet (%s parser)", p.Name()),
+			SystemMessage: fmt.Sprintf("Output compressed by Pith (%s parser)", p.Name()),
 		}
 		return json.NewEncoder(os.Stdout).Encode(output)
 	},
@@ -336,7 +336,7 @@ func respondAllow() error {
 
 var installCmd = &cobra.Command{
 	Use:   "install",
-	Short: "Install Diet to your system PATH and setup CLI hooks",
+	Short: "Install Pith to your system PATH and setup CLI hooks",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := install.Install(); err != nil {
 			return err
@@ -380,14 +380,14 @@ var installCmd = &cobra.Command{
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Update Diet to the latest version from GitHub",
+	Short: "Update Pith to the latest version from GitHub",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		updated, err := selfupdate.CheckAndApplyUpdate(version)
 		if err != nil {
 			return err
 		}
 		if !updated {
-			fmt.Println("Diet is already up to date.")
+			fmt.Println("Pith is already up to date.")
 		}
 		return nil
 	},
@@ -395,9 +395,9 @@ var updateCmd = &cobra.Command{
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the version number of Diet",
+	Short: "Print the version number of Pith",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Diet %s\n", version)
+		fmt.Printf("Pith %s\n", version)
 	},
 }
 

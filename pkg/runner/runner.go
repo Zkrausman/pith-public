@@ -2,9 +2,9 @@ package runner
 
 import (
 	"bytes"
-	"diet/pkg/config"
-	"diet/pkg/parser"
-	"diet/pkg/telemetry"
+	"pith/pkg/config"
+	"pith/pkg/parser"
+	"pith/pkg/telemetry"
 	"fmt"
 	"os"
 	"os/exec"
@@ -37,10 +37,10 @@ func (r *Runner) LogForSnag(cmdStr string, output string, exitCode int) {
 		return // Silently fail if home dir can't be found
 	}
 	
-	logDir := filepath.Join(home, ".diet")
+	logDir := filepath.Join(home, ".pith")
 	_ = os.MkdirAll(logDir, 0755)
 	
-	logPath := filepath.Join(logDir, "diet.log")
+	logPath := filepath.Join(logDir, "pith.log")
 	
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -51,7 +51,7 @@ func (r *Runner) LogForSnag(cmdStr string, output string, exitCode int) {
 	// Truncate output for Snag to the last 50 lines to prevent log bloat
 	lines := strings.Split(output, "\n")
 	if len(lines) > 50 {
-		output = "[... output truncated by Diet for Snag log ...]\n" + strings.Join(lines[len(lines)-50:], "\n")
+		output = "[... output truncated by Pith for Snag log ...]\n" + strings.Join(lines[len(lines)-50:], "\n")
 	}
 
 	// Format: [CMD] command\n<output>\n[EXIT] code\n
@@ -222,7 +222,7 @@ func (r *Runner) ApplyMiddleOutTruncation(output string) string {
 	}
 
 	resultLines := append([]string{}, lines[:head]...)
-	resultLines = append(resultLines, fmt.Sprintf("\n... [%d lines removed by Diet middle-out truncation] ...\n", len(lines)-(head+tail)))
+	resultLines = append(resultLines, fmt.Sprintf("\n... [%d lines removed by Pith middle-out truncation] ...\n", len(lines)-(head+tail)))
 	resultLines = append(resultLines, lines[len(lines)-tail:]...)
 
 	return strings.Join(resultLines, "\n")

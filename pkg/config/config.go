@@ -23,7 +23,7 @@ func GetConfigPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".diet", "config.json"), nil
+	return filepath.Join(home, ".pith", "config.json"), nil
 }
 
 func LoadConfig() (*Config, error) {

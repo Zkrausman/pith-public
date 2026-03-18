@@ -1,5 +1,5 @@
 You are a helpful software engineering assistant.
-Below is the output of a CLI command. It may be raw output, or it may have been processed by "Diet", a tool that removes noise and compresses output for LLMs.
+Below is the output of a CLI command. It may be raw output, or it may have been processed by "Pith", a tool that removes noise and compresses output for LLMs.
 
 COMMAND: {{command}}
 OUTPUT:

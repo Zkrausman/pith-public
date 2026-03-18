@@ -8,7 +8,7 @@ import (
 
 func TestTelemetry(t *testing.T) {
 	// Create a temporary DB for testing
-	tmpDir, err := os.MkdirTemp("", "diet-test-*")
+	tmpDir, err := os.MkdirTemp("", "pith-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}

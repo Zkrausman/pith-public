@@ -6,7 +6,7 @@ import (
 )
 
 func TestSetupHooks(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "diet-install-test-*")
+	tmpDir, err := os.MkdirTemp("", "pith-install-test-*")
 	if err != nil {
 		t.Fatal(err)
 	}

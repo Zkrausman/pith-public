@@ -29,11 +29,11 @@ func NewTelemetry() (*Telemetry, error) {
 	if err != nil {
 		return nil, err
 	}
-	dir := filepath.Join(home, ".diet")
+	dir := filepath.Join(home, ".pith")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, err
 	}
-	dbPath := filepath.Join(dir, "diet.db")
+	dbPath := filepath.Join(dir, "pith.db")
 	return NewTelemetryWithPath(dbPath)
 }
 

@@ -16,8 +16,8 @@ func Install() error {
 		return err
 	}
 
-	dietBinDir := filepath.Join(home, ".diet", "bin")
-	if err := os.MkdirAll(dietBinDir, 0755); err != nil {
+	pithBinDir := filepath.Join(home, ".pith", "bin")
+	if err := os.MkdirAll(pithBinDir, 0755); err != nil {
 		return fmt.Errorf("failed to create bin directory: %v", err)
 	}
 
@@ -26,15 +26,15 @@ func Install() error {
 		return err
 	}
 
-	destPath := filepath.Join(dietBinDir, filepath.Base(exePath))
+	destPath := filepath.Join(pithBinDir, filepath.Base(exePath))
 	
 	// Skip copy if we are already running from the destination path
 	absExe, _ := filepath.Abs(exePath)
 	absDest, _ := filepath.Abs(destPath)
 	if strings.ToLower(absExe) == strings.ToLower(absDest) {
-		fmt.Printf("Diet is already running from %s. Skipping copy.\n", destPath)
+		fmt.Printf("Pith is already running from %s. Skipping copy.\n", destPath)
 	} else {
-		// Copy the executable to ~/.diet/bin
+		// Copy the executable to ~/.pith/bin
 		input, err := os.ReadFile(exePath)
 		if err != nil {
 			return fmt.Errorf("failed to read executable: %v", err)
@@ -42,11 +42,11 @@ func Install() error {
 		if err := os.WriteFile(destPath, input, 0755); err != nil {
 			return fmt.Errorf("failed to copy executable: %v", err)
 		}
-		fmt.Printf("Copied Diet to %s\n", destPath)
+		fmt.Printf("Copied Pith to %s\n", destPath)
 	}
 
 	if runtime.GOOS == "windows" {
-		return installWindows(dietBinDir)
+		return installWindows(pithBinDir)
 	}
 	return fmt.Errorf("install command not yet supported on %s", runtime.GOOS)
 }
@@ -68,7 +68,7 @@ func installWindows(binDir string) error {
 		return fmt.Errorf("failed to update PATH: %v (output: %s)", err, string(output))
 	}
 
-	fmt.Println("Successfully added Diet to your User PATH.")
+	fmt.Println("Successfully added Pith to your User PATH.")
 	fmt.Println("Please restart your terminal for changes to take effect.")
 	return nil
 }
@@ -156,13 +156,13 @@ func setupHook(dirName, eventName, matcher string, global bool) error {
 	}
 
 	home, _ := os.UserHomeDir()
-	exePath := filepath.Join(home, ".diet", "bin", "diet.exe")
+	exePath := filepath.Join(home, ".pith", "bin", "pith.exe")
 	if runtime.GOOS != "windows" {
-		exePath = filepath.Join(home, ".diet", "bin", "diet")
+		exePath = filepath.Join(home, ".pith", "bin", "pith")
 	}
 
-	dietHook := HookEntry{
-		Name:    "diet-optimizer",
+	pithHook := HookEntry{
+		Name:    "pith-optimizer",
 		Type:    "command",
 		Command: fmt.Sprintf("%s _hook", exePath),
 		Timeout: 5000,
@@ -173,16 +173,16 @@ func setupHook(dirName, eventName, matcher string, global bool) error {
 	foundGroup := false
 	for i, group := range eventHooks {
 		if group.Matcher == matcher {
-			// Check if Diet hook already exists in this group
+			// Check if Pith hook already exists in this group
 			exists := false
 			for _, h := range group.Hooks {
-				if h.Name == "diet-optimizer" {
+				if h.Name == "pith-optimizer" {
 					exists = true
 					break
 				}
 			}
 			if !exists {
-				eventHooks[i].Hooks = append(eventHooks[i].Hooks, dietHook)
+				eventHooks[i].Hooks = append(eventHooks[i].Hooks, pithHook)
 			}
 			foundGroup = true
 			break
@@ -192,7 +192,7 @@ func setupHook(dirName, eventName, matcher string, global bool) error {
 	if !foundGroup {
 		eventHooks = append(eventHooks, HookGroup{
 			Matcher: matcher,
-			Hooks:   []HookEntry{dietHook},
+			Hooks:   []HookEntry{pithHook},
 		})
 	}
 	settings.Hooks[eventName] = eventHooks
@@ -207,7 +207,7 @@ func setupHook(dirName, eventName, matcher string, global bool) error {
 		return err
 	}
 
-	fmt.Printf("Successfully updated %s with Diet hook.\n", settingsPath)
+	fmt.Printf("Successfully updated %s with Pith hook.\n", settingsPath)
 	return nil
 }
 

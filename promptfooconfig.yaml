@@ -159,25 +159,25 @@ tests:
   # --- 6. LsParser ---
   - vars:
       command: "ls -l"
-      task: "Identify the file size of diet.exe."
+      task: "Identify the file size of pith.exe."
       output: |
         total 20000
         drwxr-xr-x 4 zkrau users     4096 Mar 16 12:00 pkg
         -rw-r--r-- 1 zkrau users    12799 Mar 16 12:00 main.go
-        -rwxr-xr-x 1 zkrau users 19467776 Mar 16 12:00 diet.exe
+        -rwxr-xr-x 1 zkrau users 19467776 Mar 16 12:00 pith.exe
     assert:
       - type: llm-rubric
-        value: "The model identifies 19467776 as the file size of diet.exe."
+        value: "The model identifies 19467776 as the file size of pith.exe."
   - vars:
       command: "ls -l"
-      task: "Identify the file size of diet.exe."
+      task: "Identify the file size of pith.exe."
       output: |
         drwxr-xr-x 4096 pkg
         -rw-r--r-- 12799 main.go
-        -rwxr-xr-x 19467776 diet.exe
+        -rwxr-xr-x 19467776 pith.exe
     assert:
       - type: llm-rubric
-        value: "The model identifies 19467776 as the file size of diet.exe."
+        value: "The model identifies 19467776 as the file size of pith.exe."
 
   # --- 7. FindParser ---
   - vars:
@@ -286,27 +286,27 @@ tests:
       task: "List the IDs and names of the running containers."
       output: |
         CONTAINER ID   IMAGE         COMMAND    CREATED   STATUS    PORTS     NAMES
-        abc123456789   ubuntu:latest "bash"     1m ago    Up 1m               diet-db-container
-        def987654321   nginx:alpine  "nginx -g" 5m ago    Up 5m     80/tcp    diet-app-service
+        abc123456789   ubuntu:latest "bash"     1m ago    Up 1m               pith-db-container
+        def987654321   nginx:alpine  "nginx -g" 5m ago    Up 5m     80/tcp    pith-app-service
     assert:
       - type: llm-rubric
-        value: "The model lists abc123456789 with diet-db-container, and def987654321 with diet-app-service."
+        value: "The model lists abc123456789 with pith-db-container, and def987654321 with pith-app-service."
   - vars:
       command: "docker ps"
       task: "List the IDs and names of the running containers."
       output: |
-        abc123456789    diet-db-container
-        def987654321    diet-app-service
+        abc123456789    pith-db-container
+        def987654321    pith-app-service
     assert:
       - type: llm-rubric
-        value: "The model lists abc123456789 with diet-db-container, and def987654321 with diet-app-service."
+        value: "The model lists abc123456789 with pith-db-container, and def987654321 with pith-app-service."
 
   # --- 12. DependencyParser ---
   - vars:
       command: "npm list"
       task: "Identify the version of cobra being used."
       output: |
-        diet@0.4.7 /path/to/diet
+        pith@0.4.7 /path/to/pith
         ├── github.com/spf13/cobra@v1.8.0
         ├── github.com/AlecAivazis/survey/v2@v2.3.7
         └── gopkg.in/yaml.v3@v3.0.1
@@ -317,7 +317,7 @@ tests:
       command: "npm list"
       task: "Identify the version of cobra being used."
       output: |
-        diet@0.4.7 /path/to/diet
+        pith@0.4.7 /path/to/pith
         github.com/spf13/cobra@v1.8.0
         github.com/AlecAivazis/survey/v2@v2.3.7
         gopkg.in/yaml.v3@v3.0.1
@@ -338,7 +338,7 @@ tests:
             minify_test.go:45: Expected "{ a: 1 }", got "{a: 1}"
         --- FAIL: TestMinifyParser (0.02s)
         FAIL
-        FAIL	diet/pkg/parser	0.05s
+        FAIL	pith/pkg/parser	0.05s
     assert:
       - type: llm-rubric
         value: "The model identifies TestMinifyParser as the failed test."
@@ -348,7 +348,7 @@ tests:
       output: |
         --- FAIL: TestMinifyParser (0.02s)
         FAIL
-        FAIL	diet/pkg/parser	0.05s
+        FAIL	pith/pkg/parser	0.05s
     assert:
       - type: llm-rubric
         value: "The model identifies TestMinifyParser as the failed test."
@@ -407,7 +407,7 @@ tests:
       task: "What is the value of max_lines?"
       output: |
         {
-          // Configuration for diet
+          // Configuration for pith
           "max_lines":   100,
           "head_lines":  20,
           "tail_lines":  20
@@ -448,8 +448,8 @@ tests:
         Tag: v0.5.4
         Title: Release v0.5.4
         Assets
-        diet-linux-amd64        sha256:9f6385346102d93580eba389bf24c7ea6c95e9e60b58b0c1ebe2f989863a897a  19.31 MiB
-        diet-windows-amd64.exe  sha256:5edcbe01c20005a3e24f088bdc7f34535684b29d07bd7ad35d0ed2b78bf11e49  19.71 MiB
+        pith-linux-amd64        sha256:9f6385346102d93580eba389bf24c7ea6c95e9e60b58b0c1ebe2f989863a897a  19.31 MiB
+        pith-windows-amd64.exe  sha256:5edcbe01c20005a3e24f088bdc7f34535684b29d07bd7ad35d0ed2b78bf11e49  19.71 MiB
     assert:
       - type: llm-rubric
         value: "The model lists 19.31 MiB for linux and 19.71 MiB for windows."

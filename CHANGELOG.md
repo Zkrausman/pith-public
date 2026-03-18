@@ -5,11 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.9] - 2026-03-18
+
+### Changed
+- **Rebrand:** Renamed the project from **Diet** to **Pith** (skip the peel, get to the pith).
+- **Module Update:** Updated Go module name to `pith` and updated all internal imports.
+- **Paths:** Changed default configuration and telemetry directory from `~/.diet` to `~/.pith`.
+- **Log Files:** Renamed `diet.log` to `pith.log` and `diet.db` to `pith.db`.
+- **Hooks:** Updated CLI hooks to use the new `pith` command and `pith-optimizer` name.
+
 ## [v0.5.8] - 2026-03-17
 
 ### Improved
-- **Intelligent Hook Installation:** The `diet install` command now defaults to **global** installation for all supported CLIs (Gemini, Claude, and Codex) if no flags are provided.
-- **JSON Configuration Merging:** Installer now safely merges Diet hooks into existing `settings.json` files instead of skipping them. It correctly preserves existing hooks (like `bd prime`) and custom settings (like `security` or `ui`).
+- **Intelligent Hook Installation:** The `pith install` command now defaults to **global** installation for all supported CLIs (Gemini, Claude, and Codex) if no flags are provided.
+- **JSON Configuration Merging:** Installer now safely merges Pith hooks into existing `settings.json` files instead of skipping them. It correctly preserves existing hooks (like `bd prime`) and custom settings (like `security` or `ui`).
 - **Safety Backups:** Automatically creates a `settings.json.bak` backup before any modification.
 - **Duplicate Prevention:** Improved logic to detect and avoid duplicate hook entries during installation.
 
@@ -19,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hook Support:**
     - Support for **Claude Code** CLI via `.claude/settings.json` (using `PostToolUse` event).
     - Support for **Codex** (and compatible agents) via `.codex/settings.json` (using `AfterTool` event).
-    - New `--claude` and `--codex` flags for `diet install`.
+    - New `--claude` and `--codex` flags for `pith install`.
     - Generic `setupHook` internal helper for easier future hook additions.
 
 ## [v0.5.6] - 2026-03-16
@@ -37,12 +46,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.5.5] - 2026-03-16
 
 ### Fixed
-- Fixed `diet update` to correctly identify and download platform-specific binaries (e.g., `diet-windows-amd64.exe`) from GitHub releases.
+- Fixed `pith update` to correctly identify and download platform-specific binaries (e.g., `pith-windows-amd64.exe`) from GitHub releases.
 
 ## [v0.5.4] - 2026-03-16
 
 ### Added
-- **Interactive Dashboard:** Introduced `diet dashboard`, a web-based GUI that provides a visual overview of token savings, command breakdowns, and opportunity discovery using Chart.js.
+- **Interactive Dashboard:** Introduced `pith dashboard`, a web-based GUI that provides a visual overview of token savings, command breakdowns, and opportunity discovery using Chart.js.
 - New `GetStatsByDay` method in telemetry to support historical analysis in the dashboard.
 
 ## [v0.5.3] - 2026-03-16
@@ -59,17 +68,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.5.1] - 2026-03-16
 
 ### Fixed
-- Fixed an issue where commands intercepted by the Gemini CLI hook were not being logged to the Snag log. Diet now correctly parses exit codes from the hook payload to ensure accurate behavioral tracking.
+- Fixed an issue where commands intercepted by the Gemini CLI hook were not being logged to the Snag log. Pith now correctly parses exit codes from the hook payload to ensure accurate behavioral tracking.
 
 ## [v0.5.0] - 2026-03-16
 
 ### Added
-- **Snag Integration:** Diet now actively exports a plain text log file specifically formatted for the [Snag](https://github.com/zkrau/snag) behavioral learning tool. Every intercepted command, its output (truncated to the last 50 lines to prevent bloat), and its exit code are appended to `~/.diet/diet.log` using the `[CMD]` and `[EXIT]` syntax required by Snag's collector.
+- **Snag Integration:** Pith now actively exports a plain text log file specifically formatted for the [Snag](https://github.com/zkrau/snag) behavioral learning tool. Every intercepted command, its output (truncated to the last 50 lines to prevent bloat), and its exit code are appended to `~/.pith/pith.log` using the `[CMD]` and `[EXIT]` syntax required by Snag's collector.
 
 ## [v0.4.9] - 2026-03-16
 
 ### Improved
-- Overhauled `install` command to copy Diet binary to a permanent location (`~/.diet/bin`) and add that to the system `PATH`.
+- Overhauled `install` command to copy Pith binary to a permanent location (`~/.pith/bin`) and add that to the system `PATH`.
 - Updated CLI hooks to use the permanent binary location, making them resilient to source directory changes.
 
 ## [v0.4.8] - 2026-03-16

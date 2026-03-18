@@ -1,8 +1,8 @@
 package runner
 
 import (
-	"diet/pkg/config"
-	"diet/pkg/telemetry"
+	"pith/pkg/config"
+	"pith/pkg/telemetry"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +17,7 @@ func TestEstimateTokens(t *testing.T) {
 }
 
 func TestRunner(t *testing.T) {
-	tmpDir, _ := os.MkdirTemp("", "diet-runner-test-*")
+	tmpDir, _ := os.MkdirTemp("", "pith-runner-test-*")
 	defer os.RemoveAll(tmpDir)
 
 	dbPath := filepath.Join(tmpDir, "test.db")
@@ -45,7 +45,7 @@ func TestMiddleOutTruncation(t *testing.T) {
 	input := "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15"
 	output := run.ApplyMiddleOutTruncation(input)
 
-	if !strings.Contains(output, "removed by Diet") {
+	if !strings.Contains(output, "removed by Pith") {
 		t.Error("Expected output to be truncated")
 	}
 	if !strings.HasPrefix(output, "1\n2") {
