@@ -1,6 +1,7 @@
 package install
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -72,6 +73,55 @@ func installWindows(binDir string) error {
 	return nil
 }
 
+type HookEntry struct {
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	Command string `json:"command"`
+	Timeout int    `json:"timeout"`
+}
+
+type HookGroup struct {
+	Matcher string      `json:"matcher"`
+	Hooks   []HookEntry `json:"hooks"`
+}
+
+type Settings struct {
+	Hooks map[string][]HookGroup `json:"hooks"`
+	Other map[string]interface{} `json:"-"` // Catch-all for other fields
+}
+
+// Custom Unmarshal to capture other fields
+func (s *Settings) UnmarshalJSON(data []byte) error {
+	type Alias Settings
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	// Capture everything else into s.Other
+	var fullMap map[string]interface{}
+	if err := json.Unmarshal(data, &fullMap); err != nil {
+		return err
+	}
+	delete(fullMap, "hooks")
+	s.Other = fullMap
+	return nil
+}
+
+// Custom Marshal to combine hooks and other fields
+func (s Settings) MarshalJSON() ([]byte, error) {
+	fullMap := make(map[string]interface{})
+	for k, v := range s.Other {
+		fullMap[k] = v
+	}
+	fullMap["hooks"] = s.Hooks
+	return json.Marshal(fullMap)
+}
+
 func setupHook(dirName, eventName, matcher string, global bool) error {
 	configDir := dirName
 	if global {
@@ -87,9 +137,22 @@ func setupHook(dirName, eventName, matcher string, global bool) error {
 	}
 
 	settingsPath := filepath.Join(configDir, "settings.json")
+	var settings Settings
+
+	// Load existing settings if they exist
 	if _, err := os.Stat(settingsPath); err == nil {
-		fmt.Printf("%s already exists. Skipping.\n", settingsPath)
-		return nil
+		data, err := os.ReadFile(settingsPath)
+		if err == nil {
+			// Create a backup before modifying
+			backupPath := settingsPath + ".bak"
+			_ = os.WriteFile(backupPath, data, 0644)
+			
+			_ = json.Unmarshal(data, &settings)
+		}
+	}
+
+	if settings.Hooks == nil {
+		settings.Hooks = make(map[string][]HookGroup)
 	}
 
 	home, _ := os.UserHomeDir()
@@ -97,36 +160,54 @@ func setupHook(dirName, eventName, matcher string, global bool) error {
 	if runtime.GOOS != "windows" {
 		exePath = filepath.Join(home, ".diet", "bin", "diet")
 	}
-	
-	// Escape backslashes for JSON
-	escapedPath := strings.ReplaceAll(exePath, "\\", "\\\\")
 
-	settings := fmt.Sprintf(`{
-  "hooks": {
-    "%s": [
-      {
-        "matcher": "%s",
-        "hooks": [
-          {
-            "name": "diet-optimizer",
-            "type": "command",
-            "command": "%%s _hook",
-            "timeout": 5000
-          }
-        ]
-      }
-    ]
-  }
-}`, eventName, matcher)
+	dietHook := HookEntry{
+		Name:    "diet-optimizer",
+		Type:    "command",
+		Command: fmt.Sprintf("%s _hook", exePath),
+		Timeout: 5000,
+	}
 
-	// Inject the escaped path into the settings template
-	finalSettings := fmt.Sprintf(settings, escapedPath)
+	// Find or create the group for this matcher
+	eventHooks := settings.Hooks[eventName]
+	foundGroup := false
+	for i, group := range eventHooks {
+		if group.Matcher == matcher {
+			// Check if Diet hook already exists in this group
+			exists := false
+			for _, h := range group.Hooks {
+				if h.Name == "diet-optimizer" {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				eventHooks[i].Hooks = append(eventHooks[i].Hooks, dietHook)
+			}
+			foundGroup = true
+			break
+		}
+	}
 
-	if err := os.WriteFile(settingsPath, []byte(finalSettings), 0644); err != nil {
+	if !foundGroup {
+		eventHooks = append(eventHooks, HookGroup{
+			Matcher: matcher,
+			Hooks:   []HookEntry{dietHook},
+		})
+	}
+	settings.Hooks[eventName] = eventHooks
+
+	// Write back
+	finalData, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Successfully created %s with Diet hook.\n", settingsPath)
+	if err := os.WriteFile(settingsPath, finalData, 0644); err != nil {
+		return err
+	}
+
+	fmt.Printf("Successfully updated %s with Diet hook.\n", settingsPath)
 	return nil
 }
 

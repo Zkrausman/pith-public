@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.5.7"
+const version = "v0.5.8"
 
 var rootCmd = &cobra.Command{
 	Use:     "diet [command]",
@@ -348,9 +348,12 @@ var installCmd = &cobra.Command{
 		codex, _ := cmd.Flags().GetBool("codex")
 		global, _ := cmd.Flags().GetBool("global")
 
-		// Default to Gemini if nothing specified (for backward compatibility)
+		// Default to global install for all CLIs if no specific agent is specified
 		if !all && !gemini && !claude && !codex {
-			gemini = true
+			all = true
+			if !cmd.Flags().Changed("global") {
+				global = true
+			}
 		}
 
 		if all || gemini {

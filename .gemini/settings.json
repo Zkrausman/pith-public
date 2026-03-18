@@ -7,7 +7,7 @@
           {
             "name": "diet-optimizer",
             "type": "command",
-            "command": "./diet.exe _hook",
+            "command": "C:\\Users\\zkrau\\.diet\\bin\\diet.exe _hook",
             "timeout": 5000
           }
         ]

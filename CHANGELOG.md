@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.8] - 2026-03-17
+
+### Improved
+- **Intelligent Hook Installation:** The `diet install` command now defaults to **global** installation for all supported CLIs (Gemini, Claude, and Codex) if no flags are provided.
+- **JSON Configuration Merging:** Installer now safely merges Diet hooks into existing `settings.json` files instead of skipping them. It correctly preserves existing hooks (like `bd prime`) and custom settings (like `security` or `ui`).
+- **Safety Backups:** Automatically creates a `settings.json.bak` backup before any modification.
+- **Duplicate Prevention:** Improved logic to detect and avoid duplicate hook entries during installation.
+
 ## [v0.5.7] - 2026-03-17
 
 ### Added
