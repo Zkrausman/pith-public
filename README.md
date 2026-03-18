@@ -11,16 +11,16 @@
 - **Composite Commands:** Intelligent handling of shell-joined commands (e.g., `git status & git log`).
 - **Escape Hatch (`diet raw`):** Bypass all parsers when you need the exact, unformatted truth.
 - **Middle-Out Truncation:** Automatically keep the start and end of massive outputs, removing the redundant middle.
-- **Multi-LLM Integration:** Automated hook setup for Gemini CLI and Claude Code.
+- **Multi-LLM Integration:** Automated hook setup for Gemini CLI, Claude Code, and Codex.
 - **Telemetry & Discovery:** Tracks exact token savings and identifies new optimization targets.
 - **Interactive Configuration:** Toggle parsers and adjust truncation limits via `diet config`.
 - **Interactive Dashboard:** Launch a local web-based analytics dashboard via `diet dashboard`.
 
 ## 📦 Installation
 1. Download the latest `diet.exe` from [Releases](https://github.com/Zkrausman/Diet/releases).
-2. Run the installer:
+2. Run the installer (defaults to global install for all CLIs):
    ```bash
-   ./diet.exe install --all
+   ./diet.exe install
    ```
 3. Restart your terminal.
 
@@ -28,7 +28,13 @@
 
 ## 🛠️ Power User Features
 
-### 1. The Escape Hatch (`diet raw`)
+### 1. Targeted Installation
+If you only want to install hooks for a specific CLI or only for the current project:
+- **Local Install (current folder):** `diet install --gemini`
+- **Global Install (specific CLI):** `diet install --claude --global`
+- **Full Global Sync:** Use `diet install` to ensure all system-wide `settings.json` files are up-to-date.
+
+### 2. The Escape Hatch (`diet raw`)
 If a parser is being too aggressive and you need to see the raw, bit-for-bit output of a command, prefix it with `raw`:
 ```bash
 diet raw git diff
