@@ -22,6 +22,7 @@
    ```bash
    ./diet.exe install
    ```
+   *Note: Diet safely **merges** hooks into your existing `settings.json` files and automatically creates a `.bak` backup before any modification. It will NOT overwrite your existing configurations or other hooks.*
 3. Restart your terminal.
 
 ---
