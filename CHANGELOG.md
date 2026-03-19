@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.7.0] - 2026-03-19
+
+### Added
+- **Dashboard v2.0:**
+    - **Bento Grid Layout:** Completely overhauled the analytics interface with a modern, responsive grid of cards.
+    - **Efficiency Gauge:** Interactive SVG ring showing the overall compression ratio at a glance.
+    - **Live Activity Stream:** Real-time ticker showing recently executed commands, including parser status (Hit/Miss) and savings per command.
+    - **Pith vs. Raw Deep Dive:** Side-by-side comparison modal that allows users to verify Pith's optimization by viewing the raw output alongside the compressed version.
+- **Telemetry Improvements:**
+    - Added support for recording full original and compressed output content (required for the Deep Dive feature).
+    - Database migration to add `original_content` and `compressed_content` columns to the `executions` table.
+- **GUI Endpoints:**
+    - New `/api/recent` and `/api/execution` API endpoints to power the live dashboard and detailed views.
+
 ## [v0.6.0] - 2026-03-19
 
 ### Added
