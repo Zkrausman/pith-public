@@ -18,8 +18,10 @@ type Release struct {
 	TagName string `json:"tag_name"`
 	Body    string `json:"body"`
 	Assets  []struct {
+		ID                 int64  `json:"id"`
 		Name               string `json:"name"`
 		BrowserDownloadURL string `json:"browser_download_url"`
+		URL                string `json:"url"` // This is the API URL for the asset
 	} `json:"assets"`
 }
 
@@ -60,7 +62,7 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return false, fmt.Errorf("repository not found (if it is private, set GITHUB_TOKEN)")
+		return false, fmt.Errorf("repository not found (if it is private, set GITHUB_TOKEN or run 'gh auth login')")
 	}
 	if resp.StatusCode != http.StatusOK {
 		return false, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
@@ -86,7 +88,7 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 		fmt.Printf("\n--- Changelog ---\n%s\n-----------------\n\n", release.Body)
 	}
 	
-	var downloadURL string
+	var assetURL string
 	expectedSuffix := fmt.Sprintf("-%s-%s", runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {
 		expectedSuffix += ".exe"
@@ -94,17 +96,17 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 
 	for _, asset := range release.Assets {
 		if strings.HasSuffix(asset.Name, expectedSuffix) {
-			downloadURL = asset.BrowserDownloadURL
+			assetURL = asset.URL
 			break
 		}
 	}
 
-	if downloadURL == "" {
+	if assetURL == "" {
 		return false, fmt.Errorf("could not find binary for %s in release %s", runtime.GOOS, release.TagName)
 	}
 
 	fmt.Println("Downloading update...")
-	if err := downloadAndReplace(downloadURL, token); err != nil {
+	if err := downloadAndReplace(assetURL, token); err != nil {
 		return false, err
 	}
 
@@ -157,6 +159,10 @@ func downloadAndReplace(url string, token string) error {
 		return err
 	}
 	req.Header.Set("User-Agent", "Pith-Updater")
+	
+	// CRITICAL for private asset downloads via API
+	req.Header.Set("Accept", "application/octet-stream")
+	
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
