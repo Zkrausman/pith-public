@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.6.0] - 2026-03-19
+
+### Added
+- **New Parsers:**
+    - `WebParser`: Optimizes `curl`, `wget`, and `Invoke-WebRequest` by minifying JSON and extracting HTML titles.
+    - `PithParser`: Internal optimizer for Pith's own help and log outputs.
+    - `PowerShellParser`: Cleans up verbose Windows PowerShell and CMD headers while preserving file details.
+    - `GoParser`: Targeted optimization for `go version`, `go build`, and module listings.
+
 ## [v0.5.9] - 2026-03-18
 
 ### Changed
