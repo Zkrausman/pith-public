@@ -30,6 +30,11 @@ func GetAllParsers() []Parser {
 		&GitHubReleaseParser{},
 		&DependencyParser{},
 		&TestParser{},
+		// New Tools
+		&WebParser{},
+		&PithParser{},
+		&PowerShellParser{},
+		&GoParser{},
 	}
 	return append(parsers, &ChainParser{})
 }
