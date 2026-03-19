@@ -194,12 +194,14 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 
 	// Record telemetry
 	record := telemetry.ExecutionRecord{
-		Command:          strings.Join(args, " "),
-		OriginalTokens:   originalTokens,
-		CompressedTokens: compressedTokens,
-		DurationMs:       duration,
-		ParserUsed:       parserUsed,
-		IsPassthrough:    isPassthrough,
+		Command:           strings.Join(args, " "),
+		OriginalTokens:    originalTokens,
+		CompressedTokens:  compressedTokens,
+		OriginalContent:   fullOutput,
+		CompressedContent: finalOutput,
+		DurationMs:        duration,
+		ParserUsed:        parserUsed,
+		IsPassthrough:     isPassthrough,
 	}
 	
 	_ = r.telemetry.Record(record)

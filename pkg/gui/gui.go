@@ -45,6 +45,26 @@ func StartDashboard(tel *telemetry.Telemetry, port int) error {
 		json.NewEncoder(w).Encode(unparsed)
 	})
 
+	http.HandleFunc("/api/recent", func(w http.ResponseWriter, r *http.Request) {
+		recent, _ := tel.GetRecentExecutions(20)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(recent)
+	})
+
+	http.HandleFunc("/api/execution", func(w http.ResponseWriter, r *http.Request) {
+		idStr := r.URL.Query().Get("id")
+		var id int64
+		fmt.Sscanf(idStr, "%d", &id)
+		
+		execution, err := tel.GetExecutionDetails(id)
+		if err != nil {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(execution)
+	})
+
 	url := fmt.Sprintf("http://localhost:%d", port)
 	fmt.Printf("Starting Pith Dashboard at %s\n", url)
 	

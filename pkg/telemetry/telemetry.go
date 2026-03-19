@@ -15,6 +15,8 @@ type ExecutionRecord struct {
 	Command           string
 	OriginalTokens    int
 	CompressedTokens  int
+	OriginalContent   string
+	CompressedContent string
 	DurationMs        int64
 	ParserUsed        string
 	IsPassthrough     bool
@@ -58,18 +60,28 @@ func (t *Telemetry) init() error {
 		command TEXT,
 		original_tokens INTEGER,
 		compressed_tokens INTEGER,
+		original_content TEXT,
+		compressed_content TEXT,
 		duration_ms INTEGER,
 		parser_used TEXT,
 		is_passthrough BOOLEAN
 	);`
 	_, err := t.db.Exec(query)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Migration for existing databases
+	_, _ = t.db.Exec("ALTER TABLE executions ADD COLUMN original_content TEXT")
+	_, _ = t.db.Exec("ALTER TABLE executions ADD COLUMN compressed_content TEXT")
+
+	return nil
 }
 
 func (t *Telemetry) Record(rec ExecutionRecord) error {
-	query := `INSERT INTO executions (command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough)
-	          VALUES (?, ?, ?, ?, ?, ?)`
-	_, err := t.db.Exec(query, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough)
+	query := `INSERT INTO executions (command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err := t.db.Exec(query, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough)
 	return err
 }
 
@@ -199,4 +211,40 @@ func (t *Telemetry) ResetAll() error {
 func (t *Telemetry) ResetPassthrough() error {
 	_, err := t.db.Exec("DELETE FROM executions WHERE is_passthrough = 1")
 	return err
+}
+
+func (t *Telemetry) GetRecentExecutions(limit int) ([]ExecutionRecord, error) {
+	query := `
+		SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough 
+		FROM executions 
+		ORDER BY timestamp DESC 
+		LIMIT ?`
+	rows, err := t.db.Query(query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []ExecutionRecord
+	for rows.Next() {
+		var r ExecutionRecord
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, nil
+}
+
+func (t *Telemetry) GetExecutionDetails(id int64) (*ExecutionRecord, error) {
+	query := `
+		SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough 
+		FROM executions 
+		WHERE id = ?`
+	var r ExecutionRecord
+	err := t.db.QueryRow(query, id).Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough)
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
 }
