@@ -35,6 +35,9 @@ func GetAllParsers() []Parser {
 		&PithParser{},
 		&PowerShellParser{},
 		&GoParser{},
+		&VitestParser{},
+		&BDParser{},
+		&PromptfooParser{},
 	}
 	return append(parsers, &ChainParser{})
 }
