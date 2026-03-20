@@ -140,3 +140,36 @@ Evaluating [██████████████████████�
 		t.Errorf("Expected progress bar to be preserved")
 	}
 }
+
+func TestPowerShellParser(t *testing.T) {
+	p := &PowerShellParser{}
+
+	// Test CanParse
+	if !p.CanParse("powershell", []string{"-Command", "Get-ChildItem"}) {
+		t.Errorf("Expected CanParse to handle powershell")
+	}
+
+	// Mock Get-ChildItem output
+	input := `
+    Directory: E:\Repos\Pith\pkg\parser
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+d-----        3/16/2026   1:55 AM                pkg
+-a----        3/19/2026  12:23 AM           1990 web.go
+`
+	output := p.Parse(input)
+
+	if strings.Contains(output, "Directory:") {
+		t.Errorf("Expected Directory: header to be removed")
+	}
+	if strings.Contains(output, "LastWriteTime") {
+		t.Errorf("Expected Mode header to be removed")
+	}
+	if !strings.Contains(output, "d----- pkg") {
+		t.Errorf("Expected directory entry to be preserved without date/time")
+	}
+	if !strings.Contains(output, "-a---- 1990 web.go") {
+		t.Errorf("Expected file entry to be preserved with size but without date/time")
+	}
+}
