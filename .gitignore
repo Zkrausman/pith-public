@@ -6,6 +6,9 @@ diet.exe
 vendor/
 *.db
 
+# Tool configs
+.gemini/
+
 # Dolt database files (added by bd init)
 .dolt/
 .beads/
