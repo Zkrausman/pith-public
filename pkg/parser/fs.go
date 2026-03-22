@@ -28,7 +28,6 @@ func (l *LsParser) Parse(output string) string {
 			
 			// Simple heuristic: if field 0 looks like a mode (-rwx... or d----)
 			if strings.HasPrefix(fields[0], "d") || strings.HasPrefix(fields[0], "-") || strings.HasPrefix(fields[0], "l") {
-				mode := fields[0]
 				name := fields[len(fields)-1]
 				size := ""
 				
@@ -39,9 +38,9 @@ func (l *LsParser) Parse(output string) string {
 				}
 				
 				if size != "" {
-					result = append(result, fmt.Sprintf("%s %s %s", mode, size, name))
+					result = append(result, fmt.Sprintf("%s %s", size, name))
 				} else {
-					result = append(result, fmt.Sprintf("%s %s", mode, name))
+					result = append(result, name)
 				}
 			} else {
 				// Fallback to name only if we can't parse it reliably
