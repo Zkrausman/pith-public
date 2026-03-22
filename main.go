@@ -221,6 +221,9 @@ var hookCmd = &cobra.Command{
 		// Try newer schema first
 		if cmdVal, ok := input.ToolInput["command"].(string); ok {
 			command = cmdVal
+		} else if cmdVal, ok := input.ToolInput["CommandLine"].(string); ok {
+			// Support Antigravity/Gemini run_command schema
+			command = cmdVal
 		} else if input.ToolCallRequest.Arguments != "" {
 			// Fallback to older schema
 			var toolArgs ToolArgs
