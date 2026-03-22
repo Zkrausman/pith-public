@@ -31,7 +31,7 @@ func Install() error {
 	// Skip copy if we are already running from the destination path
 	absExe, _ := filepath.Abs(exePath)
 	absDest, _ := filepath.Abs(destPath)
-	if strings.ToLower(absExe) == strings.ToLower(absDest) {
+	if strings.EqualFold(absExe, absDest) {
 		fmt.Printf("Pith is already running from %s. Skipping copy.\n", destPath)
 	} else {
 		// Copy the executable to ~/.pith/bin
