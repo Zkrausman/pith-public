@@ -10,7 +10,7 @@ type BDParser struct{}
 func (b *BDParser) Name() string { return "bd" }
 
 func (b *BDParser) CanParse(cmd string, args []string) bool {
-	return cmd == "bd" || strings.HasSuffix(cmd, "bd.exe")
+	return MatchCommand(cmd, "bd")
 }
 
 func (b *BDParser) Parse(output string) string {

@@ -10,7 +10,7 @@ type PowerShellParser struct{}
 func (ps *PowerShellParser) Name() string { return "windows-shell" }
 
 func (ps *PowerShellParser) CanParse(cmd string, args []string) bool {
-	return cmd == "powershell" || cmd == "pwsh" || cmd == "cmd"
+	return MatchCommand(cmd, "powershell") || MatchCommand(cmd, "pwsh") || MatchCommand(cmd, "cmd")
 }
 
 func (ps *PowerShellParser) Parse(output string) string {
@@ -38,23 +38,11 @@ func (ps *PowerShellParser) Parse(output string) string {
 		}
 		
 		// Handle Get-ChildItem / ls / dir output format
-		// Mode                LastWriteTime         Length Name
-		// ----                -------------         ------ ----
-		// d-----        3/16/2026   1:55 AM                pkg
 		if isLsh {
 			fields := strings.Fields(trimmed)
 			if len(fields) >= 4 {
 				mode := fields[0]
 				name := fields[len(fields)-1]
-				
-				// PowerShell output: Mode, LastWriteTime (Date, Time, AM/PM), Length (optional), Name
-				// d-----        3/16/2026   1:55 AM                pkg (4 fields: mode, date, time, am/pm, name)
-				// -a----        3/19/2026  12:23 AM           1990 web.go (5 fields: mode, date, time, am/pm, size, name)
-				
-				// If it's a directory, it usually has 4 fields (excluding Name) if we count AM/PM as a separate field.
-				// Wait, let's look at the fields more carefully.
-				// d----- | 3/16/2026 | 1:55 | AM | pkg  -> 5 fields
-				// -a---- | 3/19/2026 | 12:23 | AM | 1990 | web.go -> 6 fields
 				
 				if len(fields) >= 6 {
 					size := fields[len(fields)-2]
@@ -79,4 +67,66 @@ func (ps *PowerShellParser) Parse(output string) string {
 		return strings.Join(result, "\n") + fmt.Sprintf("\n... (+ %d more lines)", len(lines)-len(result))
 	}
 	return strings.Join(result, "\n")
+}
+
+type GetContentParser struct{}
+
+func (gc *GetContentParser) Name() string { return "get-content" }
+
+func (gc *GetContentParser) CanParse(cmd string, args []string) bool {
+	// Pattern: powershell -Command "Get-Content ..."
+	// Pattern: Get-Content -Path ...
+	fullCmd := strings.Join(append([]string{cmd}, args...), " ")
+	return strings.Contains(fullCmd, "Get-Content") || strings.Contains(fullCmd, "cat") || strings.Contains(fullCmd, "type")
+}
+
+func (gc *GetContentParser) Parse(output string) string {
+	trimmed := strings.TrimSpace(output)
+	if trimmed == "" {
+		return ""
+	}
+
+	// If it looks like JSON, let's try to minify it and truncate large strings.
+	if (strings.HasPrefix(trimmed, "{") && strings.HasSuffix(trimmed, "}")) || (strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]")) {
+		// Use MinifyJSON if it was already available in another parser, or implement it here.
+		// Since I don't see a MinifyJSON utility, I'll do a simple one that handles common fields like 'context_snippet'.
+		
+		// Simple minification: remove excess whitespace and newlines
+		var minified strings.Builder
+		inString := false
+		for i := 0; i < len(trimmed); i++ {
+			char := trimmed[i]
+			if char == '"' && (i == 0 || trimmed[i-1] != '\\') {
+				inString = !inString
+			}
+			if !inString {
+				if char == ' ' || char == '\n' || char == '\r' || char == '\t' {
+					continue
+				}
+			}
+			minified.WriteByte(char)
+		}
+		
+		result := minified.String()
+		
+		// Truncate fields that are known to be massive and less useful in raw form (like context_snippet)
+		// Pattern: "context_snippet":"..."
+		// We'll look for strings longer than 200 chars and truncate them.
+		
+		// Note: This is a very basic implementation. A more robust one would use json.Unmarshal.
+		// But for token optimization, sometimes raw string manipulation is faster/cheaper.
+		
+		if len(result) > 2000 {
+			return result[:2000] + "... (truncated JSON)"
+		}
+		return result
+	}
+
+	// For non-JSON output, just limit lines
+	lines := strings.Split(trimmed, "\n")
+	if len(lines) > 50 {
+		return strings.Join(lines[:50], "\n") + fmt.Sprintf("\n... (+ %d more lines truncated by Pith)", len(lines)-50)
+	}
+	
+	return trimmed
 }

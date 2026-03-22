@@ -10,7 +10,7 @@ type LsParser struct{}
 
 func (l *LsParser) Name() string { return "ls" }
 func (l *LsParser) CanParse(cmd string, args []string) bool {
-	return cmd == "ls" || cmd == "dir"
+	return MatchCommand(cmd, "ls") || MatchCommand(cmd, "dir")
 }
 func (l *LsParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
@@ -64,7 +64,7 @@ type FindParser struct{}
 
 func (f *FindParser) Name() string { return "find" }
 func (f *FindParser) CanParse(cmd string, args []string) bool {
-	return cmd == "find" || cmd == "where" || cmd == "where.exe"
+	return MatchCommand(cmd, "find") || MatchCommand(cmd, "where")
 }
 func (f *FindParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
@@ -89,7 +89,7 @@ type TreeParser struct{}
 
 func (t *TreeParser) Name() string { return "tree" }
 func (t *TreeParser) CanParse(cmd string, args []string) bool {
-	return cmd == "tree"
+	return MatchCommand(cmd, "tree")
 }
 func (t *TreeParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
@@ -109,7 +109,7 @@ type DuParser struct{}
 
 func (d *DuParser) Name() string { return "du" }
 func (d *DuParser) CanParse(cmd string, args []string) bool {
-	return cmd == "du"
+	return MatchCommand(cmd, "du")
 }
 func (d *DuParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")

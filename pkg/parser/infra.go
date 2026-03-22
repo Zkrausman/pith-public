@@ -11,7 +11,7 @@ type EnvParser struct{}
 
 func (e *EnvParser) Name() string { return "env" }
 func (e *EnvParser) CanParse(cmd string, args []string) bool {
-	return cmd == "env" || cmd == "set" || cmd == "export"
+	return MatchCommand(cmd, "env") || MatchCommand(cmd, "set") || MatchCommand(cmd, "export")
 }
 
 var skipEnvRegex = regexp.MustCompile(`(?i)(token|key|secret|password|auth|ssh_auth_sock|ls_colors|color)`)
@@ -36,7 +36,7 @@ type DockerPsParser struct{}
 
 func (d *DockerPsParser) Name() string { return "docker_ps" }
 func (d *DockerPsParser) CanParse(cmd string, args []string) bool {
-	return cmd == "docker" && len(args) > 0 && (args[0] == "ps" || args[0] == "images")
+	return MatchCommand(cmd, "docker") && len(args) > 0 && (args[0] == "ps" || args[0] == "images")
 }
 func (d *DockerPsParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
@@ -59,8 +59,8 @@ type DependencyParser struct{}
 
 func (d *DependencyParser) Name() string { return "dependencies" }
 func (d *DependencyParser) CanParse(cmd string, args []string) bool {
-	return (cmd == "npm" && len(args) > 0 && args[0] == "list") ||
-		   (cmd == "pip" && len(args) > 0 && args[0] == "list")
+	return (MatchCommand(cmd, "npm") && len(args) > 0 && args[0] == "list") ||
+		   (MatchCommand(cmd, "pip") && len(args) > 0 && args[0] == "list")
 }
 func (d *DependencyParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
@@ -101,9 +101,9 @@ type TestParser struct{}
 
 func (t *TestParser) Name() string { return "tests" }
 func (t *TestParser) CanParse(cmd string, args []string) bool {
-	return (cmd == "npm" && len(args) > 0 && args[0] == "test") ||
-		   (cmd == "go" && len(args) > 0 && args[0] == "test") ||
-		   cmd == "pytest"
+	return (MatchCommand(cmd, "npm") && len(args) > 0 && args[0] == "test") ||
+		   (MatchCommand(cmd, "go") && len(args) > 0 && args[0] == "test") ||
+		   MatchCommand(cmd, "pytest")
 }
 func (t *TestParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
@@ -135,14 +135,9 @@ type GitHubParser struct{}
 
 func (g *GitHubParser) Name() string { return "github" }
 func (g *GitHubParser) CanParse(cmd string, args []string) bool {
-	full := cmd
-	if len(args) > 0 {
-		full += " " + strings.Join(args, " ")
-	}
-	
-	return strings.HasPrefix(full, "gh ") && strings.Contains(full, " list") && 
-		   (strings.Contains(full, "issue") || strings.Contains(full, "pr") || 
-		    strings.Contains(full, "release") || strings.Contains(full, "repo"))
+	return MatchCommand(cmd, "gh") && len(args) > 0 && 
+		   (args[0] == "issue" || args[0] == "pr" || args[0] == "release" || args[0] == "repo" || args[0] == "run") &&
+		   (strings.Contains(strings.Join(args, " "), " list") || strings.Contains(strings.Join(args, " "), " view"))
 }
 func (g *GitHubParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")

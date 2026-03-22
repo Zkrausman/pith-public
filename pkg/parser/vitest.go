@@ -11,8 +11,8 @@ func (v *VitestParser) Name() string { return "vitest" }
 
 func (v *VitestParser) CanParse(cmd string, args []string) bool {
 	// npx vitest run or vitest run
-	isNpx := (cmd == "npx" || strings.HasSuffix(cmd, "npx.exe")) && len(args) > 0 && args[0] == "vitest"
-	isVitest := cmd == "vitest" || strings.HasSuffix(cmd, "vitest.exe")
+	isNpx := MatchCommand(cmd, "npx") && len(args) > 0 && (args[0] == "vitest" || MatchCommand(args[0], "vitest"))
+	isVitest := MatchCommand(cmd, "vitest")
 	return isNpx || isVitest
 }
 

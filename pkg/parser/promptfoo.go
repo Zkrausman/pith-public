@@ -10,8 +10,8 @@ type PromptfooParser struct{}
 func (p *PromptfooParser) Name() string { return "promptfoo" }
 
 func (p *PromptfooParser) CanParse(cmd string, args []string) bool {
-	isNpx := (cmd == "npx" || strings.HasSuffix(cmd, "npx.exe")) && len(args) > 0 && args[0] == "promptfoo"
-	isPromptfoo := cmd == "promptfoo" || strings.HasSuffix(cmd, "promptfoo.exe")
+	isNpx := MatchCommand(cmd, "npx") && len(args) > 0 && (args[0] == "promptfoo" || MatchCommand(args[0], "promptfoo"))
+	isPromptfoo := MatchCommand(cmd, "promptfoo")
 	return isNpx || isPromptfoo
 }
 
