@@ -56,9 +56,12 @@ When a command returns thousands of lines (like a massive log file), Pith preven
 ## 🛠️ Supported Parsers
 Pith currently optimizes the following commands:
 - **Git:** `status`, `log`, `diff`, `branch`, and **composite commands** (e.g., `git status & git log`)
-- **Filesystem:** `ls`, `dir`, `find`, `tree`, `du`
-- **Text:** `grep`, `rg`, `cat` (JSON/XML/CSS/HTML minification)
-- **Infra/Dev:** `docker ps`, `npm list`, `pip list`, `npm test`, `go test`, `pytest`, `env`, `set`
+- **PowerShell:** `Get-Content` (JSON minification & truncation), `Get-ChildItem` (ls/dir minification)
+- **Filesystem:** `ls`, `dir`, `find`, `tree`, `du`, `where`
+- **Text:** `grep`, `rg`, `cat`, `type` (JSON/XML/CSS/HTML minification)
+- **Infra/Dev:** `docker ps`, `npm list`, `pip list`, `npm test`, `go test`, `pytest`, `vitest`, `bd` (Beads), `gh` (GitHub), `env`, `set`
+
+> **Note:** Pith features **cross-platform command matching**, meaning it automatically recognizes commands regardless of their extension (`.exe`, `.cmd`, `.bat`, `.ps1`) or whether they are called via a full path.
 
 ---
 

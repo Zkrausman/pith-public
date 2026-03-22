@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.9.0] - 2026-03-22
+
+### Added
+- **PowerShell Get-Content Parser:** Dedicated optimizer for `Get-Content` output, specifically targeting large JSON files (like session logs) with minification and truncation of massive fields.
+- **Cross-Platform Command Matching:** Introduced a robust `MatchCommand` helper that automatically recognizes commands regardless of Windows extensions (`.exe`, `.cmd`, `.bat`, `.ps1`) or full file paths.
+- **Full Test Coverage:** Achieved 100% test coverage across all 20+ specialized parsers with new comprehensive test suites for `MatchCommand` and `GetContentParser`.
+
+### Improved
+- Updated `VitestParser`, `BDParser`, `PowerShellParser`, and `PromptfooParser` to leverage the new robust command matching logic, ensuring higher hit rates on Windows.
+- Standardized all `CanParse` implementations to use slice-based argument matching for better accuracy.
+
 ## [v0.8.0] - 2026-03-20
 
 ### Added
