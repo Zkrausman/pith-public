@@ -173,10 +173,11 @@ func setupHook(dirName, eventName, matcher string, global bool, source string) (
 	foundGroup := false
 	for i, group := range eventHooks {
 		if group.Matcher == matcher {
-			// Check if Pith hook already exists in this group
+			// Check if Pith hook already exists in this group and overwrite it
 			exists := false
-			for _, h := range group.Hooks {
+			for j, h := range group.Hooks {
 				if h.Name == "pith-optimizer" {
+					eventHooks[i].Hooks[j] = pithHook
 					exists = true
 					break
 				}
@@ -211,23 +212,11 @@ func setupHook(dirName, eventName, matcher string, global bool, source string) (
 }
 
 func SetupGeminiHook(global bool) error {
-	matchers := []string{"run_shell_command", "run_command", "send_command_input"}
-	var lastPath string
-	for _, matcher := range matchers {
-		source := "antigravity"
-		if matcher == "run_shell_command" {
-			source = "gemini"
-		}
-		path, err := setupHook(".gemini", "AfterTool", matcher, global, source)
-		if err != nil {
-			return err
-		}
-		lastPath = path
+	path, err := setupHook(".gemini", "AfterTool", "run_shell_command", global, "gemini")
+	if err == nil && path != "" {
+		fmt.Printf("Successfully updated %s with Pith hook.\n", path)
 	}
-	if lastPath != "" {
-		fmt.Printf("Successfully updated %s with Pith hook.\n", lastPath)
-	}
-	return nil
+	return err
 }
 
 func SetupClaudeHook(global bool) error {

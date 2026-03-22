@@ -36,7 +36,7 @@ func TestTelemetry(t *testing.T) {
 		t.Fatalf("Failed to record: %v", err)
 	}
 
-	orig, comp, err := tel.GetStats()
+	orig, comp, err := tel.GetStats("")
 	if err != nil {
 		t.Fatalf("Failed to get stats: %v", err)
 	}
@@ -44,7 +44,7 @@ func TestTelemetry(t *testing.T) {
 		t.Errorf("Expected 100/50, got %d/%d", orig, comp)
 	}
 
-	byCmd, err := tel.GetStatsByCommand()
+	byCmd, err := tel.GetStatsByCommand("")
 	if err != nil || len(byCmd) == 0 {
 		t.Fatalf("Failed to get stats by command")
 	}
@@ -52,7 +52,7 @@ func TestTelemetry(t *testing.T) {
 		t.Errorf("Expected git status, got %s", byCmd[0].Command)
 	}
 
-	unparsed, err := tel.GetUnparsedCommands()
+	unparsed, err := tel.GetUnparsedCommands("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestTelemetry(t *testing.T) {
 		IsPassthrough: true,
 	}
 	_ = tel.Record(passthroughRec)
-	unparsed, _ = tel.GetUnparsedCommands()
+	unparsed, _ = tel.GetUnparsedCommands("")
 	if len(unparsed) == 0 {
 		t.Error("Expected unparsed commands to be populated")
 	}
@@ -75,7 +75,7 @@ func TestTelemetry(t *testing.T) {
 	if err := tel.ResetPassthrough(); err != nil {
 		t.Error(err)
 	}
-	unparsed, _ = tel.GetUnparsedCommands()
+	unparsed, _ = tel.GetUnparsedCommands("")
 	if len(unparsed) != 0 {
 		t.Error("ResetPassthrough failed")
 	}
@@ -83,7 +83,7 @@ func TestTelemetry(t *testing.T) {
 	if err := tel.ResetAll(); err != nil {
 		t.Error(err)
 	}
-	orig, _, _ = tel.GetStats()
+	orig, _, _ = tel.GetStats("")
 	if orig != 0 {
 		t.Error("ResetAll failed")
 	}

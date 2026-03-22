@@ -94,7 +94,7 @@ var gainCmd = &cobra.Command{
 		}
 		defer tel.Close()
 
-		totalOrig, totalComp, err := tel.GetStats()
+		totalOrig, totalComp, err := tel.GetStats("")
 		if err != nil {
 			return err
 		}
@@ -112,7 +112,7 @@ var gainCmd = &cobra.Command{
 		fmt.Printf("Compressed:        %d\n", totalComp)
 		fmt.Printf("Tokens Saved:      %d (%.2f%%)\n", saved, percent)
 
-		byCmd, err := tel.GetStatsByCommand()
+		byCmd, err := tel.GetStatsByCommand("")
 		if err == nil && len(byCmd) > 0 {
 			fmt.Printf("\n--- Breakdown by Command and Agent ---\n")
 			fmt.Printf("%-25s | %-12s | %-10s | %-10s | %-10s\n", "Command Pattern", "Agent", "Raw", "Pith", "Savings")
@@ -123,7 +123,7 @@ var gainCmd = &cobra.Command{
 			}
 		}
 
-		unparsed, err := tel.GetUnparsedCommands()
+		unparsed, err := tel.GetUnparsedCommands("")
 		if err == nil && len(unparsed) > 0 {
 			fmt.Printf("\n--- Top Unparsed Commands (Discovery) ---\n")
 			fmt.Printf("%-25s | %-12s | %-8s | %-12s | %-12s\n", "Command Pattern", "Agent", "Count", "Raw Tokens", "Est. Savings")
@@ -156,7 +156,7 @@ var discoverCmd = &cobra.Command{
 		}
 		defer tel.Close()
 
-		unparsed, err := tel.GetUnparsedCommands()
+		unparsed, err := tel.GetUnparsedCommands("")
 		if err != nil {
 			return err
 		}
@@ -220,9 +220,6 @@ var hookCmd = &cobra.Command{
 		var command string
 		// Try newer schema first
 		if cmdVal, ok := input.ToolInput["command"].(string); ok {
-			command = cmdVal
-		} else if cmdVal, ok := input.ToolInput["CommandLine"].(string); ok {
-			// Support Antigravity/Gemini run_command schema
 			command = cmdVal
 		} else if input.ToolCallRequest.Arguments != "" {
 			// Fallback to older schema

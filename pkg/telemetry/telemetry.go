@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -88,19 +89,26 @@ func (t *Telemetry) Record(rec ExecutionRecord) error {
 	return err
 }
 
-func (t *Telemetry) GetStatsByDay() ([]struct {
+func (t *Telemetry) GetStatsByDay(source string) ([]struct {
 	Date     string
 	Original int
 	Compressed int
 }, error) {
-	query := `
-		SELECT strftime('%Y-%m-%d', timestamp) as date, 
+	whereClause := ""
+	var args []interface{}
+	if source != "" && source != "all" {
+		whereClause = "WHERE source = ?"
+		args = append(args, source)
+	}
+	query := fmt.Sprintf(`
+		SELECT strftime('%%Y-%%m-%%d', timestamp) as date, 
 		       SUM(original_tokens), 
 		       SUM(compressed_tokens) 
 		FROM executions 
+		%s
 		GROUP BY date 
-		ORDER BY date ASC`
-	rows, err := t.db.Query(query)
+		ORDER BY date ASC`, whereClause)
+	rows, err := t.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -129,20 +137,26 @@ func (t *Telemetry) Close() error {
 	return t.db.Close()
 }
 
-func (t *Telemetry) GetUnparsedCommands() ([]struct {
+func (t *Telemetry) GetUnparsedCommands(source string) ([]struct {
 	Pattern         string
 	InvocationCount int
 	TotalRawTokens  int
 	Source          string
 }, error) {
-	query := `
+	whereClause := "WHERE is_passthrough = 1"
+	var args []interface{}
+	if source != "" && source != "all" {
+		whereClause += " AND source = ?"
+		args = append(args, source)
+	}
+	query := fmt.Sprintf(`
 		SELECT command, COUNT(*), SUM(original_tokens), MAX(source)
 		FROM executions
-		WHERE is_passthrough = 1
+		%s
 		GROUP BY command
 		ORDER BY SUM(original_tokens) DESC
-	`
-	rows, err := t.db.Query(query)
+	`, whereClause)
+	rows, err := t.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -169,23 +183,35 @@ func (t *Telemetry) GetUnparsedCommands() ([]struct {
 	return results, nil
 }
 
-func (t *Telemetry) GetStats() (totalOriginal, totalCompressed int, err error) {
-	query := `SELECT COALESCE(SUM(original_tokens), 0), COALESCE(SUM(compressed_tokens), 0) FROM executions`
-	err = t.db.QueryRow(query).Scan(&totalOriginal, &totalCompressed)
+func (t *Telemetry) GetStats(source string) (totalOriginal, totalCompressed int, err error) {
+	whereClause := ""
+	var args []interface{}
+	if source != "" && source != "all" {
+		whereClause = "WHERE source = ?"
+		args = append(args, source)
+	}
+	query := fmt.Sprintf(`SELECT COALESCE(SUM(original_tokens), 0), COALESCE(SUM(compressed_tokens), 0) FROM executions %s`, whereClause)
+	err = t.db.QueryRow(query, args...).Scan(&totalOriginal, &totalCompressed)
 	if err == sql.ErrNoRows {
 		return 0, 0, nil
 	}
 	return
 }
 
-func (t *Telemetry) GetStatsByCommand() ([]struct {
+func (t *Telemetry) GetStatsByCommand(source string) ([]struct {
 	Command    string
 	Original   int
 	Compressed int
 	Source     string
 }, error) {
-	query := `SELECT command, SUM(original_tokens), SUM(compressed_tokens), MAX(source) FROM executions GROUP BY command ORDER BY SUM(original_tokens) DESC`
-	rows, err := t.db.Query(query)
+	whereClause := ""
+	var args []interface{}
+	if source != "" && source != "all" {
+		whereClause = "WHERE source = ?"
+		args = append(args, source)
+	}
+	query := fmt.Sprintf(`SELECT command, SUM(original_tokens), SUM(compressed_tokens), MAX(source) FROM executions %s GROUP BY command ORDER BY SUM(original_tokens) DESC`, whereClause)
+	rows, err := t.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -222,13 +248,21 @@ func (t *Telemetry) ResetPassthrough() error {
 	return err
 }
 
-func (t *Telemetry) GetRecentExecutions(limit int) ([]ExecutionRecord, error) {
-	query := `
-		SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough 
+func (t *Telemetry) GetRecentExecutions(limit int, source string) ([]ExecutionRecord, error) {
+	whereClause := ""
+	var args []interface{}
+	if source != "" && source != "all" {
+		whereClause = "WHERE source = ?"
+		args = append(args, source)
+	}
+	args = append(args, limit)
+	query := fmt.Sprintf(`
+		SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source 
 		FROM executions 
+		%s
 		ORDER BY timestamp DESC 
-		LIMIT ?`
-	rows, err := t.db.Query(query, limit)
+		LIMIT ?`, whereClause)
+	rows, err := t.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -237,10 +271,29 @@ func (t *Telemetry) GetRecentExecutions(limit int) ([]ExecutionRecord, error) {
 	var results []ExecutionRecord
 	for rows.Next() {
 		var r ExecutionRecord
-		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough); err != nil {
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source); err != nil {
 			return nil, err
 		}
 		results = append(results, r)
+	}
+	return results, nil
+}
+
+func (t *Telemetry) GetSources() ([]string, error) {
+	query := `SELECT DISTINCT source FROM executions WHERE source != 'unknown' AND source != '' ORDER BY source ASC`
+	rows, err := t.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []string
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return nil, err
+		}
+		results = append(results, s)
 	}
 	return results, nil
 }
