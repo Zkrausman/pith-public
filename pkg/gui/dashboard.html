@@ -49,7 +49,10 @@
                 <h1 class="text-3xl font-bold tracking-tight">Pith <span class="accent-sky">Dashboard</span> <span class="text-xs bg-sky-500/10 text-sky-400 px-2 py-1 rounded-full ml-2 border border-sky-500/20">v2.0</span></h1>
                 <p class="text-slate-400 mt-1">Intelligent Token Optimization & Efficiency Monitoring</p>
             </div>
-            <div class="flex gap-4">
+            <div class="flex gap-4 items-center">
+                <select id="source-filter" onchange="loadData()" class="bg-slate-800 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium border border-slate-700 focus:outline-none focus:border-sky-500">
+                    <option value="all">All Agents</option>
+                </select>
                 <button onclick="loadData()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 transition-colors">
                     Refresh Data
                 </button>
@@ -186,9 +189,12 @@
         let timeChart, commandChart;
 
         async function loadData() {
-            const stats = await fetch('/api/stats').then(res => res.json());
-            const discover = await fetch('/api/discover').then(res => res.json());
-            const recent = await fetch('/api/recent').then(res => res.json());
+            const source = document.getElementById('source-filter').value;
+            const query = source === 'all' ? '' : `?source=${source}`;
+            
+            const stats = await fetch(`/api/stats${query}`).then(res => res.json());
+            const discover = await fetch(`/api/discover${query}`).then(res => res.json());
+            const recent = await fetch(`/api/recent${query}`).then(res => res.json());
 
             updateSummary(stats);
             updateActivityStream(recent);
@@ -374,9 +380,29 @@
             });
         }
 
-        loadData();
+        async function init() {
+            try {
+                const sources = await fetch('/api/sources').then(res => res.json());
+                const select = document.getElementById('source-filter');
+                if (sources && sources.length > 0) {
+                    sources.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s;
+                        opt.innerText = s.charAt(0).toUpperCase() + s.slice(1);
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to load sources", e);
+            }
+            loadData();
+        }
+
+        init();
         setInterval(async () => {
-            const recent = await fetch('/api/recent').then(res => res.json());
+            const source = document.getElementById('source-filter').value;
+            const query = source === 'all' ? '' : `?source=${source}`;
+            const recent = await fetch(`/api/recent${query}`).then(res => res.json());
             updateActivityStream(recent);
         }, 5000);
     </script>

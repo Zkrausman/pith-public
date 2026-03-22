@@ -25,9 +25,10 @@ func StartDashboard(tel *telemetry.Telemetry, port int) error {
 	})
 
 	http.HandleFunc("/api/stats", func(w http.ResponseWriter, r *http.Request) {
-		totalOrig, totalComp, _ := tel.GetStats()
-		byCmd, _ := tel.GetStatsByCommand()
-		daily, _ := tel.GetStatsByDay()
+		source := r.URL.Query().Get("source")
+		totalOrig, totalComp, _ := tel.GetStats(source)
+		byCmd, _ := tel.GetStatsByCommand(source)
+		daily, _ := tel.GetStatsByDay(source)
 
 		resp := map[string]interface{}{
 			"total_original":   totalOrig,
@@ -40,13 +41,15 @@ func StartDashboard(tel *telemetry.Telemetry, port int) error {
 	})
 
 	http.HandleFunc("/api/discover", func(w http.ResponseWriter, r *http.Request) {
-		unparsed, _ := tel.GetUnparsedCommands()
+		source := r.URL.Query().Get("source")
+		unparsed, _ := tel.GetUnparsedCommands(source)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(unparsed)
 	})
 
 	http.HandleFunc("/api/recent", func(w http.ResponseWriter, r *http.Request) {
-		recent, _ := tel.GetRecentExecutions(20)
+		source := r.URL.Query().Get("source")
+		recent, _ := tel.GetRecentExecutions(20, source)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(recent)
 	})
@@ -63,6 +66,12 @@ func StartDashboard(tel *telemetry.Telemetry, port int) error {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(execution)
+	})
+
+	http.HandleFunc("/api/sources", func(w http.ResponseWriter, r *http.Request) {
+		sources, _ := tel.GetSources()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(sources)
 	})
 
 	url := fmt.Sprintf("http://localhost:%d", port)
