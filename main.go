@@ -114,27 +114,27 @@ var gainCmd = &cobra.Command{
 
 		byCmd, err := tel.GetStatsByCommand()
 		if err == nil && len(byCmd) > 0 {
-			fmt.Printf("\n--- Breakdown by Command ---\n")
-			fmt.Printf("%-25s | %-10s | %-10s | %-10s\n", "Command Pattern", "Raw", "Pith", "Savings")
-			fmt.Println(strings.Repeat("-", 61))
+			fmt.Printf("\n--- Breakdown by Command and Agent ---\n")
+			fmt.Printf("%-25s | %-12s | %-10s | %-10s | %-10s\n", "Command Pattern", "Agent", "Raw", "Pith", "Savings")
+			fmt.Println(strings.Repeat("-", 76))
 			for _, r := range byCmd {
 				savings := r.Original - r.Compressed
-				fmt.Printf("%-25s | %-10d | %-10d | %-10d\n", r.Command, r.Original, r.Compressed, savings)
+				fmt.Printf("%-25s | %-12s | %-10d | %-10d | %-10d\n", r.Command, r.Source, r.Original, r.Compressed, savings)
 			}
 		}
 
 		unparsed, err := tel.GetUnparsedCommands()
 		if err == nil && len(unparsed) > 0 {
 			fmt.Printf("\n--- Top Unparsed Commands (Discovery) ---\n")
-			fmt.Printf("%-25s | %-8s | %-12s | %-12s\n", "Command Pattern", "Count", "Raw Tokens", "Est. Savings")
-			fmt.Println(strings.Repeat("-", 65))
+			fmt.Printf("%-25s | %-12s | %-8s | %-12s | %-12s\n", "Command Pattern", "Agent", "Count", "Raw Tokens", "Est. Savings")
+			fmt.Println(strings.Repeat("-", 80))
 			// Only show top 5 in gain summary
 			limit := len(unparsed)
 			if limit > 5 { limit = 5 }
 			for i := 0; i < limit; i++ {
 				r := unparsed[i]
 				estSavings := float64(r.TotalRawTokens) * 0.7
-				fmt.Printf("%-25s | %-8d | %-12d | %-12.0f\n", r.Pattern, r.InvocationCount, r.TotalRawTokens, estSavings)
+				fmt.Printf("%-25s | %-12s | %-8d | %-12d | %-12.0f\n", r.Pattern, r.Source, r.InvocationCount, r.TotalRawTokens, estSavings)
 			}
 			if len(unparsed) > 5 {
 				fmt.Printf("... and %d more. Run 'pith discover' for full list.\n", len(unparsed)-5)
@@ -167,12 +167,12 @@ var discoverCmd = &cobra.Command{
 		}
 
 		fmt.Printf("--- Opportunity Discovery (Unparsed Commands) ---\n")
-		fmt.Printf("%-30s | %-10s | %-15s | %-15s\n", "Command Pattern", "Count", "Total Tokens", "Est. Savings (70%)")
-		fmt.Println(strings.Repeat("-", 76))
+		fmt.Printf("%-30s | %-12s | %-10s | %-15s | %-15s\n", "Command Pattern", "Agent", "Count", "Total Tokens", "Est. Savings (70%)")
+		fmt.Println(strings.Repeat("-", 91))
 
 		for _, r := range unparsed {
 			estSavings := float64(r.TotalRawTokens) * 0.7 // Assume 70% average savings
-			fmt.Printf("%-30s | %-10d | %-15d | %-15.0f\n", r.Pattern, r.InvocationCount, r.TotalRawTokens, estSavings)
+			fmt.Printf("%-30s | %-12s | %-10d | %-15d | %-15.0f\n", r.Pattern, r.Source, r.InvocationCount, r.TotalRawTokens, estSavings)
 		}
 
 		return nil
@@ -295,6 +295,11 @@ var hookCmd = &cobra.Command{
 			}
 		}
 
+		source, _ := cmd.Flags().GetString("source")
+		if source == "" {
+			source = "unknown"
+		}
+
 		if p == nil {
 			if tel != nil {
 				_ = tel.Record(telemetry.ExecutionRecord{
@@ -303,6 +308,7 @@ var hookCmd = &cobra.Command{
 					CompressedTokens: len(originalOutput) / 4,
 					ParserUsed:       "none",
 					IsPassthrough:    true,
+					Source:           source,
 				})
 			}
 			return respondAllow()
@@ -320,6 +326,7 @@ var hookCmd = &cobra.Command{
 				CompressedTokens: len(compressed) / 4,
 				ParserUsed:       p.Name(),
 				IsPassthrough:    false,
+				Source:           source,
 			})
 		}
 
@@ -487,6 +494,8 @@ func init() {
 	installCmd.Flags().BoolP("global", "g", false, "Install hooks globally in the home directory")
 
 	dashboardCmd.Flags().IntP("port", "p", 8080, "Port to run the dashboard server on")
+
+	hookCmd.Flags().String("source", "unknown", "The agent or CLI triggering the hook")
 
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(gainCmd)

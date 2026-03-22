@@ -122,7 +122,7 @@ func (s Settings) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fullMap)
 }
 
-func setupHook(dirName, eventName, matcher string, global bool) (string, error) {
+func setupHook(dirName, eventName, matcher string, global bool, source string) (string, error) {
 	configDir := dirName
 	if global {
 		home, err := os.UserHomeDir()
@@ -164,7 +164,7 @@ func setupHook(dirName, eventName, matcher string, global bool) (string, error) 
 	pithHook := HookEntry{
 		Name:    "pith-optimizer",
 		Type:    "command",
-		Command: fmt.Sprintf("%s _hook", exePath),
+		Command: fmt.Sprintf("%s _hook --source %s", exePath, source),
 		Timeout: 5000,
 	}
 
@@ -214,7 +214,11 @@ func SetupGeminiHook(global bool) error {
 	matchers := []string{"run_shell_command", "run_command", "send_command_input"}
 	var lastPath string
 	for _, matcher := range matchers {
-		path, err := setupHook(".gemini", "AfterTool", matcher, global)
+		source := "antigravity"
+		if matcher == "run_shell_command" {
+			source = "gemini"
+		}
+		path, err := setupHook(".gemini", "AfterTool", matcher, global, source)
 		if err != nil {
 			return err
 		}
@@ -227,7 +231,7 @@ func SetupGeminiHook(global bool) error {
 }
 
 func SetupClaudeHook(global bool) error {
-	path, err := setupHook(".claude", "PostToolUse", "Bash", global)
+	path, err := setupHook(".claude", "PostToolUse", "Bash", global, "claude")
 	if err == nil && path != "" {
 		fmt.Printf("Successfully updated %s with Pith hook.\n", path)
 	}
@@ -235,7 +239,7 @@ func SetupClaudeHook(global bool) error {
 }
 
 func SetupCodexHook(global bool) error {
-	path, err := setupHook(".codex", "AfterTool", "run_shell_command", global)
+	path, err := setupHook(".codex", "AfterTool", "run_shell_command", global, "codex")
 	if err == nil && path != "" {
 		fmt.Printf("Successfully updated %s with Pith hook.\n", path)
 	}

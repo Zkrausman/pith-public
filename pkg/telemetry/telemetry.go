@@ -20,6 +20,7 @@ type ExecutionRecord struct {
 	DurationMs        int64
 	ParserUsed        string
 	IsPassthrough     bool
+	Source            string
 }
 
 type Telemetry struct {
@@ -64,7 +65,8 @@ func (t *Telemetry) init() error {
 		compressed_content TEXT,
 		duration_ms INTEGER,
 		parser_used TEXT,
-		is_passthrough BOOLEAN
+		is_passthrough BOOLEAN,
+		source TEXT DEFAULT 'unknown'
 	);`
 	_, err := t.db.Exec(query)
 	if err != nil {
@@ -74,14 +76,15 @@ func (t *Telemetry) init() error {
 	// Migration for existing databases
 	_, _ = t.db.Exec("ALTER TABLE executions ADD COLUMN original_content TEXT")
 	_, _ = t.db.Exec("ALTER TABLE executions ADD COLUMN compressed_content TEXT")
+	_, _ = t.db.Exec("ALTER TABLE executions ADD COLUMN source TEXT DEFAULT 'unknown'")
 
 	return nil
 }
 
 func (t *Telemetry) Record(rec ExecutionRecord) error {
-	query := `INSERT INTO executions (command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough)
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err := t.db.Exec(query, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough)
+	query := `INSERT INTO executions (command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err := t.db.Exec(query, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough, rec.Source)
 	return err
 }
 
@@ -130,9 +133,10 @@ func (t *Telemetry) GetUnparsedCommands() ([]struct {
 	Pattern         string
 	InvocationCount int
 	TotalRawTokens  int
+	Source          string
 }, error) {
 	query := `
-		SELECT command, COUNT(*), SUM(original_tokens)
+		SELECT command, COUNT(*), SUM(original_tokens), MAX(source)
 		FROM executions
 		WHERE is_passthrough = 1
 		GROUP BY command
@@ -148,14 +152,16 @@ func (t *Telemetry) GetUnparsedCommands() ([]struct {
 		Pattern         string
 		InvocationCount int
 		TotalRawTokens  int
+		Source          string
 	}
 	for rows.Next() {
 		var r struct {
 			Pattern         string
 			InvocationCount int
 			TotalRawTokens  int
+			Source          string
 		}
-		if err := rows.Scan(&r.Pattern, &r.InvocationCount, &r.TotalRawTokens); err != nil {
+		if err := rows.Scan(&r.Pattern, &r.InvocationCount, &r.TotalRawTokens, &r.Source); err != nil {
 			return nil, err
 		}
 		results = append(results, r)
@@ -176,8 +182,9 @@ func (t *Telemetry) GetStatsByCommand() ([]struct {
 	Command    string
 	Original   int
 	Compressed int
+	Source     string
 }, error) {
-	query := `SELECT command, SUM(original_tokens), SUM(compressed_tokens) FROM executions GROUP BY command ORDER BY SUM(original_tokens) DESC`
+	query := `SELECT command, SUM(original_tokens), SUM(compressed_tokens), MAX(source) FROM executions GROUP BY command ORDER BY SUM(original_tokens) DESC`
 	rows, err := t.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -188,14 +195,16 @@ func (t *Telemetry) GetStatsByCommand() ([]struct {
 		Command    string
 		Original   int
 		Compressed int
+		Source     string
 	}
 	for rows.Next() {
 		var r struct {
 			Command    string
 			Original   int
 			Compressed int
+			Source     string
 		}
-		if err := rows.Scan(&r.Command, &r.Original, &r.Compressed); err != nil {
+		if err := rows.Scan(&r.Command, &r.Original, &r.Compressed, &r.Source); err != nil {
 			return nil, err
 		}
 		results = append(results, r)
