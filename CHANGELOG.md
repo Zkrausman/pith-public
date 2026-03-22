@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.9.2] - 2026-03-22
+
+### Added
+- **Parser Generator Skill:** Added a new `pith-parser-generator` AI agent skill for creating new Pith parsers.
+
+### Changed
+- **Repository Cleanup:** Cleaned up version control by ignoring and removing compiled binaries (`pith.exe`, `pith.exe.old`) from tracked files.
+
+### Fixed
+- **Testing:** Fixed a syntax error involving duplicate package declarations and imports in `pkg/parser/fs_test.go` that prevented tests from running.
+
 ## [v0.9.1] - 2026-03-22
 
 ### Fixed
