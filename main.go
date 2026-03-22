@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.9.3"
+const version = "v0.9.4"
 
 var rootCmd = &cobra.Command{
 	Use:     "pith [command]",

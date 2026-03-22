@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.9.3] - 2026-03-22
+## [v0.9.4] - 2026-03-22
+
+### Fixed
+- **Removed non-functional Antigravity support.** The VSCode-based Antigravity agent does not honor `.gemini/settings.json` hooks, so the `run_command` / `send_command_input` matchers and `CommandLine` schema support have been removed.
+
+### Added
+- **Agent Source Tracking:** Pith now records which agent (Gemini CLI, Claude Code, Codex) triggered each command, enabling per-agent cost savings analysis.
+- **Dashboard Agent Filter:** The web dashboard (`pith dashboard`) includes a dropdown to filter all metrics by agent source.
+- **`ls` Parser Optimization:** Removed file permissions from `ls -l` output to further reduce token usage.
+- **Installer Hook Overwrite:** Re-running `pith install` now correctly updates existing hooks instead of silently skipping them.
+
+## [v0.9.3] - 2026-03-22 [YANKED]
 
 ### Added
 - **Agent Source Tracking:** Pith now records which agent (Gemini CLI, Claude Code, Codex) triggered each command, enabling per-agent cost savings analysis.
