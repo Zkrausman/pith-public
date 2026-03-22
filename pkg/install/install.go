@@ -122,18 +122,18 @@ func (s Settings) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fullMap)
 }
 
-func setupHook(dirName, eventName, matcher string, global bool) error {
+func setupHook(dirName, eventName, matcher string, global bool) (string, error) {
 	configDir := dirName
 	if global {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return err
+			return "", err
 		}
 		configDir = filepath.Join(home, dirName)
 	}
 
 	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return err
+		return "", err
 	}
 
 	settingsPath := filepath.Join(configDir, "settings.json")
@@ -200,31 +200,44 @@ func setupHook(dirName, eventName, matcher string, global bool) error {
 	// Write back
 	finalData, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if err := os.WriteFile(settingsPath, finalData, 0644); err != nil {
-		return err
+		return "", err
 	}
 
-	fmt.Printf("Successfully updated %s with Pith hook.\n", settingsPath)
-	return nil
+	return settingsPath, nil
 }
 
 func SetupGeminiHook(global bool) error {
 	matchers := []string{"run_shell_command", "run_command", "send_command_input"}
+	var lastPath string
 	for _, matcher := range matchers {
-		if err := setupHook(".gemini", "AfterTool", matcher, global); err != nil {
+		path, err := setupHook(".gemini", "AfterTool", matcher, global)
+		if err != nil {
 			return err
 		}
+		lastPath = path
+	}
+	if lastPath != "" {
+		fmt.Printf("Successfully updated %s with Pith hook.\n", lastPath)
 	}
 	return nil
 }
 
 func SetupClaudeHook(global bool) error {
-	return setupHook(".claude", "PostToolUse", "Bash", global)
+	path, err := setupHook(".claude", "PostToolUse", "Bash", global)
+	if err == nil && path != "" {
+		fmt.Printf("Successfully updated %s with Pith hook.\n", path)
+	}
+	return err
 }
 
 func SetupCodexHook(global bool) error {
-	return setupHook(".codex", "AfterTool", "run_shell_command", global)
+	path, err := setupHook(".codex", "AfterTool", "run_shell_command", global)
+	if err == nil && path != "" {
+		fmt.Printf("Successfully updated %s with Pith hook.\n", path)
+	}
+	return err
 }
