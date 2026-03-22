@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.9.3] - 2026-03-22
+
+### Added
+- **Antigravity Support:** Integrated fully with the Antigravity LLM agent framework. Pith now hooks into the `run_command` and `send_command_input` matchers natively.
+- **Enhanced Schema Support:** Updated the internal tool schema parser to support the `CommandLine` argument format used by newer Gemini agents.
+
+### Fixed
+- **Installer Duplication:** Fixed a bug where the `pith install` command would print duplicate success messages when installing multiple hooks for the same CLI.
+- **Repository Hygiene:** Removed the `.gemini` folder from version control that was accidentally committed, ensuring user configurations remain purely local.
+
 ## [v0.9.2] - 2026-03-22
 
 ### Added

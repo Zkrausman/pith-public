@@ -12,7 +12,7 @@
 - **Composite Commands:** Intelligent handling of shell-joined commands (e.g., `git status & git log`).
 - **Escape Hatch (`pith raw`):** Bypass all parsers when you need the exact, unformatted truth.
 - **Middle-Out Truncation:** Automatically keep the start and end of massive outputs, removing the redundant middle.
-- **Multi-LLM Integration:** Automated hook setup for Gemini CLI, Claude Code, and Codex.
+- **Multi-LLM Integration:** Automated hook setup for Gemini CLI, Antigravity, Claude Code, and Codex.
 - **Telemetry & Discovery:** Tracks exact token savings and identifies new optimization targets.
 - **Interactive Configuration:** Toggle parsers and adjust truncation limits via `pith config`.
 - **Interactive Dashboard:** Launch a local web-based analytics dashboard via `pith dashboard`.
