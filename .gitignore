@@ -1,3 +1,6 @@
+pith.exe
+pith.exe.old
+.pith/
 diet.exe
 .diet/
 vendor/
