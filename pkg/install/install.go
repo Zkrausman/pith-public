@@ -212,7 +212,13 @@ func setupHook(dirName, eventName, matcher string, global bool) error {
 }
 
 func SetupGeminiHook(global bool) error {
-	return setupHook(".gemini", "AfterTool", "run_shell_command", global)
+	matchers := []string{"run_shell_command", "run_command", "send_command_input"}
+	for _, matcher := range matchers {
+		if err := setupHook(".gemini", "AfterTool", matcher, global); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func SetupClaudeHook(global bool) error {
