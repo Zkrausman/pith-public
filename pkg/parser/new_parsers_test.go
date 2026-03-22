@@ -66,3 +66,69 @@ func TestChainParser(t *testing.T) {
 		t.Errorf("Expected 3 sub-commands, got %d", len(subcmds))
 	}
 }
+
+func TestWebParser(t *testing.T) {
+	p := &WebParser{}
+
+	// Test CanParse
+	if !p.CanParse("curl", []string{"http://example.com"}) {
+		t.Error("WebParser should handle curl")
+	}
+	if !p.CanParse("iwr", []string{"http://example.com"}) {
+		t.Error("WebParser should handle iwr")
+	}
+
+	// Test HTML extraction
+	htmlInput := `<!DOCTYPE html><html><head><title>Test Page</title></head><body>Hello</body></html>`
+	htmlOutput := p.Parse(htmlInput)
+	if !strings.Contains(htmlOutput, "HTML Content: [Test Page]") {
+		t.Errorf("WebParser failed to extract HTML title: %s", htmlOutput)
+	}
+
+	// Test JSON minification
+	jsonInput := `{"foo": "bar", "baz": 123}`
+	jsonOutput := p.Parse(jsonInput)
+	if strings.Contains(jsonOutput, " ") {
+		t.Errorf("WebParser failed to minify JSON: %s", jsonOutput)
+	}
+}
+
+func TestPithParser(t *testing.T) {
+	p := &PithParser{}
+
+	// Test CanParse
+	if !p.CanParse("pith", []string{"gain"}) {
+		t.Error("PithParser should handle pith")
+	}
+	if !p.CanParse("go", []string{"run", "main.go", "discover"}) {
+		t.Error("PithParser should handle go run main.go")
+	}
+
+	// Test Log summary
+	logInput := `[CMD] git status
+[EXIT] 0
+On branch main
+nothing to commit`
+	logOutput := p.Parse(logInput)
+	if !strings.Contains(logOutput, "Command: git status") || !strings.Contains(logOutput, "Exit Code: 0") {
+		t.Errorf("PithParser failed to summarize logs: %s", logOutput)
+	}
+}
+
+func TestGoParser(t *testing.T) {
+	p := &GoParser{}
+
+	// Test CanParse
+	if !p.CanParse("go", []string{"version"}) {
+		t.Error("GoParser should handle go")
+	}
+
+	// Test Summary preservation
+	input := `ok  	pith/pkg/parser	0.359s
+FAIL	pith/pkg/runner	0.123s
+TOTAL: 10 passed, 1 failed`
+	output := p.Parse(input)
+	if !strings.Contains(output, "ok  	pith/pkg/parser") || !strings.Contains(output, "FAIL") || !strings.Contains(output, "TOTAL") {
+		t.Errorf("GoParser missing summary lines: %s", output)
+	}
+}

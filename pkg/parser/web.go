@@ -12,14 +12,7 @@ func (w *WebParser) Name() string { return "web-content" }
 
 func (w *WebParser) CanParse(cmd string, args []string) bool {
 	// curl, wget, Invoke-WebRequest, iwr
-	if cmd == "curl" || cmd == "wget" || cmd == "Invoke-WebRequest" || cmd == "iwr" {
-		return true
-	}
-	// Also check if it's a PowerShell alias/command in Windows
-	if strings.Contains(cmd, "Invoke-WebRequest") || cmd == "iwr" {
-		return true
-	}
-	return false
+	return MatchCommand(cmd, "curl") || MatchCommand(cmd, "wget") || MatchCommand(cmd, "Invoke-WebRequest") || MatchCommand(cmd, "iwr")
 }
 
 func (w *WebParser) Parse(output string) string {

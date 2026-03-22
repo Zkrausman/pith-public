@@ -11,10 +11,10 @@ func (p *PithParser) Name() string { return "pith-internal" }
 
 func (p *PithParser) CanParse(cmd string, args []string) bool {
 	// Either 'pith' or 'go run main.go' (common dev command)
-	if cmd == "pith" {
+	if MatchCommand(cmd, "pith") {
 		return true
 	}
-	if (cmd == "go" || strings.HasSuffix(cmd, "go.exe")) && len(args) >= 2 && args[0] == "run" && args[1] == "main.go" {
+	if MatchCommand(cmd, "go") && len(args) >= 2 && args[0] == "run" && args[1] == "main.go" {
 		return true
 	}
 	return false
@@ -39,9 +39,9 @@ func (p *PithParser) Parse(output string) string {
 		if strings.Contains(trimmed, "[CMD]") || strings.Contains(trimmed, "[EXIT]") {
 			// Compact the snag log format
 			if strings.HasPrefix(trimmed, "[CMD]") {
-				result = append(result, "Command: " + trimmed[5:])
+				result = append(result, "Command: " + strings.TrimSpace(trimmed[5:]))
 			} else if strings.HasPrefix(trimmed, "[EXIT]") {
-				result = append(result, "Exit Code: " + trimmed[6:])
+				result = append(result, "Exit Code: " + strings.TrimSpace(trimmed[6:]))
 			} else {
 				// Potential middle output, truncate if long
 				if len(trimmed) > 100 {

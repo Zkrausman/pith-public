@@ -10,7 +10,7 @@ type GoParser struct{}
 func (g *GoParser) Name() string { return "go" }
 
 func (g *GoParser) CanParse(cmd string, args []string) bool {
-	return cmd == "go" || strings.HasSuffix(cmd, "go.exe")
+	return MatchCommand(cmd, "go")
 }
 
 func (g *GoParser) Parse(output string) string {

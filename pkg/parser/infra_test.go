@@ -7,6 +7,15 @@ import (
 
 func TestEnvParser(t *testing.T) {
 	p := &EnvParser{}
+
+	// Test CanParse
+	if !p.CanParse("env", []string{}) {
+		t.Error("EnvParser should handle env command")
+	}
+	if !p.CanParse("set", []string{}) {
+		t.Error("EnvParser should handle set command")
+	}
+
 	input := `PATH=/usr/bin
 USER=zkrau
 GITHUB_TOKEN=secret_token
@@ -24,6 +33,15 @@ SHELL=/bin/bash
 
 func TestDockerPsParser(t *testing.T) {
 	p := &DockerPsParser{}
+
+	// Test CanParse
+	if !p.CanParse("docker", []string{"ps"}) {
+		t.Error("DockerPsParser should handle docker ps")
+	}
+	if !p.CanParse("docker", []string{"images"}) {
+		t.Error("DockerPsParser should handle docker images")
+	}
+
 	input := `CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 1234567890ab   nginx     "entry"   1h ago    Up        80/tcp    my-nginx
 `
@@ -35,6 +53,15 @@ func TestDockerPsParser(t *testing.T) {
 
 func TestDependencyParser(t *testing.T) {
 	p := &DependencyParser{}
+
+	// Test CanParse
+	if !p.CanParse("npm", []string{"list"}) {
+		t.Error("DependencyParser should handle npm list")
+	}
+	if !p.CanParse("pip", []string{"list"}) {
+		t.Error("DependencyParser should handle pip list")
+	}
+
 	input := `pith@0.3.0 E:\Repos\Pith
 ├── github.com/spf13/cobra@v1.8.0
 └── github.com/AlecAivazis/survey/v2@v2.3.7
@@ -50,6 +77,18 @@ func TestDependencyParser(t *testing.T) {
 
 func TestTestParser(t *testing.T) {
 	p := &TestParser{}
+
+	// Test CanParse
+	if !p.CanParse("npm", []string{"test"}) {
+		t.Error("TestParser should handle npm test")
+	}
+	if !p.CanParse("go", []string{"test"}) {
+		t.Error("TestParser should handle go test")
+	}
+	if !p.CanParse("pytest", []string{}) {
+		t.Error("TestParser should handle pytest")
+	}
+
 	input := `Running tests...
 PASS: TestOne
 FAIL: TestTwo
@@ -68,8 +107,14 @@ func TestGitHubParser(t *testing.T) {
 Zkrausman/resume       public  2026-01-01T12:00:00Z
 `
 	// Test CanParse
-	if !p.CanParse("gh repo list", []string{}) {
-		t.Error("GitHubParser should handle gh list commands")
+	if !p.CanParse("gh", []string{"repo", "list"}) {
+		t.Error("GitHubParser should handle gh repo list")
+	}
+	if !p.CanParse("gh", []string{"issue", "list"}) {
+		t.Error("GitHubParser should handle gh issue list")
+	}
+	if !p.CanParse("gh", []string{"run", "view"}) {
+		t.Error("GitHubParser should handle gh run view")
 	}
 
 	output := p.Parse(input)
