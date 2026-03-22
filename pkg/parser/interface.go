@@ -19,8 +19,9 @@ func MatchCommand(cmd string, target string) bool {
 		return true
 	}
 
-	// Normalize and check base name
-	base := strings.ToLower(filepath.Base(cmd))
+	// Normalize path separators to forward slashes for cross-platform matching
+	normalized := strings.ReplaceAll(cmd, "\\", "/")
+	base := strings.ToLower(filepath.Base(normalized))
 	targetLow := strings.ToLower(target)
 	
 	if base == targetLow {
