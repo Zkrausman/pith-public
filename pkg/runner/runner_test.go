@@ -11,8 +11,8 @@ import (
 
 func TestEstimateTokens(t *testing.T) {
 	s := "12345678"
-	if estimateTokens(s) != 2 {
-		t.Errorf("Expected 2, got %d", estimateTokens(s))
+	if EstimateTokens(s) != 2 {
+		t.Errorf("Expected 2, got %d", EstimateTokens(s))
 	}
 }
 

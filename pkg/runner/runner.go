@@ -11,12 +11,14 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type Runner struct {
 	cfg       *config.Config
 	telemetry *telemetry.Telemetry
 	parsers   []parser.Parser
+	Source    string
 }
 
 func NewRunner(cfg *config.Config, tel *telemetry.Telemetry) *Runner {
@@ -24,7 +26,19 @@ func NewRunner(cfg *config.Config, tel *telemetry.Telemetry) *Runner {
 		cfg:       cfg,
 		telemetry: tel,
 		parsers:   parser.GetAllParsers(),
+		Source:    DetectSource(),
 	}
+}
+
+func DetectSource() string {
+	if os.Getenv("GEMINI_CLI") != "" || os.Getenv("GOOGLE_API_KEY") != "" {
+		return "gemini"
+	}
+	if os.Getenv("CLAUDE_CODE") != "" || os.Getenv("ANTHROPIC_API_KEY") != "" {
+		return "claude"
+	}
+	// Check parent process names could be added here later
+	return "unknown"
 }
 
 func (r *Runner) Run(args []string) error {
@@ -119,7 +133,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	// Log for Snag before doing any compression/truncation
 	r.LogForSnag(fullCmd, fullOutput, exitCode)
 
-	originalTokens := estimateTokens(fullOutput)
+	originalTokens := EstimateTokens(fullOutput)
 
 	var p parser.Parser
 	if !skipParsing {
@@ -187,7 +201,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	// Apply Middle-Out Truncation
 	finalOutput = r.ApplyMiddleOutTruncation(finalOutput)
 
-	compressedTokens := estimateTokens(finalOutput)
+	compressedTokens := EstimateTokens(finalOutput)
 
 	// Output to stdout
 	fmt.Print(finalOutput)
@@ -202,6 +216,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 		DurationMs:        duration,
 		ParserUsed:        parserUsed,
 		IsPassthrough:     isPassthrough,
+		Source:            r.Source,
 	}
 	
 	_ = r.telemetry.Record(record)
@@ -230,7 +245,7 @@ func (r *Runner) ApplyMiddleOutTruncation(output string) string {
 	return strings.Join(resultLines, "\n")
 }
 
-func estimateTokens(s string) int {
+func EstimateTokens(s string) int {
 	// Heuristic: 1 token ≈ 4 characters
-	return len(s) / 4
+	return utf8.RuneCountInString(s) / 4
 }

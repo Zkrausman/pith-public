@@ -118,9 +118,19 @@ var gainCmd = &cobra.Command{
 			fmt.Printf("\n--- Breakdown by Command and Agent ---\n")
 			fmt.Printf("%-25s | %-12s | %-10s | %-10s | %-10s\n", "Command Pattern", "Agent", "Raw", "Pith", "Savings")
 			fmt.Println(strings.Repeat("-", 76))
-			for _, r := range byCmd {
+			
+			// Limit to top 20 results in summary
+			limit := len(byCmd)
+			if limit > 20 { limit = 20 }
+			
+			for i := 0; i < limit; i++ {
+				r := byCmd[i]
 				savings := r.Original - r.Compressed
 				fmt.Printf("%-25s | %-12s | %-10d | %-10d | %-10d\n", r.Command, r.Source, r.Original, r.Compressed, savings)
+			}
+			
+			if len(byCmd) > 20 {
+				fmt.Printf("... and %d more. Run 'pith dashboard' for full interactive breakdown.\n", len(byCmd)-20)
 			}
 		}
 
@@ -129,16 +139,16 @@ var gainCmd = &cobra.Command{
 			fmt.Printf("\n--- Top Unparsed Commands (Discovery) ---\n")
 			fmt.Printf("%-25s | %-12s | %-8s | %-12s | %-12s\n", "Command Pattern", "Agent", "Count", "Raw Tokens", "Est. Savings")
 			fmt.Println(strings.Repeat("-", 80))
-			// Only show top 5 in gain summary
+			// Only show top 10 in gain summary
 			limit := len(unparsed)
-			if limit > 5 { limit = 5 }
+			if limit > 10 { limit = 10 }
 			for i := 0; i < limit; i++ {
 				r := unparsed[i]
 				estSavings := float64(r.TotalRawTokens) * 0.7
 				fmt.Printf("%-25s | %-12s | %-8d | %-12d | %-12.0f\n", r.Pattern, r.Source, r.InvocationCount, r.TotalRawTokens, estSavings)
 			}
-			if len(unparsed) > 5 {
-				fmt.Printf("... and %d more. Run 'pith discover' for full list.\n", len(unparsed)-5)
+			if len(unparsed) > 10 {
+				fmt.Printf("... and %d more. Run 'pith discover' for full list.\n", len(unparsed)-10)
 			}
 		}
 
@@ -299,40 +309,43 @@ var hookCmd = &cobra.Command{
 			source = "unknown"
 		}
 
-		if p == nil {
-			if tel != nil {
-				_ = tel.Record(telemetry.ExecutionRecord{
-					Command:          command,
-					OriginalTokens:   len(originalOutput) / 4,
-					CompressedTokens: len(originalOutput) / 4,
-					ParserUsed:       "none",
-					IsPassthrough:    true,
-					Source:           source,
-				})
-			}
-			return respondAllow()
-		}
+		var compressed string
+		parserUsed := "none"
+		isPassthrough := true
 
-		compressed := p.Parse(originalOutput)
+		if p != nil {
+			compressed = p.Parse(originalOutput)
+			parserUsed = p.Name()
+			isPassthrough = false
+		} else {
+			compressed = originalOutput
+		}
 		
-		// Apply truncation to hook output as well
-		compressed = run.ApplyMiddleOutTruncation(compressed)
+		// Apply truncation to all hook output
+		truncated := run.ApplyMiddleOutTruncation(compressed)
+		wasTruncated := truncated != compressed
 
 		if tel != nil {
 			_ = tel.Record(telemetry.ExecutionRecord{
 				Command:          command,
-				OriginalTokens:   len(originalOutput) / 4,
-				CompressedTokens: len(compressed) / 4,
-				ParserUsed:       p.Name(),
-				IsPassthrough:    false,
+				OriginalTokens:   runner.EstimateTokens(originalOutput),
+				CompressedTokens: runner.EstimateTokens(truncated),
+				ParserUsed:       parserUsed,
+				IsPassthrough:    isPassthrough,
 				Source:           source,
 			})
 		}
 
+		// If nothing was parsed and nothing was truncated, allow original
+		if p == nil && !wasTruncated {
+			return respondAllow()
+		}
+
+		// Otherwise, deny and provide the optimized output
 		output := HookOutput{
 			Decision:      "deny",
-			Reason:        prefix + compressed,
-			SystemMessage: fmt.Sprintf("Output compressed by Pith (%s parser)", p.Name()),
+			Reason:        prefix + truncated,
+			SystemMessage: fmt.Sprintf("Output optimized by Pith (parser: %s, truncated: %v)", parserUsed, wasTruncated),
 		}
 		return json.NewEncoder(os.Stdout).Encode(output)
 	},
