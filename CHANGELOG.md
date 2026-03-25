@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.11.0] - 2026-03-25
+
+### Fixed
+- **Token Tracking Feedback Loop:** Resolved a critical issue where `pith gain` would record its own output, leading to an exponential explosion in token counts and database size.
+- **Improved Token Estimation:** Switched to `unicode/utf8.RuneCountInString` for token estimation to ensure accuracy in multi-byte (UTF-8) environments.
+- **Universal Truncation:** Enforced middle-out truncation for ALL intercepted outputs, including unparsed commands caught by hooks, preventing massive unoptimized outputs from consuming LLM context.
+- **Runner Test Suite:** Fixed a compilation error in `pkg/runner/runner_test.go` caused by recent function renames.
+
+### Added
+- **Intelligent Agent Detection:** The Pith runner now automatically detects the calling agent (Gemini CLI or Claude Code) via environment variables, ensuring accurate source tracking even when not explicitly specified by the hook.
+- **Tech Planning Infrastructure:** Initialized the `techPlanning` folder to centralize architectural roadmaps and implementation designs.
+
+### Changed
+- **Cost Basis Update:** Updated the dashboard's cost-saving calculation to $0.50/M tokens to align with modern frontier model pricing (e.g., Gemini 1.5 Flash / Claude 3 Haiku).
+- **Gain Command Optimization:** Limited `pith gain` to display only the top 20 commands and top 10 discovery opportunities, ensuring a concise summary that doesn't bloat logs.
+
 ## [v0.10.0] - 2026-03-24
 9: 
 10: ### Added
