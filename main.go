@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.9.4"
+const version = "v0.10.0"
 
 var rootCmd = &cobra.Command{
 	Use:     "pith [command]",
@@ -458,6 +458,9 @@ var rawCmd = &cobra.Command{
 		}
 
 		tel, err := telemetry.NewTelemetry(cfg.StoragePath)
+		if err != nil {
+			return err
+		}
 		defer tel.Close()
 
 		run := runner.NewRunner(cfg, tel)

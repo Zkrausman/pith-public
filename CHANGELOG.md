@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.9.4] - 2026-03-22
+## [v0.10.0] - 2026-03-24
+9: 
+10: ### Added
+11: - **Configurable Storage:** The telemetry and configuration storage path is now fully configurable. Pith defaults to `E:\TheBrain\PithBackup` on Windows to centralize cross-agent memories.
+12: - **Automatic Migration:** Existing `pith.db` and `config.json` files are automatically migrated to the new storage location upon the first run of the new version.
+13: - **Thneed Parser:** Introduced a specialized parser for `thneed.exe query` output. It elegantly compresses large JSON response bodies while preserving critical node metadata and content snippets.
+14: - **NPM Parser:** New optimizer for `npm install` and `npm run` commands that filters out verbose progress bars and audit boilerplate.
+15: - **Thneed-Aware Architectural Standard:** Added Mermaid diagrams to all package-level `README.md` files to optimize GraphRAG indexing and agent navigation.
+16: 
+17: ### Improved
+18: - **Git Parser Extension:** The `git_status` parser now also handles `git add`, `git commit`, and `git push`, ensuring a clean, token-efficient developer experience across the entire branch workflow.
+19: 
+20: ## [v0.9.4] - 2026-03-22
 
 ### Fixed
 - **Removed non-functional Antigravity support.** The VSCode-based Antigravity agent does not honor `.gemini/settings.json` hooks, so the `run_command` / `send_command_input` matchers and `CommandLine` schema support have been removed.
