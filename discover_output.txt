@@ -1,0 +1,148 @@
+--- Opportunity Discovery (Unparsed Commands) ---
+Command Pattern                | Agent        | Count      | Total Tokens    | Est. Savings (70%)
+-------------------------------------------------------------------------------------------
+.\thneed.exe query --text "runHarvest" --db ./thneed.db --depth 1 | gemini       | 3          | 20880           | 14616          
+./thneed.exe query --text "func (o *Orchestrator) Harvest" --depth 1 --json | gemini       | 1          | 18398           | 12879          
+.\thneed.exe query --text "thneed-y0q" --db ./thneed.db --depth 0 --json | gemini       | 1          | 14032           | 9822           
+.\thneed.exe query --text "beads:thneed-y0q" --depth 0 --json | gemini       | 1          | 12410           | 8687           
+./thneed.exe query --text "thneed-9vz" --depth 0 --json | gemini       | 1          | 12289           | 8602           
+./thneed.exe query --text "telemetry sync test" --depth 0 --json | gemini       | 1          | 12280           | 8596           
+./thneed.exe query --text "test.py" --depth 0 --json | gemini       | 1          | 12276           | 8593           
+./thneed.exe query --text "telemetry test" --depth 0 --json | gemini       | 1          | 12276           | 8593           
+./thneed.exe query --text "def hello" --json | gemini       | 1          | 12275           | 8592           
+./thneed.exe query --text "telemetry" --depth 1 | gemini       | 1          | 10345           | 7241           
+.\thneed.exe query --text "my_function" --depth 0 --json | gemini       | 1          | 8426            | 5898           
+.\thneed.exe query --text "orchestrator" --db ./thneed.db --depth 1 | gemini       | 1          | 6960            | 4872           
+./thneed.exe query --text "telemetry" --depth 0 | gemini       | 1          | 6588            | 4612           
+.\thneed.exe query --text "func runHarvest" --json | gemini       | 1          | 6114            | 4280           
+.\thneed.exe query --text "func runHarvest" --db ./thneed.db --json | gemini       | 1          | 6114            | 4280           
+.\thneed.exe query -text "thneed" -depth 1 | gemini       | 1          | 4931            | 3452           
+.\thneed.exe query --text "func runHarvest" --depth 0 --json | gemini       | 1          | 3710            | 2597           
+.\thneed.exe query --text "installation instructions" --depth 0 | gemini       | 1          | 3519            | 2463           
+.\thneed.exe query --text "struct Orchestrator" --db ./thneed.db --depth 1 | gemini       | 1          | 3516            | 2461           
+.\thneed.exe query --text "main" --db ./thneed.db --depth 1 | gemini       | 1          | 2856            | 1999           
+npm run build                  | gemini       | 7          | 2209            | 1546           
+.\thneed.exe audit-beads       | gemini       | 1          | 2155            | 1508           
+.\thneed.exe query --text "precise symbol resolution" --depth 0 | gemini       | 2          | 1521            | 1065           
+winget show JanDeDobbeleer.OhMyPosh --versions | unknown      | 1          | 1468            | 1028           
+.\thneed.exe query --text "func runHarvest" --db ./thneed.db --depth 2 | gemini       | 2          | 1066            | 746            
+.\cass.exe search "auth"       | unknown      | 1          | 890             | 623            
+git add .                      | gemini       | 1          | 885             | 620            
+.\thneed.exe query --text "func runHarvest(rootPath, dbPath, modelPath, vocabPath string, outputJson bool)" --db ./thneed.db --depth 1 | gemini       | 1          | 670             | 469            
+.\thneed.exe query --text "func runHarvest" --db ./thneed.db --depth 1 | gemini       | 1          | 666             | 466            
+$Env:Path                      | unknown      | 1          | 567             | 397            
+git commit -m "chore: complete Lorax rebranding and markdown consolidation. rename Pinky to Thneed, refactor packages to Lorax theme, and ensure all packages have READMEs with Mermaid diagrams." | gemini       | 1          | 566             | 396            
+.\thneed.exe query --text "thneed-y0q" --depth 0 | gemini       | 1          | 566             | 396            
+.\thneed.exe query --text "how did we fix the context bug?" --depth 0 | gemini       | 1          | 522             | 365            
+.\thneed.exe query --text "noisy code nodes" --depth 0 | gemini       | 1          | 492             | 344            
+.\thneed.exe query --text "Hybrid Lexical" --depth 0 | gemini       | 1          | 489             | 342            
+npm install @xyflow/react dagre --save | gemini       | 1          | 424             | 297            
+rm test_build_error.log, test_results.log, pkg/truffula/languages_test.go | gemini       | 1          | 364             | 255            
+Get-ChildItem -Path .gemini -Recurse | gemini       | 1          | 359             | 251            
+reg query "HKCU\Environment" /v Path | unknown      | 1          | 295             | 206            
+Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name 'Path' | Select-Object -ExpandProperty Path | unknown      | 1          | 290             | 203            
+gemini skills install thneed-audit.skill --scope workspace | gemini       | 1          | 283             | 198            
+Get-ItemProperty -Path 'HKCU:\Environment' -Name 'Path' | Select-Object -ExpandProperty Path | unknown      | 1          | 281             | 197            
+robocopy "G:\My Drive\TheBrain" "E:\TheBrain" /E /MOVE /V /NFL /NDL /NP /R:3 /W:5 | gemini       | 1          | 279             | 195            
+node C:\Users\zkrau\AppData\Local\nvm\v24.14.0\node_modules\@google\gemini-cli\node_modules\@google\gemini-cli-core\dist\src\skills\builtin\skill-creator\scripts\package_skill.cjs skills\thneed-audit . | gemini       | 1          | 269             | 188            
+.\thneed.exe harvest --path E:\Repos\Thneed | gemini       | 5          | 237             | 166            
+npm create vite@latest ui -- --template react-ts --yes | gemini       | 1          | 204             | 143            
+Get-ChildItem "G:\My Drive\TheBrain\ThneedBackup\*.log*" | gemini       | 3          | 186             | 130            
+Get-ChildItem -Recurse "G:\My Drive\TheBrain\CassBrainIndex" | unknown      | 1          | 169             | 118            
+node .gemini/skills/thneed-audit/scripts/analyze_telemetry.cjs C:\Users\zkrau\.thneed\query_log.jsonl | gemini       | 1          | 166             | 116            
+.\thneed.exe harvest --path E:\Repos\Snag | gemini       | 4          | 166             | 116            
+.\cass.exe search "auth" --store mermaid | unknown      | 1          | 155             | 108            
+.\thneed.exe query --text "What is the Once-ler?" --json | gemini       | 2          | 138             | 97             
+node skills\thneed-audit\scripts\analyze_telemetry.cjs "G:\My Drive\TheBrain\ThneedBackup\query_log.jsonl" | gemini       | 1          | 129             | 90             
+node .gemini\skills\thneed-audit\scripts\analyze_telemetry.cjs "G:\My Drive\TheBrain\ThneedBackup\query_log.jsonl" | gemini       | 1          | 129             | 90             
+.\thneed.exe query --text "LanceDB storage Architecture" --db ./thneed.db --depth 0 | gemini       | 1          | 128             | 90             
+.\thneed.exe query --text "func json_to_record_batch" --db ./thneed.db --depth 1 | gemini       | 1          | 127             | 89             
+.\cass.exe search "convert" --store beads --index local_index | unknown      | 1          | 127             | 89             
+Get-ChildItem "G:\My Drive\TheBrain\ThneedBackup\query_log.jsonl" | gemini       | 2          | 126             | 88             
+.\thneed.exe query --text "how to build thneed" --depth 0 | gemini       | 1          | 126             | 88             
+.\thneed.exe query --text "how to build a go app" --depth 1 | gemini       | 1          | 126             | 88             
+.\thneed.exe query --text "how is storage built" --db ./thneed.db --depth 1 | gemini       | 1          | 126             | 88             
+git push -u origin master      | gemini       | 1          | 125             | 88             
+rm pkg/truffula/languages_test.go, test_build_error.log, test_results.log, combined.log | gemini       | 1          | 124             | 87             
+.\thneed.exe query --text "how to build" --depth 0 | gemini       | 1          | 124             | 87             
+.\thneed.exe query --text "func Execute" --db ./thneed.db --depth 1 | gemini       | 1          | 124             | 87             
+.\thneed.exe query --text "architecture" --db ./thneed.db --depth 1 | gemini       | 1          | 124             | 87             
+.\thneed.exe query --text "Orchestrator" --db ./thneed.db --depth 1 | gemini       | 1          | 124             | 87             
+goimports -w E:\Repos\Pith\pkg\parser\fs.go | unknown      | 1          | 122             | 85             
+$GOPATH/bin/goimports -w E:\Repos\Pith\pkg\parser\fs.go | unknown      | 1          | 122             | 85             
+tail -n 50 G:\My Drive\TheBrain\ThneedBackup\thneed.log | gemini       | 1          | 120             | 84             
+goimports -w cmd/thneed/main.go | gemini       | 1          | 119             | 83             
+rm test.py test.ts harvest.log closed_beads.json harvest.log.1 | gemini       | 1          | 117             | 82             
+tasklist | grep thneed         | gemini       | 1          | 115             | 80             
+thneed --help                  | gemini       | 1          | 112             | 78             
+Get-ChildItem "G:\My Drive\TheBrain\ThneedBackup" -Force | gemini       | 1          | 109             | 76             
+jq --version                   | gemini       | 1          | 108             | 76             
+git show 87b3c2b --format=fuller --quiet | gemini       | 1          | 103             | 72             
+Get-ChildItem Env: | Where-Object Name -like "*POSH*" | unknown      | 1          | 96              | 67             
+winget search oh-my-posh --versions | unknown      | 1          | 82              | 57             
+./thneed.exe harvest           | gemini       | 3          | 80              | 56             
+git show 87b3c2b --quiet       | gemini       | 1          | 77              | 54             
+Get-ChildItem -Path $env:APPDATA, $env:LOCALAPPDATA, $HOME -Filter "mcp_config.json" -Recurse -ErrorAction SilentlyContinue | gemini       | 1          | 67              | 47             
+mkdir skills\thneed-audit\scripts | gemini       | 1          | 62              | 43             
+mkdir pkg\truffula\queries\python | gemini       | 1          | 62              | 43             
+mkdir skills\thneed-navigator  | gemini       | 1          | 60              | 42             
+mkdir pkg\truffula\queries     | gemini       | 1          | 60              | 42             
+mkdir internal\telemetry       | gemini       | 1          | 59              | 41             
+mkdir docs\techPlans           | gemini       | 1          | 58              | 41             
+.\thneed.exe mcp               | gemini       | 3          | 51              | 36             
+.\thneed.exe -h                | gemini       | 1          | 46              | 32             
+(Get-Item .\onnxruntime.dll).VersionInfo | gemini       | 1          | 44              | 31             
+npm install react-force-graph-2d lucide-react axios | gemini       | 1          | 42              | 29             
+npm install @xyflow/react dagre --save --legacy-peer-deps | gemini       | 1          | 41              | 29             
+./thneed.exe harvest --path .  | gemini       | 1          | 40              | 28             
+.\thneed.exe                   | gemini       | 1          | 34              | 24             
+.\cass.exe search "auth" --store beads | unknown      | 1          | 33              | 23             
+git remote -v                  | gemini       | 1          | 31              | 22             
+Get-ChildItem -Path "C:\Users\zkrau\AppData\Local" -Filter "oh-my-posh*" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName | unknown      | 1          | 30              | 21             
+node C:\Users\zkrau\AppData\Local\nvm\v24.14.0\node_modules\@google\gemini-cli\node_modules\@google\gemini-cli-core\dist\src\skills\builtin\skill-creator\scripts\init_skill.cjs thneed-audit --path skills | gemini       | 1          | 29              | 20             
+./thneed.exe config set audit_log_path "G:\My Drive\TheBrain\ThneedBackup\query_log.jsonl" | gemini       | 1          | 27              | 19             
+node "C:\Users\zkrau\AppData\Local\nvm\v24.14.0\node_modules\@google\gemini-cli\node_modules\@google\gemini-cli-core\dist\src\skills\builtin\skill-creator\scripts\init_skill.cjs" thneed-audit --path E:\Repos\Thneed\skills | gemini       | 1          | 25              | 18             
+.\cass.exe search "auth" --index local_index | unknown      | 1          | 25              | 18             
+./thneed.exe config set system_log_path "G:\My Drive\TheBrain\ThneedBackup\thneed.log" | gemini       | 1          | 25              | 18             
+$brainDir = "G:\My Drive\TheBrain"
+if (!(Test-Path $brainDir)) {
+    New-Item -ItemType Directory -Path $brainDir | Out-Null
+    Write-Host "Created TheBrain directory."
+}
+
+if (Test-Path "G:\My Drive\BeadsBrain") {
+    Move-Item -Path "G:\My Drive\BeadsBrain" -Destination $brainDir
+    Write-Host "Moved BeadsBrain."
+}
+
+if (Test-Path "G:\My Drive\CassBrainIndex") {
+    Move-Item -Path "G:\My Drive\CassBrainIndex" -Destination $brainDir
+    Write-Host "Moved CassBrainIndex."
+}
+ | unknown      | 1          | 23              | 16             
+./pith.exe reset --discover    | unknown      | 1          | 19              | 13             
+scoop list oh-my-posh          | unknown      | 1          | 15              | 10             
+(Get-Item .\onnxruntime.dll).VersionInfo.ProductVersion | gemini       | 1          | 12              | 8              
+tasklist | findstr thneed      | gemini       | 1          | 11              | 8              
+testing_antigravity_hook       | antigravity  | 1          | 9               | 6              
+rm storage_test_error.log, storage_test_results.log, thneed.exe~ | gemini       | 1          | 8               | 6              
+rm -Recurse onnxruntime-extracted, onnxruntime-extracted-120, onnxruntime-extracted-121, combined.log, error.log | gemini       | 1          | 8               | 6              
+rm *.zip, main.exe, thneed.exe, bd_full_help.txt, bd_help_output.txt, list.json | gemini       | 1          | 8               | 6              
+git remote set-url origin https://github.com/Zkrausman/Thneed | gemini       | 1          | 8               | 6              
+choco list --local-only | Select-String "oh-my-posh" | unknown      | 1          | 8               | 6              
+Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name 'Path' | Select-Object -ExpandProperty Path | Select-String "oh-my-posh" | unknown      | 1          | 8               | 6              
+Get-ChildItem -Path C:\Users\zkrau -Filter "M365Princess.omp.json" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName | unknown      | 1          | 8               | 6              
+Get-ChildItem -Path "C:\Users\zkrau\AppData\Roaming\Antigravity" -Filter "mcp_config.json" -Recurse -ErrorAction SilentlyContinue | gemini       | 1          | 8               | 6              
+.\thneed.exe query --text "runHarvest" --db ./thneed.db --json > results.json | gemini       | 1          | 8               | 6              
+.\thneed.exe query --text "runHarvest" --db ./thneed.db --depth 1 --json > thneed_results.json | gemini       | 1          | 8               | 6              
+.\thneed.exe query --text "package snag" --db ./thneed.db --depth 1 --json > thneed_results.json | gemini       | 1          | 8               | 6              
+& "C:\Users\zkrau\AppData\Local\oh-my-posh\oh-my-posh.exe" --version | unknown      | 1          | 8               | 6              
+& "C:\Users\zkrau\AppData\Local\Microsoft\WindowsApps\oh-my-posh.exe" --version | unknown      | 1          | 8               | 6              
+$content = @'
+oh-my-posh init pwsh --config "C:\Users\zkrau\AppData\Local\oh-my-posh\themes\M365Princess.omp.json" | Invoke-Expression
+
+#f45873b3-b655-43a6-b217-97c00aa0db58 PowerToys CommandNotFound module
+Import-Module -Name Microsoft.WinGet.CommandNotFound
+#f45873b3-b655-43a6-b217-97c00aa0db58
+'@
+$content | Set-Content "C:\Users\zkrau\OneDrive\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" -Force | unknown      | 1          | 8               | 6              

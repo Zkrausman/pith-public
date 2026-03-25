@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 )
@@ -16,9 +17,23 @@ type Config struct {
 	MaxLines        int             `json:"max_lines"`
 	HeadLines       int             `json:"head_lines"`
 	TailLines       int             `json:"tail_lines"`
+	StoragePath     string          `json:"storage_path"`
 }
 
 func GetConfigPath() (string, error) {
+	// 1. Check if config exists in the new default location
+	newDefault := filepath.Join("E:\\", "TheBrain", "PithBackup")
+	newConfig := filepath.Join(newDefault, "config.json")
+	if _, err := os.Stat(newConfig); err == nil {
+		return newConfig, nil
+	}
+
+	// 2. Check environment variable
+	if env := os.Getenv("PITH_STORAGE"); env != "" {
+		return filepath.Join(env, "config.json"), nil
+	}
+
+	// 3. Fallback to old default
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -37,6 +52,19 @@ func LoadConfig() (*Config, error) {
 		MaxLines:       500,
 		HeadLines:      100,
 		TailLines:      100,
+		StoragePath:    filepath.Dir(path),
+	}
+
+	// If we are using the old default, but E:\TheBrain\PithBackup is the intended new default,
+	// we should set StoragePath to the new default to trigger migration.
+	newDefault := filepath.Join("E:\\", "TheBrain", "PithBackup")
+	if env := os.Getenv("PITH_STORAGE"); env != "" {
+		cfg.StoragePath = env
+	} else if _, err := os.Stat(filepath.Join(newDefault, "config.json")); err == nil {
+		cfg.StoragePath = newDefault
+	} else if strings.Contains(path, ".pith") {
+		// If we are currently in .pith and newDefault doesn't exist, we WANT to go to newDefault
+		cfg.StoragePath = newDefault
 	}
 
 	data, err := os.ReadFile(path)

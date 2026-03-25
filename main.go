@@ -54,7 +54,7 @@ var rootCmd = &cobra.Command{
 			}()
 		}
 
-		tel, err := telemetry.NewTelemetry()
+		tel, err := telemetry.NewTelemetry(cfg.StoragePath)
 		if err != nil {
 			return err
 		}
@@ -88,7 +88,8 @@ var gainCmd = &cobra.Command{
 	Use:   "gain",
 	Short: "Show token savings analytics",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		tel, err := telemetry.NewTelemetry()
+		cfg, _ := config.LoadConfig()
+		tel, err := telemetry.NewTelemetry(cfg.StoragePath)
 		if err != nil {
 			return err
 		}
@@ -150,7 +151,8 @@ var discoverCmd = &cobra.Command{
 	Use:   "discover",
 	Short: "Identify commands that could benefit from dedicated parsers",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		tel, err := telemetry.NewTelemetry()
+		cfg, _ := config.LoadConfig()
+		tel, err := telemetry.NewTelemetry(cfg.StoragePath)
 		if err != nil {
 			return err
 		}
@@ -230,7 +232,7 @@ var hookCmd = &cobra.Command{
 		}
 
 		cfg, _ := config.LoadConfig()
-		tel, _ := telemetry.NewTelemetry()
+		tel, _ := telemetry.NewTelemetry(cfg.StoragePath)
 		if tel != nil {
 			defer tel.Close()
 		}
@@ -412,7 +414,8 @@ var resetCmd = &cobra.Command{
 	Use:   "reset",
 	Short: "Reset telemetry data",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		tel, err := telemetry.NewTelemetry()
+		cfg, _ := config.LoadConfig()
+		tel, err := telemetry.NewTelemetry(cfg.StoragePath)
 		if err != nil {
 			return err
 		}
@@ -454,10 +457,7 @@ var rawCmd = &cobra.Command{
 			return err
 		}
 
-		tel, err := telemetry.NewTelemetry()
-		if err != nil {
-			return err
-		}
+		tel, err := telemetry.NewTelemetry(cfg.StoragePath)
 		defer tel.Close()
 
 		run := runner.NewRunner(cfg, tel)
@@ -469,7 +469,8 @@ var dashboardCmd = &cobra.Command{
 	Use:   "dashboard",
 	Short: "Open the interactive analytics dashboard in your browser",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		tel, err := telemetry.NewTelemetry()
+		cfg, _ := config.LoadConfig()
+		tel, err := telemetry.NewTelemetry(cfg.StoragePath)
 		if err != nil {
 			return err
 		}
@@ -507,6 +508,12 @@ func init() {
 }
 
 func main() {
+	// Trigger migration if needed
+	cfg, err := config.LoadConfig()
+	if err == nil {
+		_ = config.MigrateStorage(cfg.StoragePath)
+	}
+
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

@@ -71,6 +71,8 @@ func GetAllParsers() []Parser {
 		&VitestParser{},
 		&BDParser{},
 		&PromptfooParser{},
+		&ThneedParser{},
+		&NPMParser{},
 	}
 	return append(parsers, &ChainParser{})
 }

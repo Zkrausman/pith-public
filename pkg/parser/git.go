@@ -10,7 +10,9 @@ type GitStatusParser struct{}
 
 func (g *GitStatusParser) Name() string { return "git_status" }
 func (g *GitStatusParser) CanParse(cmd string, args []string) bool {
-	return cmd == "git" && len(args) > 0 && args[0] == "status"
+	if cmd != "git" || len(args) == 0 { return false }
+	sub := args[0]
+	return sub == "status" || sub == "add" || sub == "commit" || sub == "push"
 }
 func (g *GitStatusParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
@@ -21,10 +23,21 @@ func (g *GitStatusParser) Parse(output string) string {
 			strings.HasPrefix(trimmed, "On branch") || strings.HasPrefix(trimmed, "Your branch") ||
 			strings.Contains(trimmed, "nothing to commit") || strings.Contains(trimmed, "no changes added") ||
 			strings.HasPrefix(trimmed, "Changes not staged") || strings.HasPrefix(trimmed, "Changes to be committed") ||
-			strings.HasPrefix(trimmed, "Untracked files") {
+			strings.HasPrefix(trimmed, "Untracked files") ||
+			strings.HasPrefix(trimmed, "Everything up-to-date") ||
+			strings.HasPrefix(trimmed, "To ") ||
+			strings.Contains(trimmed, "->") { // push output
 			continue
 		}
 		result = append(result, trimmed)
+	}
+	
+	if len(result) == 0 {
+		return "Git: Success (No verbose output)"
+	}
+	
+	if len(result) > 20 {
+		return strings.Join(result[:10], "\n") + "\n...\n" + strings.Join(result[len(result)-10:], "\n")
 	}
 	return strings.Join(result, "\n")
 }

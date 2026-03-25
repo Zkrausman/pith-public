@@ -1,0 +1,50 @@
+--- Opportunity Discovery (Unparsed Commands) ---
+Command Pattern                | Count      | Total Tokens    | Est. Savings (70%)
+----------------------------------------------------------------------------
+winget show JanDeDobbeleer.OhMyPosh --versions | 1          | 1468            | 1028           
+.\cass.exe search "auth"       | 1          | 890             | 623            
+$Env:Path                      | 1          | 567             | 397            
+reg query "HKCU\Environment" /v Path | 1          | 295             | 206            
+Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name 'Path' | Select-Object -ExpandProperty Path | 1          | 290             | 203            
+Get-ItemProperty -Path 'HKCU:\Environment' -Name 'Path' | Select-Object -ExpandProperty Path | 1          | 281             | 197            
+Get-ChildItem -Recurse "G:\My Drive\TheBrain\CassBrainIndex" | 1          | 169             | 118            
+.\cass.exe search "auth" --store mermaid | 1          | 155             | 108            
+.\cass.exe search "convert" --store beads --index local_index | 1          | 127             | 89             
+goimports -w E:\Repos\Pith\pkg\parser\fs.go | 1          | 122             | 85             
+$GOPATH/bin/goimports -w E:\Repos\Pith\pkg\parser\fs.go | 1          | 122             | 85             
+Get-ChildItem Env: | Where-Object Name -like "*POSH*" | 1          | 96              | 67             
+winget search oh-my-posh --versions | 1          | 82              | 57             
+.\cass.exe search "auth" --store beads | 1          | 33              | 23             
+Get-ChildItem -Path "C:\Users\zkrau\AppData\Local" -Filter "oh-my-posh*" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName | 1          | 30              | 21             
+.\cass.exe search "auth" --index local_index | 1          | 25              | 18             
+$brainDir = "G:\My Drive\TheBrain"
+if (!(Test-Path $brainDir)) {
+    New-Item -ItemType Directory -Path $brainDir | Out-Null
+    Write-Host "Created TheBrain directory."
+}
+
+if (Test-Path "G:\My Drive\BeadsBrain") {
+    Move-Item -Path "G:\My Drive\BeadsBrain" -Destination $brainDir
+    Write-Host "Moved BeadsBrain."
+}
+
+if (Test-Path "G:\My Drive\CassBrainIndex") {
+    Move-Item -Path "G:\My Drive\CassBrainIndex" -Destination $brainDir
+    Write-Host "Moved CassBrainIndex."
+}
+ | 1          | 23              | 16             
+./pith.exe reset --discover    | 1          | 19              | 13             
+scoop list oh-my-posh          | 1          | 15              | 10             
+choco list --local-only | Select-String "oh-my-posh" | 1          | 8               | 6              
+Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name 'Path' | Select-Object -ExpandProperty Path | Select-String "oh-my-posh" | 1          | 8               | 6              
+Get-ChildItem -Path C:\Users\zkrau -Filter "M365Princess.omp.json" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName | 1          | 8               | 6              
+& "C:\Users\zkrau\AppData\Local\oh-my-posh\oh-my-posh.exe" --version | 1          | 8               | 6              
+& "C:\Users\zkrau\AppData\Local\Microsoft\WindowsApps\oh-my-posh.exe" --version | 1          | 8               | 6              
+$content = @'
+oh-my-posh init pwsh --config "C:\Users\zkrau\AppData\Local\oh-my-posh\themes\M365Princess.omp.json" | Invoke-Expression
+
+#f45873b3-b655-43a6-b217-97c00aa0db58 PowerToys CommandNotFound module
+Import-Module -Name Microsoft.WinGet.CommandNotFound
+#f45873b3-b655-43a6-b217-97c00aa0db58
+'@
+$content | Set-Content "C:\Users\zkrau\OneDrive\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" -Force | 1          | 8               | 6              

@@ -28,16 +28,19 @@ type Telemetry struct {
 	db *sql.DB
 }
 
-func NewTelemetry() (*Telemetry, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
+func NewTelemetry(storagePath string) (*Telemetry, error) {
+	if storagePath == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, err
+		}
+		storagePath = filepath.Join(home, ".pith")
+	}
+	
+	if err := os.MkdirAll(storagePath, 0755); err != nil {
 		return nil, err
 	}
-	dir := filepath.Join(home, ".pith")
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, err
-	}
-	dbPath := filepath.Join(dir, "pith.db")
+	dbPath := filepath.Join(storagePath, "pith.db")
 	return NewTelemetryWithPath(dbPath)
 }
 
