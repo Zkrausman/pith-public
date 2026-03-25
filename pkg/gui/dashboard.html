@@ -91,7 +91,7 @@
                     <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Estimated Cost Saved</span>
                     <div>
                         <div id="cost-saved" class="text-3xl font-bold accent-sky">$0.00</div>
-                        <div class="text-xs text-slate-500 mt-1">Based on $10/M tokens</div>
+                        <div class="text-xs text-slate-500 mt-1">Based on $0.50/M tokens</div>
                     </div>
                 </div>
             </div>
@@ -210,7 +210,7 @@
             
             document.getElementById('total-saved').innerText = saved.toLocaleString();
             
-            const costSaved = (saved / 1000000) * 10;
+            const costSaved = (saved / 1000000) * 0.5;
             document.getElementById('cost-saved').innerText = `$${costSaved.toFixed(2)}`;
 
             const efficiency = totalOrig > 0 ? Math.round((saved / totalOrig) * 100) : 0;
