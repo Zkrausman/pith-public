@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -14,11 +15,26 @@ var synapseSyncCmd = &cobra.Command{
 	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Synapse syncing Pith via its built-in update command...")
-		// Use Pith's own update logic which handles GitHub releases properly
-		execCmd := exec.Command(os.Args[0], "update")
-		execCmd.Stdout = os.Stdout
-		execCmd.Stderr = os.Stderr
-		return execCmd.Run()
+		
+		exe, err := os.Executable()
+		if err != nil {
+			return err
+		}
+
+		execCmd := exec.Command(exe, "update")
+		output, err := execCmd.CombinedOutput()
+		fmt.Print(string(output))
+
+		if err != nil {
+			return err
+		}
+
+		// SCS-1 Status: Check if the tool reported it was already up to date
+		if strings.Contains(string(output), "already up to date") {
+			os.Exit(2)
+		}
+
+		return nil
 	},
 }
 

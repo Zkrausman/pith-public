@@ -113,11 +113,11 @@ func (t *TestParser) Parse(output string) string {
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		// Capture summary lines
-		if strings.Contains(trimmed, "passed") || strings.Contains(trimmed, "failed") || 
-		   strings.Contains(trimmed, "TOTAL") || strings.HasPrefix(trimmed, "DONE") {
+		if strings.Contains(trimmed, "passed") || strings.Contains(trimmed, "failed") ||
+		   strings.Contains(trimmed, "TOTAL") || strings.HasPrefix(trimmed, "DONE") ||
+		   strings.HasPrefix(trimmed, "ok") || strings.HasPrefix(trimmed, "PASS") {
 			result = append(result, trimmed)
-		}
-		// Capture failure details (heuristic)
+		}		// Capture failure details (heuristic)
 		if strings.Contains(line, "FAIL") || strings.Contains(line, "Error:") {
 			isFailureBlock = true
 		}
