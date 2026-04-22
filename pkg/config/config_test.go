@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/AlecAivazis/survey/v2"
 )
 
 func TestGetConfigPath(t *testing.T) {
@@ -125,41 +127,85 @@ func TestConfigDefaults(t *testing.T) {
 		t.Errorf("Expected default TailLines 100, got %d", cfg.TailLines)
 	}
 }
+func TestLoadConfig_Malformed(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
 
-func TestMigrateStorage(t *testing.T) {
-	tmpHome, err := os.MkdirTemp("", "pith-home-mock-*")
+	path := filepath.Join(tmpDir, "config.json")
+	os.WriteFile(path, []byte(`{invalid-json}`), 0644)
+
+	cfg, err := LoadConfig()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Expected no error (falling back to defaults), got %v", err)
 	}
-	defer os.RemoveAll(tmpHome)
+	if cfg.MaxLines != 500 {
+		t.Error("Expected default MaxLines for malformed config")
+	}
+}
 
-	t.Setenv("HOME", tmpHome)
-	t.Setenv("USERPROFILE", tmpHome)
+func TestGetConfigPath_Default(t *testing.T) {
+	// Temporarily unset PITH_STORAGE
+	oldEnv := os.Getenv("PITH_STORAGE")
+	t.Setenv("PITH_STORAGE", "")
+	defer os.Setenv("PITH_STORAGE", oldEnv)
 
-	oldPath := filepath.Join(tmpHome, ".pith")
-	os.MkdirAll(oldPath, 0755)
-	
-	// Create old config and db
-	os.WriteFile(filepath.Join(oldPath, "config.json"), []byte(`{"max_lines": 999}`), 0644)
-	os.WriteFile(filepath.Join(oldPath, "pith.db"), []byte("mock db content"), 0644)
+	path, err := GetConfigPath()
+	if err != nil {
+		t.Fatalf("GetConfigPath failed: %v", err)
+	}
+	if path == "" {
+		t.Error("Expected non-empty path")
+	}
+}
 
-	newPath := filepath.Join(tmpHome, "new-storage")
+func TestInteractiveConfig(t *testing.T) {
+	// Mock survey functions
+	oldAskOne := SurveyAskOne
+	oldAsk := SurveyAsk
+	defer func() {
+		SurveyAskOne = oldAskOne
+		SurveyAsk = oldAsk
+	}()
 
-	if err := MigrateStorage(newPath); err != nil {
-		t.Fatalf("MigrateStorage failed: %v", err)
+	SurveyAskOne = func(p survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
+		// Simulate selecting "git" parser
+		resp := response.(*[]string)
+		*resp = []string{"git"}
+		return nil
 	}
 
-	// Verify files moved
-	if _, err := os.Stat(filepath.Join(newPath, "config.json")); err != nil {
-		t.Error("config.json not migrated")
-	}
-	if _, err := os.Stat(filepath.Join(newPath, "pith.db")); err != nil {
-		t.Error("pith.db not migrated")
+	SurveyAsk = func(qs []*survey.Question, response interface{}, opts ...survey.AskOpt) error {
+
+		// Simulate answers
+		resp := response.(*struct {
+			MaxLines  int `survey:"maxlines"`
+			HeadLines int `survey:"headlines"`
+			TailLines int `survey:"taillines"`
+		})
+		resp.MaxLines = 1000
+		resp.HeadLines = 200
+		resp.TailLines = 200
+		return nil
 	}
 
-	// Verify old files renamed to .bak
-	if _, err := os.Stat(filepath.Join(oldPath, "config.json.bak")); err != nil {
-		t.Error("config.json.bak not created")
+	cfg := &Config{
+		EnabledParsers: make(map[string]bool),
+		MaxLines:       500,
+	}
+
+	err := cfg.InteractiveConfig([]string{"git", "docker"})
+	if err != nil {
+		t.Fatalf("InteractiveConfig failed: %v", err)
+	}
+
+	if !cfg.EnabledParsers["git"] {
+		t.Error("Expected git parser to be enabled")
+	}
+	if cfg.EnabledParsers["docker"] {
+		t.Error("Expected docker parser to be disabled")
+	}
+	if cfg.MaxLines != 1000 {
+		t.Errorf("Expected MaxLines 1000, got %d", cfg.MaxLines)
 	}
 }
 

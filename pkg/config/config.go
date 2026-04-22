@@ -11,6 +11,9 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 )
 
+var SurveyAskOne = survey.AskOne
+var SurveyAsk = survey.Ask
+
 type Config struct {
 	EnabledParsers  map[string]bool `json:"enabled_parsers"`
 	LastUpdateCheck int64           `json:"last_update_check"`
@@ -133,54 +136,55 @@ func (c *Config) InteractiveConfig(availableParsers []string) error {
 		Options: parserOpts,
 		Default: defaultSelected,
 	}
-	err := survey.AskOne(prompt, &selectedParsers)
+	err := SurveyAskOne(prompt, &selectedParsers)
 	if err != nil {
 		return err
 	}
 
-	newEnabled := make(map[string]bool)
-	for _, p := range parserOpts {
-		newEnabled[p] = false
+	// Update enabled parsers
+	for _, p := range availableParsers {
+		c.EnabledParsers[p] = false
 	}
 	for _, p := range selectedParsers {
-		newEnabled[p] = true
+		c.EnabledParsers[p] = true
 	}
-	c.EnabledParsers = newEnabled
 
-	// Truncation settings
-	var qs = []*survey.Question{
+	// Ask for other settings
+	qs := []*survey.Question{
 		{
-			Name: "MaxLines",
+			Name: "maxlines",
 			Prompt: &survey.Input{
-				Message: "Max lines before middle-out truncation:",
+				Message: "Maximum total lines to keep in output (MaxLines):",
 				Default: fmt.Sprintf("%d", c.MaxLines),
 			},
 		},
 		{
-			Name: "HeadLines",
+			Name: "headlines",
 			Prompt: &survey.Input{
-				Message: "Number of lines to keep at the START:",
+				Message: "Lines to keep at the start (HeadLines):",
 				Default: fmt.Sprintf("%d", c.HeadLines),
 			},
 		},
 		{
-			Name: "TailLines",
+			Name: "taillines",
 			Prompt: &survey.Input{
-				Message: "Number of lines to keep at the END:",
+				Message: "Lines to keep at the end (TailLines):",
 				Default: fmt.Sprintf("%d", c.TailLines),
 			},
 		},
 	}
 
 	answers := struct {
-		MaxLines  int
-		HeadLines int
-		TailLines int
+		MaxLines  int `survey:"maxlines"`
+		HeadLines int `survey:"headlines"`
+		TailLines int `survey:"taillines"`
 	}{}
 
-	if err := survey.Ask(qs, &answers); err != nil {
+	err = SurveyAsk(qs, &answers)
+	if err != nil {
 		return err
 	}
+
 
 	c.MaxLines = answers.MaxLines
 	c.HeadLines = answers.HeadLines

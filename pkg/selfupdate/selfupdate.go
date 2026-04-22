@@ -15,6 +15,7 @@ import (
 const repo = "Zkrausman/Pith"
 
 var githubAPI = "https://api.github.com"
+var osExecutable = os.Executable
 
 
 type Release struct {
@@ -151,7 +152,7 @@ func CheckForUpdateSilent(currentVersion string) (string, error) {
 }
 
 func downloadAndReplace(url string, token string) error {
-	executablePath, err := os.Executable()
+	executablePath, err := osExecutable()
 	if err != nil {
 		return err
 	}

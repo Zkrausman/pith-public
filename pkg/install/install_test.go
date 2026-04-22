@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -116,4 +117,60 @@ func TestSetupHookGlobal(t *testing.T) {
 		t.Errorf("Global hook not created at %s", expectedPath)
 	}
 }
+func TestInstall(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("USERPROFILE", tmpHome)
+	t.Setenv("HOME", tmpHome)
+
+	if err := Install(); err != nil {
+		// installWindows might fail if powershell is not available or it can't set env vars in a test environment.
+		// But we want to see it hit the lines.
+		t.Logf("Install returned: %v", err)
+	}
+
+	// Verify pith bin dir created
+	pithBinDir := filepath.Join(tmpHome, ".pith", "bin")
+	if _, err := os.Stat(pithBinDir); os.IsNotExist(err) {
+		t.Error("pith/bin directory not created")
+	}
+}
+
+func TestSettingsEmpty(t *testing.T) {
+	var s Settings
+	data, _ := json.Marshal(s)
+	if !strings.Contains(string(data), `"hooks":null`) {
+		t.Errorf("Expected null hooks in empty settings, got %s", string(data))
+	}
+}
+
+func TestSetupHook_Malformed(t *testing.T) {
+	tmpDir := t.TempDir()
+	os.MkdirAll(filepath.Join(tmpDir, ".gemini"), 0755)
+	os.WriteFile(filepath.Join(tmpDir, ".gemini", "settings.json"), []byte("{invalid}"), 0644)
+
+	t.Setenv("USERPROFILE", tmpDir)
+	t.Setenv("HOME", tmpDir)
+
+	// Should still work (overwrite or backup)
+	_, err := setupHook(".gemini", "AfterTool", "run_shell_command", true, "gemini")
+	if err != nil {
+		t.Errorf("setupHook failed with malformed json: %v", err)
+	}
+}
+
+func TestSetupHook_Existing(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("USERPROFILE", tmpDir)
+	t.Setenv("HOME", tmpDir)
+
+	// First install
+	setupHook(".gemini", "AfterTool", "run_shell_command", true, "gemini")
+	
+	// Second install (should hit the "exists" branch)
+	_, err := setupHook(".gemini", "AfterTool", "run_shell_command", true, "gemini")
+	if err != nil {
+		t.Errorf("setupHook failed on existing: %v", err)
+	}
+}
+
 

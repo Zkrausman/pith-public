@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"pith/pkg/config"
 	"pith/pkg/telemetry"
 	"strings"
 	"testing"
+
+	"github.com/AlecAivazis/survey/v2"
 )
 
 
@@ -229,5 +232,298 @@ func TestHookCmd(t *testing.T) {
 		t.Errorf("Expected decision deny, got %s", output.Decision)
 	}
 }
+
+func TestGainCmd_Empty(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"gain"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	if err := cmd.Execute(); err != nil {
+		t.Errorf("gain failed: %v", err)
+	}
+	out := b.String()
+	if !strings.Contains(out, "No telemetry data recorded yet") {
+		t.Errorf("Expected 'No telemetry data' message, got %s", out)
+	}
+}
+
+func TestResetCmd_Discover(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"reset", "--discover"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	if err := cmd.Execute(); err != nil {
+		t.Errorf("reset discover failed: %v", err)
+	}
+	out := b.String()
+	if !strings.Contains(out, "Discovery data (passthrough commands) has been reset") {
+		t.Errorf("Unexpected output: %s", out)
+	}
+}
+
+func TestHookCmd_NoCmd(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	input := HookInput{}
+	input.ToolResponse.LlmContent = "some content"
+	data, _ := json.Marshal(input)
+	
+	oldStdin := os.Stdin
+	defer func() { os.Stdin = oldStdin }()
+	r, w, _ := os.Pipe()
+	os.Stdin = r
+	go func() {
+		w.Write(data)
+		w.Close()
+	}()
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"_hook"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	if err := cmd.Execute(); err != nil {
+		t.Errorf("_hook failed: %v", err)
+	}
+	
+	var output HookOutput
+	json.Unmarshal(b.Bytes(), &output)
+	if output.Decision != "allow" {
+		t.Errorf("Expected decision allow for no command, got %s", output.Decision)
+	}
+}
+
+func TestHookCmd_Error(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	input := HookInput{}
+	input.ToolInput = make(map[string]interface{})
+	input.ToolInput["command"] = "git status"
+	input.ToolResponse.LlmContent = "Error: fatal error"
+	data, _ := json.Marshal(input)
+	
+	oldStdin := os.Stdin
+	defer func() { os.Stdin = oldStdin }()
+	r, w, _ := os.Pipe()
+	os.Stdin = r
+	go func() {
+		w.Write(data)
+		w.Close()
+	}()
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"_hook"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	if err := cmd.Execute(); err != nil {
+		t.Errorf("_hook failed: %v", err)
+	}
+	
+	var output HookOutput
+	json.Unmarshal(b.Bytes(), &output)
+	if !strings.Contains(output.Reason, "fatal error") {
+		t.Errorf("Expected error message in reason, got %s", output.Reason)
+	}
+}
+
+func TestHookCmd_OutputPrefix(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	input := HookInput{}
+	input.ToolInput = make(map[string]interface{})
+	input.ToolInput["command"] = "git status"
+	input.ToolResponse.LlmContent = "Output: On branch main"
+	data, _ := json.Marshal(input)
+	
+	oldStdin := os.Stdin
+	defer func() { os.Stdin = oldStdin }()
+	r, w, _ := os.Pipe()
+	os.Stdin = r
+	go func() {
+		w.Write(data)
+		w.Close()
+	}()
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"_hook"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	_ = cmd.Execute()
+}
+
+func TestInstallCmd_Individual(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"install", "--claude"})
+	_ = cmd.Execute()
+
+	cmd = NewRootCmd()
+	cmd.SetArgs([]string{"install", "--codex"})
+	_ = cmd.Execute()
+}
+
+func TestInstallCmd_NoFlags(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"install"})
+	_ = cmd.Execute()
+}
+
+
+
+func TestInstallCmd_All(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"install", "--all", "--global"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	cmd.SetErr(b)
+	_ = cmd.Execute() 
+}
+
+
+
+func TestInstallCmd(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"install", "--gemini", "--global"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	cmd.SetErr(b)
+	
+	_ = cmd.Execute() 
+}
+
+func TestUpdateCmd(t *testing.T) {
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"update"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	_ = cmd.Execute()
+}
+
+func TestRawCmd(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+	
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"raw", "cmd", "/c", "echo", "hello"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	if err := cmd.Execute(); err != nil {
+		t.Errorf("raw failed: %v", err)
+	}
+}
+
+func TestResetCmd_Errors(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"reset"}) 
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	if err := cmd.Execute(); err == nil {
+		t.Error("Expected error for reset without flags")
+	}
+}
+
+func TestRootCmd_Run(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+	
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"cmd", "/c", "echo", "hello"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	if err := cmd.Execute(); err != nil {
+		t.Errorf("root run failed: %v", err)
+	}
+}
+
+func TestDashboardCmd_Help(t *testing.T) {
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"dashboard", "--help"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	if err := cmd.Execute(); err != nil {
+		t.Errorf("dashboard --help failed: %v", err)
+	}
+}
+
+func TestRawCmd_Help(t *testing.T) {
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"raw", "--help"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	if err := cmd.Execute(); err != nil {
+		t.Errorf("raw --help failed: %v", err)
+	}
+}
+
+func TestRootCmd_Empty(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+	
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{}) // No args
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	cmd.SetErr(b)
+	_ = cmd.Execute()
+}
+
+func TestConfigCmd_Run(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	// Mock survey in config package
+	oldAskOne := config.SurveyAskOne
+	oldAsk := config.SurveyAsk
+	defer func() {
+		config.SurveyAskOne = oldAskOne
+		config.SurveyAsk = oldAsk
+	}()
+	
+	config.SurveyAskOne = func(p survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
+		return nil
+	}
+	config.SurveyAsk = func(qs []*survey.Question, response interface{}, opts ...survey.AskOpt) error {
+		return nil
+	}
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"config"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	cmd.SetErr(b)
+	
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("config command failed: %v", err)
+	}
+}
+
+
+
+
+
+
+
 
 

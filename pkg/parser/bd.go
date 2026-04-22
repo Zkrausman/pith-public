@@ -38,7 +38,11 @@ func (b *BDParser) Parse(output string) string {
 		if strings.HasPrefix(trimmed, "○ ") || strings.HasPrefix(trimmed, "◐ ") || strings.HasPrefix(trimmed, "● ") || strings.HasPrefix(trimmed, "✓ ") || strings.HasPrefix(trimmed, "❄ ") {
 			// But only if we don't have too many already
 			if len(result) < 30 {
-				result = append(result, trimmed)
+				if len(trimmed) > 100 {
+					result = append(result, trimmed[:100]+"...")
+				} else {
+					result = append(result, trimmed)
+				}
 			}
 			continue
 		}

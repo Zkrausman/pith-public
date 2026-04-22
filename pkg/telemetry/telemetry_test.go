@@ -162,3 +162,49 @@ func TestNewTelemetry(t *testing.T) {
 		t.Error("pith.db was not created")
 	}
 }
+
+func TestNewTelemetry_Default(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("USERPROFILE", tmpHome)
+	t.Setenv("HOME", tmpHome)
+
+	tel, err := NewTelemetry("")
+	if err != nil {
+		t.Fatalf("NewTelemetry default failed: %v", err)
+	}
+	defer tel.Close()
+
+	expectedDB := filepath.Join(tmpHome, ".pith", "pith.db")
+	if _, err := os.Stat(expectedDB); os.IsNotExist(err) {
+		t.Errorf("DB not created at expected default path: %s", expectedDB)
+	}
+}
+
+func TestTelemetryFiltering(t *testing.T) {
+	tmpDir := t.TempDir()
+	tel, _ := NewTelemetry(tmpDir)
+	defer tel.Close()
+
+	tel.Record(ExecutionRecord{Command: "cmd1", Source: "src1", OriginalTokens: 10, CompressedTokens: 5})
+	tel.Record(ExecutionRecord{Command: "cmd2", Source: "src2", OriginalTokens: 20, CompressedTokens: 10})
+	tel.Record(ExecutionRecord{Command: "cmd3", Source: "",     OriginalTokens: 30, CompressedTokens: 15})
+
+	// Test GetStats with empty source
+	orig, _, _ := tel.GetStats("")
+	if orig != 60 {
+		t.Errorf("Expected 60 total tokens, got %d", orig)
+	}
+
+	// Test GetStatsByCommand with specific source
+	stats, _ := tel.GetStatsByCommand("src1")
+	if len(stats) != 1 || stats[0].Command != "cmd1" {
+		t.Errorf("Expected 1 stats for src1, got %v", stats)
+	}
+
+	// Test GetUnparsedCommands with specific source
+	tel.Record(ExecutionRecord{Command: "unparsed1", Source: "src1", IsPassthrough: true})
+	unparsed, _ := tel.GetUnparsedCommands("src1")
+	if len(unparsed) != 1 || unparsed[0].Pattern != "unparsed1" {
+		t.Errorf("Expected 1 unparsed for src1, got %v", unparsed)
+	}
+}

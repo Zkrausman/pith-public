@@ -1,8 +1,0 @@
-ok  	pith	(cached)	coverage: 7.5% of statements
-ok  	pith/pkg/config	(cached)	coverage: 21.2% of statements
-	pith/pkg/gui		coverage: 0.0% of statements
-ok  	pith/pkg/install	(cached)	coverage: 55.3% of statements
-ok  	pith/pkg/parser	(cached)	coverage: 71.8% of statements
-ok  	pith/pkg/runner	(cached)	coverage: 28.4% of statements
-	pith/pkg/selfupdate		coverage: 0.0% of statements
-ok  	pith/pkg/telemetry	(cached)	coverage: 78.3% of statements

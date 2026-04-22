@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -145,3 +147,44 @@ func TestCheckAndApplyUpdate_NoAssets(t *testing.T) {
 
 
 
+func TestDownloadAndReplace(t *testing.T) {
+	tmpDir := t.TempDir()
+	fakeExe := filepath.Join(tmpDir, "pith.exe")
+	os.WriteFile(fakeExe, []byte("old content"), 0755)
+
+	oldExe := osExecutable
+	osExecutable = func() (string, error) { return fakeExe, nil }
+	defer func() { osExecutable = oldExe }()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("new content"))
+	}))
+	defer server.Close()
+
+	err := downloadAndReplace(server.URL, "")
+	if err != nil {
+		t.Fatalf("downloadAndReplace failed: %v", err)
+	}
+
+	// Verify new content
+	data, _ := os.ReadFile(fakeExe)
+	if string(data) != "new content" {
+		t.Errorf("Expected 'new content', got %s", string(data))
+	}
+}
+
+func TestCheckAndApplyUpdate_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	oldAPI := githubAPI
+	githubAPI = server.URL
+	defer func() { githubAPI = oldAPI }()
+
+	_, err := CheckAndApplyUpdate("v0.0.1")
+	if err == nil || !strings.Contains(err.Error(), "repository not found") {
+		t.Errorf("Expected 'repository not found' error, got %v", err)
+	}
+}
