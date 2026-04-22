@@ -14,6 +14,18 @@ import (
 var staticFiles embed.FS
 
 func StartDashboard(tel *telemetry.Telemetry, port int) error {
+	registerHandlers(tel)
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+	fmt.Printf("Starting Pith Dashboard at %s\n", url)
+	
+	// Open browser in background
+	go openBrowser(url)
+
+	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+}
+
+func registerHandlers(tel *telemetry.Telemetry) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		data, err := staticFiles.ReadFile("dashboard.html")
 		if err != nil {
@@ -73,14 +85,6 @@ func StartDashboard(tel *telemetry.Telemetry, port int) error {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(sources)
 	})
-
-	url := fmt.Sprintf("http://localhost:%d", port)
-	fmt.Printf("Starting Pith Dashboard at %s\n", url)
-	
-	// Open browser in background
-	go openBrowser(url)
-
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
 func openBrowser(url string) {

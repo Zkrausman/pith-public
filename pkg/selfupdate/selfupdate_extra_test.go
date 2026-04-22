@@ -60,6 +60,7 @@ func TestDownloadAndReplace_RenameError(t *testing.T) {
 
 	// Create a directory where the .old file should be to block Rename
 	os.MkdirAll(fakeExe+".old", 0755)
+	os.WriteFile(filepath.Join(fakeExe+".old", "blocker"), []byte("prevent remove"), 0644)
 
 	oldExe := osExecutable
 	osExecutable = func() (string, error) { return fakeExe, nil }

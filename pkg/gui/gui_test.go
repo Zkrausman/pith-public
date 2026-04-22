@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 )
 
 func TestDashboardHandlers(t *testing.T) {
@@ -27,17 +26,7 @@ func TestDashboardHandlers(t *testing.T) {
 		Source: "test",
 	})
 
-	// Let's just test `openBrowser` to get some coverage for now.
-	openBrowser("http://localhost:8080")
-
-	// Let's just start it in a goroutine.
-	go func() {
-		// Use a random port
-		StartDashboard(tel, 0)
-	}()
-	
-	// Wait a moment for StartDashboard to register handlers
-	time.Sleep(50 * time.Millisecond)
+	registerHandlers(tel)
 
 	// Now we can use httptest to hit the DefaultServeMux
 	req := httptest.NewRequest("GET", "/", nil)

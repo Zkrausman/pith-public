@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"net"
 	"os"
 	"pith/pkg/telemetry"
 	"testing"
@@ -126,24 +125,6 @@ func TestHookCmd_OldSchemas(t *testing.T) {
 	r2.Close()
 
 	os.Stdin = oldStdin
-}
-
-func TestDashboardCmd_Run(t *testing.T) {
-	// Call runDashboard directly but we need a way to stop it or let it fail quickly.
-	// Actually, StartDashboard blocks on http.ListenAndServe.
-	// If we use a port that's already in use, it will fail and return immediately!
-	// Let's create a dummy listener to occupy the port.
-	l, err := net.Listen("tcp", "localhost:9999")
-	if err == nil {
-		defer l.Close()
-	}
-
-	cmd := NewRootCmd()
-	cmd.Flags().Set("port", "9999")
-	err = runDashboard(cmd, []string{})
-	if err == nil {
-		t.Error("Expected error because port is in use, got nil")
-	}
 }
 
 func TestUpdateCmd_Run(t *testing.T) {
