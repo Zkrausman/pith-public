@@ -14,6 +14,9 @@ import (
 
 const repo = "Zkrausman/Pith"
 
+var githubAPI = "https://api.github.com"
+
+
 type Release struct {
 	TagName string `json:"tag_name"`
 	Body    string `json:"body"`
@@ -43,7 +46,7 @@ func getAuthToken() string {
 
 func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/releases", repo), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/repos/%s/releases", githubAPI, repo), nil)
 	if err != nil {
 		return false, err
 	}
@@ -115,7 +118,7 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 
 func CheckForUpdateSilent(currentVersion string) (string, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/releases", repo), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/repos/%s/releases", githubAPI, repo), nil)
 	if err != nil {
 		return "", err
 	}

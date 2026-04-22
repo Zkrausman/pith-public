@@ -21,16 +21,16 @@ type Config struct {
 }
 
 func GetConfigPath() (string, error) {
-	// 1. Check if config exists in the new default location
+	// 1. Check environment variable
+	if env := os.Getenv("PITH_STORAGE"); env != "" {
+		return filepath.Join(env, "config.json"), nil
+	}
+
+	// 2. Check if config exists in the new default location
 	newDefault := filepath.Join("E:\\", "TheBrain", "PithBackup")
 	newConfig := filepath.Join(newDefault, "config.json")
 	if _, err := os.Stat(newConfig); err == nil {
 		return newConfig, nil
-	}
-
-	// 2. Check environment variable
-	if env := os.Getenv("PITH_STORAGE"); env != "" {
-		return filepath.Join(env, "config.json"), nil
 	}
 
 	// 3. Fallback to old default

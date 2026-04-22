@@ -38,6 +38,5 @@ var synapseSyncCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(synapseSyncCmd)
-}
+// Removed init() to avoid dependency on global rootCmd
+// This command is now added in main.go's NewRootCmd

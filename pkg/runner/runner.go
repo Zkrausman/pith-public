@@ -46,12 +46,15 @@ func (r *Runner) Run(args []string) error {
 }
 
 func (r *Runner) LogForSnag(cmdStr string, output string, exitCode int) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return // Silently fail if home dir can't be found
+	logDir := r.cfg.StoragePath
+	if logDir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return // Silently fail if home dir can't be found
+		}
+		logDir = filepath.Join(home, ".pith")
 	}
 	
-	logDir := filepath.Join(home, ".pith")
 	_ = os.MkdirAll(logDir, 0755)
 	
 	logPath := filepath.Join(logDir, "pith.log")

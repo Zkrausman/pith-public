@@ -1,0 +1,3 @@
+$ProgressPreference = 'SilentlyContinue'
+go test -coverpkg=./... -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out | Out-File -FilePath coverage.txt -Encoding utf8
