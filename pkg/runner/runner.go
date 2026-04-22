@@ -105,6 +105,9 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 		// that needs splitting (often happens when called via proxy).
 		if len(args) == 1 && strings.Contains(args[0], " ") {
 			parts := strings.Fields(args[0])
+			if len(parts) == 0 {
+				return fmt.Errorf("no command provided")
+			}
 			cmd = exec.Command(parts[0], parts[1:]...)
 		} else {
 			cmd = exec.Command(args[0], args[1:]...)

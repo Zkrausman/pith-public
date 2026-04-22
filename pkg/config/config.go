@@ -23,6 +23,8 @@ type Config struct {
 	StoragePath     string          `json:"storage_path"`
 }
 
+var TheBrainBase = "E:\\"
+
 func GetConfigPath() (string, error) {
 	// 1. Check environment variable
 	if env := os.Getenv("PITH_STORAGE"); env != "" {
@@ -30,7 +32,7 @@ func GetConfigPath() (string, error) {
 	}
 
 	// 2. Check if config exists in the new default location
-	newDefault := filepath.Join("E:\\", "TheBrain", "PithBackup")
+	newDefault := filepath.Join(TheBrainBase, "TheBrain", "PithBackup")
 	newConfig := filepath.Join(newDefault, "config.json")
 	if _, err := os.Stat(newConfig); err == nil {
 		return newConfig, nil
@@ -58,9 +60,9 @@ func LoadConfig() (*Config, error) {
 		StoragePath:    filepath.Dir(path),
 	}
 
-	// If we are using the old default, but E:\TheBrain\PithBackup is the intended new default,
+	// If we are using the old default, but newDefault is the intended new default,
 	// we should set StoragePath to the new default to trigger migration.
-	newDefault := filepath.Join("E:\\", "TheBrain", "PithBackup")
+	newDefault := filepath.Join(TheBrainBase, "TheBrain", "PithBackup")
 	if env := os.Getenv("PITH_STORAGE"); env != "" {
 		cfg.StoragePath = env
 	} else if _, err := os.Stat(filepath.Join(newDefault, "config.json")); err == nil {

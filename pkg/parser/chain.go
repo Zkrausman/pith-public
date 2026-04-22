@@ -13,30 +13,30 @@ func (c *ChainParser) Name() string {
 
 func (c *ChainParser) CanParse(cmd string, args []string) bool {
 	fullCmd := strings.Join(append([]string{cmd}, args...), " ")
-	return strings.Contains(fullCmd, ";") || strings.Contains(fullCmd, "&&")
+	return strings.ContainsAny(fullCmd, ";|&")
 }
 
 func (c *ChainParser) Parse(output string) string {
-	// The ChainParser is unique because the runner needs to split the input command
-	// and run the sub-commands through their respective parsers.
-	// This Parse method will be used for the combined output if available.
-	return output // Runner handles the splitting logic for better accuracy
+	return output
 }
 
-// SplitSubCommands splits a raw command string into individual sub-commands
 func (c *ChainParser) SplitSubCommands(fullCmd string) []string {
-	var subcmds []string
-	
-	// Split by ; or && (simplified shell logic)
-	parts := strings.Split(fullCmd, ";")
-	for _, p := range parts {
-		subparts := strings.Split(p, "&&")
-		for _, sp := range subparts {
-			trimmed := strings.TrimSpace(sp)
-			if trimmed != "" {
-				subcmds = append(subcmds, trimmed)
+	// Simple split by shell operators
+	delimiters := []string{";", "&&", "||", "|"}
+	subcmds := []string{fullCmd}
+
+	for _, delim := range delimiters {
+		var newSubcmds []string
+		for _, s := range subcmds {
+			parts := strings.Split(s, delim)
+			for _, p := range parts {
+				trimmed := strings.TrimSpace(p)
+				if trimmed != "" {
+					newSubcmds = append(newSubcmds, trimmed)
+				}
 			}
 		}
+		subcmds = newSubcmds
 	}
 	return subcmds
 }
