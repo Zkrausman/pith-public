@@ -50,6 +50,12 @@
                 <p class="text-slate-400 mt-1">Intelligent Token Optimization & Efficiency Monitoring</p>
             </div>
             <div class="flex gap-4 items-center">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="Forensic Search..." 
+                           class="bg-slate-800 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 focus:outline-none focus:border-sky-500 w-64 mono transition-all"
+                           onkeyup="handleSearch(event)">
+                    <div id="search-clear" class="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer hidden" onclick="clearSearch()">✕</div>
+                </div>
                 <select id="source-filter" onchange="loadData()" class="bg-slate-800 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium border border-slate-700 focus:outline-none focus:border-sky-500">
                     <option value="all">All Agents</option>
                 </select>
@@ -98,7 +104,7 @@
 
             <!-- Live Activity Stream -->
             <div class="bento-card col-span-1 lg:row-span-2 flex flex-col">
-                <h2 class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-6">Live Activity Stream</h2>
+                <h2 id="activity-stream-title" class="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-6">Live Activity Stream</h2>
                 <div id="activity-stream" class="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[500px]">
                     <div class="text-slate-600 text-sm text-center py-8">Waiting for activity...</div>
                 </div>
@@ -188,8 +194,11 @@
     <script>
         let timeChart, commandChart;
         let costRate = 3.0; // Default
+        let isSearchActive = false;
 
         async function loadData() {
+            if (isSearchActive) return; // Don't refresh data if user is searching
+            
             const source = document.getElementById('source-filter').value;
             const query = source === 'all' ? '' : `?source=${source}`;
             
@@ -207,6 +216,34 @@
             renderTimeChart(stats.daily || []);
             renderCommandChart(stats.by_command || []);
             renderDiscoverTable(discover || []);
+        }
+
+        async function handleSearch(event) {
+            const input = document.getElementById('search-input');
+            const clearBtn = document.getElementById('search-clear');
+            const query = input.value.trim();
+            const source = document.getElementById('source-filter').value;
+
+            if (query.length > 0) {
+                clearBtn.classList.remove('hidden');
+                isSearchActive = true;
+                
+                const results = await fetch(`/api/search?q=${encodeURIComponent(query)}&source=${source}`).then(res => res.json());
+                updateActivityStream(results);
+                document.getElementById('activity-stream-title').innerText = `Search Results (${results.length})`;
+            } else {
+                clearSearch();
+            }
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('search-input');
+            const clearBtn = document.getElementById('search-clear');
+            input.value = '';
+            clearBtn.classList.add('hidden');
+            isSearchActive = false;
+            document.getElementById('activity-stream-title').innerText = `Live Activity Stream`;
+            loadData();
         }
 
         function updateSummary(stats) {
@@ -231,7 +268,12 @@
 
         function updateActivityStream(recent) {
             const container = document.getElementById('activity-stream');
-            if (recent.length === 0) return;
+            if (!recent || recent.length === 0) {
+                if (isSearchActive) {
+                    container.innerHTML = '<div class="text-slate-600 text-sm text-center py-8">No results found.</div>';
+                }
+                return;
+            }
             
             container.innerHTML = '';
             recent.forEach(item => {
@@ -407,6 +449,7 @@
 
         init();
         setInterval(async () => {
+            if (isSearchActive) return;
             const source = document.getElementById('source-filter').value;
             const query = source === 'all' ? '' : `?source=${source}`;
             const recent = await fetch(`/api/recent${query}`).then(res => res.json());

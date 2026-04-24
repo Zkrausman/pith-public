@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.14.0] - 2026-04-23
+### Added
+- **Forensic Dashboard Search**: 
+    - Introduced a full-text search capability in the Pith Dashboard.
+    - Allows searching through months of history for specific commands, raw content, or optimized summaries.
+    - Enables high-fidelity auditing of what context was actually provided to the agent.
+- **Search API**: New `/api/search` endpoint in the telemetry engine.
+
 ## [v0.13.1] - 2026-04-23
 ### Added
 - **Real-time Token Reporting**: The informational message displayed after optimization now includes the exact number of **tokens saved**.

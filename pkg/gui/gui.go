@@ -61,9 +61,29 @@ func registerHandlers(cfg *config.Config, tel *telemetry.Telemetry) {
 		json.NewEncoder(w).Encode(unparsed)
 	})
 
+	http.HandleFunc("/api/search", func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query().Get("q")
+		source := r.URL.Query().Get("source")
+		if query == "" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode([]interface{}{})
+			return
+		}
+
+		results, err := tel.SearchExecutions(query, source, 50)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(results)
+	})
+
 	http.HandleFunc("/api/recent", func(w http.ResponseWriter, r *http.Request) {
 		source := r.URL.Query().Get("source")
-		recent, _ := tel.GetRecentExecutions(20, source)
+		recent, _ := tel.GetRecentExecutions(50, source)
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(recent)
 	})

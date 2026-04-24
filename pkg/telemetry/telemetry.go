@@ -313,3 +313,37 @@ func (t *Telemetry) GetExecutionDetails(id int64) (*ExecutionRecord, error) {
 	}
 	return &r, nil
 }
+
+func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) ([]ExecutionRecord, error) {
+	whereClause := "WHERE (command LIKE ? OR original_content LIKE ? OR compressed_content LIKE ?)"
+	args := []interface{}{"%" + queryStr + "%", "%" + queryStr + "%", "%" + queryStr + "%"}
+
+	if source != "" && source != "all" {
+		whereClause += " AND source = ?"
+		args = append(args, source)
+	}
+
+	args = append(args, limit)
+	sqlQuery := fmt.Sprintf(`
+		SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source 
+		FROM executions 
+		%s
+		ORDER BY timestamp DESC 
+		LIMIT ?`, whereClause)
+
+	rows, err := t.db.Query(sqlQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []ExecutionRecord
+	for rows.Next() {
+		var r ExecutionRecord
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, nil
+}

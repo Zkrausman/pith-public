@@ -96,3 +96,37 @@ func TestTelemetry_GetRecentExecutions_WithSource(t *testing.T) {
 		t.Errorf("Expected source src1, got %s", recent[0].Source)
 	}
 }
+
+func TestSearchExecutions(t *testing.T) {
+	tmpDir := t.TempDir()
+	tel, _ := NewTelemetry(tmpDir)
+	defer tel.Close()
+
+	// Seed data
+	tel.Record(ExecutionRecord{Command: "git status", OriginalContent: "on branch main", Source: "gemini"})
+	tel.Record(ExecutionRecord{Command: "ls -l", OriginalContent: "file.txt", Source: "claude"})
+	tel.Record(ExecutionRecord{Command: "cat main.go", OriginalContent: "package main", Source: "gemini"})
+
+	// Search by command
+	results, _ := tel.SearchExecutions("git", "all", 10)
+	if len(results) != 1 || results[0].Command != "git status" {
+		t.Errorf("Expected 1 result for 'git', got %d", len(results))
+	}
+
+	// Search by content
+	results, _ = tel.SearchExecutions("package", "all", 10)
+	if len(results) != 1 || results[0].Command != "cat main.go" {
+		t.Errorf("Expected 1 result for 'package', got %d", len(results))
+	}
+
+	// Search with source filter
+	results, _ = tel.SearchExecutions("l", "claude", 10)
+	if len(results) != 1 || results[0].Command != "ls -l" {
+		t.Errorf("Expected 1 result for 'l' with claude, got %d", len(results))
+	}
+	
+	results, _ = tel.SearchExecutions("l", "gemini", 10)
+	if len(results) != 0 {
+		t.Errorf("Expected 0 results for 'l' with gemini, got %d", len(results))
+	}
+}
