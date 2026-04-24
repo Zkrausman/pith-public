@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.12.0] - 2026-04-23
+### Added
+- **High Fidelity Parsing**: Upgraded `SourceParser` and `TestParser` to be context-aware. 
+    - `SourceParser` now preserves "high-signal" comments (BUG, TODO, FIXME, etc.) and avoids stripping critical developer intent.
+    - `TestParser` is now robust against multi-line error outputs and stack traces, ensuring no critical debugging info is lost.
+- **Reasoning Over Brevity Standard**: Updated `GEMINI.md` with a new engineering standard that prioritizes comprehensive technical reasoning over brevity, overriding global agent output constraints to prevent "intelligence loss."
+
+### Fixed
+- **Build-Only Interception**: `TestParser` no longer intercepts `go test -c` or build-only flags, ensuring compilation errors are visible and not optimized away.
+- **Test Summary Detection**: Improved regex for aggregate test summaries to avoid capturing individual passing tests as false positives.
+
 ## [v0.11.3] - 2026-04-19
 ### Changed
 - **Estate Modernization**: Updated repository status to align with the new **Squire** engineering assistant.

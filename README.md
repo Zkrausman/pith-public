@@ -8,7 +8,8 @@
 
 ## 🚀 Features
 - **Zero-Overhead Proxy:** Fast Go-based binary for near-instant command interception.
-- **Smart Parsers:** 20+ specialized optimizers for common developer commands.
+- **Smart Parsers:** 20+ specialized optimizers for common developer commands, now featuring **High Fidelity Parsing** for source code and test results.
+- **Reasoning Over Brevity Standard:** Built-in mandate that prioritizes comprehensive technical depth over brevity to prevent LLM intelligence loss.
 - **Configurable Storage:** Centralized storage for telemetry and configuration at `E:\TheBrain\PithBackup`.
 - **Composite Commands:** Intelligent handling of shell-joined commands (e.g., `git status & git log`).
 - **Escape Hatch (`pith raw`):** Bypass all parsers when you need the exact, unformatted truth.
