@@ -66,4 +66,10 @@ _Add a brief overview of your project architecture_
 
 ## Conventions & Patterns
 
+## Communication & Reasoning
+
+- **Priority on Reasoning**: Following the insights from the Anthropic April 23 post-mortem, this project prioritizes **comprehensive technical reasoning** over brevity.
+- **Override**: The "Minimal Output" and "No Chitchat" global constraints are explicitly relaxed for this repository. Agents SHOULD provide detailed technical rationale and thorough analysis when solving complex problems.
+- **Exhaustive Planning**: Always favor explicit, detailed planning (e.g., using Plan Mode or thorough Thought blocks) to ensure architectural integrity is maintained during optimizations.
+
 _Add your project-specific conventions here_
