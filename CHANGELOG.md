@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.13.0] - 2026-04-23
+### Added
+- **Expanded Parser Coverage**:
+    - **Snag Parser**: Specialized optimizer for `snag list --json`, stripping massive context snippets while preserving IDs and advice.
+    - **Go Coverage Parser**: New optimizer for `go tool cover -func` that highlights low-coverage areas and strips 100% covered functions.
+- **Financial Analytics & Precision**:
+    - **USD Saved Tracking**: Pith now reports estimated financial savings in USD based on configurable token rates.
+    - **Dynamic Dashboards**: The web dashboard now uses your specific model's cost rate for all calculations.
+    - **Configurable Heuristics**: Added `USDPerMillionTokens` and `TokenHeuristic` settings for better multi-model accuracy.
+- **Improved Extraction**: Robust command matching for PowerShell wrappers (`&`) and leading quoted paths.
+
+### Changed
+- **Token Logic**: Moved token estimation into a configurable `Runner` method, improving tracking precision for different LLMs.
+
 ## [v0.12.0] - 2026-04-23
 ### Added
 - **High Fidelity Parsing**: Upgraded `SourceParser` and `TestParser` to be context-aware. 

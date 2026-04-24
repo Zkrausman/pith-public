@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.12.0"
+const version = "v0.13.0"
 
 // Internal Hook Input/Output schemas
 type HookInput struct {
