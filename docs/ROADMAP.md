@@ -1,8 +1,9 @@
 ﻿# Pith Roadmap
 
-## Current Focus (v0.11.x)
+## Current Focus (v0.12.x)
+- [x] Implement High Fidelity Parsing for source and tests.
+- [x] Establish "Reasoning Over Brevity" standard.
 - [ ] Stabilize token tracking and cost analytics.
-- [ ] Improve agent source detection.
 - [ ] Expand parser coverage for common developer tools.
 
 ## Future Plans
