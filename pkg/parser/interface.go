@@ -62,6 +62,7 @@ func GetAllParsers() []Parser {
 		&GitHubReleaseParser{},
 		&DependencyParser{},
 		&TestParser{},
+		&GoToolCoverParser{},
 		// New Tools
 		&WebParser{},
 		&PithParser{},
@@ -72,6 +73,7 @@ func GetAllParsers() []Parser {
 		&BDParser{},
 		&PromptfooParser{},
 		&ThneedParser{},
+		&SnagParser{},
 		&NPMParser{},
 	}
 	return append(parsers, &ChainParser{})

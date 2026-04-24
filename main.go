@@ -374,6 +374,11 @@ func runHook(cmd *cobra.Command, args []string) error {
 	run := runner.NewRunner(cfg, tel)
 	run.LogForSnag(command, originalOutput, exitCode)
 
+	source, _ := cmd.Flags().GetString("source")
+	if source == "" {
+		source = "unknown"
+	}
+
 	cmdParts := strings.Fields(command)
 	if len(cmdParts) == 0 {
 		return respondAllow(cmd)
@@ -381,9 +386,10 @@ func runHook(cmd *cobra.Command, args []string) error {
 
 	parsers := parser.GetAllParsers()
 	var p parser.Parser
+	
+	// Strategy 1: Direct match
 	cmdName := cmdParts[0]
 	pArgs := cmdParts[1:]
-
 	for _, parser := range parsers {
 		enabled, ok := cfg.EnabledParsers[parser.Name()]
 		if (!ok || enabled) && parser.CanParse(cmdName, pArgs) {
@@ -392,9 +398,38 @@ func runHook(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	source, _ := cmd.Flags().GetString("source")
-	if source == "" {
-		source = "unknown"
+	// Strategy 2: PowerShell '&' wrapper
+	if p == nil && cmdName == "&" && len(cmdParts) > 1 {
+		cmdName = cmdParts[1]
+		pArgs = cmdParts[2:]
+		// Handle quoted path in & "path" format
+		if strings.HasPrefix(cmdName, "\"") && strings.HasSuffix(cmdName, "\"") {
+			cmdName = strings.Trim(cmdName, "\"")
+		}
+		for _, parser := range parsers {
+			enabled, ok := cfg.EnabledParsers[parser.Name()]
+			if (!ok || enabled) && parser.CanParse(cmdName, pArgs) {
+				p = parser
+				break
+			}
+		}
+	}
+
+	// Strategy 3: Leading quoted path (e.g. "C:\bin\go.exe" version)
+	if p == nil && strings.HasPrefix(command, "\"") {
+		endQuote := strings.Index(command[1:], "\"")
+		if endQuote != -1 {
+			cmdName = command[1 : endQuote+1]
+			remaining := strings.TrimSpace(command[endQuote+2:])
+			pArgs = strings.Fields(remaining)
+			for _, parser := range parsers {
+				enabled, ok := cfg.EnabledParsers[parser.Name()]
+				if (!ok || enabled) && parser.CanParse(cmdName, pArgs) {
+					p = parser
+					break
+				}
+			}
+		}
 	}
 
 	var compressed string

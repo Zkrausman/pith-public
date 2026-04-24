@@ -12,7 +12,5 @@ func TestGetAllParsers(t *testing.T) {
 		if p.Name() == "" {
 			t.Error("Parser should have a non-empty name")
 		}
-		// Some commands have CanParse = true or false depending on input
-		// Just to cover Name() we call it.
 	}
 }

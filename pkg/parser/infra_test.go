@@ -122,3 +122,28 @@ Zkrausman/resume       public  2026-01-01T12:00:00Z
 		t.Errorf("GitHubParser failed to format repo list, got:\n%s", output)
 	}
 }
+
+func TestGoToolCoverParser(t *testing.T) {
+	p := &GoToolCoverParser{}
+
+	// Test CanParse
+	if !p.CanParse("go", []string{"tool", "cover", "-func", "profile.cov"}) {
+		t.Error("GoToolCoverParser should handle go tool cover")
+	}
+
+	input := `pith/pkg/parser/fs.go:25:	LsParser.Name		100.0%
+pith/pkg/parser/fs.go:30:	LsParser.CanParse	50.0%
+pith/pkg/parser/infra.go:10:	EnvParser.Parse		100.0%
+total:				(statements)		95.1%
+`
+	output := p.Parse(input)
+	if strings.Contains(output, "LsParser.Name") {
+		t.Error("GoToolCoverParser should strip 100.0% coverage lines")
+	}
+	if !strings.Contains(output, "LsParser.CanParse	50.0%") {
+		t.Error("GoToolCoverParser should keep non-100% lines")
+	}
+	if !strings.Contains(output, "total:				(statements)		95.1%") {
+		t.Error("GoToolCoverParser should keep total line")
+	}
+}

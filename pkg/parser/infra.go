@@ -164,6 +164,52 @@ func (t *TestParser) Parse(output string) string {
 	return strings.Join(result, "\n")
 }
 
+// GoToolCoverParser (NEW)
+type GoToolCoverParser struct{}
+
+func (g *GoToolCoverParser) Name() string { return "go_cover" }
+func (g *GoToolCoverParser) CanParse(cmd string, args []string) bool {
+	return MatchCommand(cmd, "go") && len(args) > 2 && args[0] == "tool" && args[1] == "cover"
+}
+func (g *GoToolCoverParser) Parse(output string) string {
+	lines := strings.Split(output, "\n")
+	var result []string
+	
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" { continue }
+		
+		// Always keep the total line
+		if strings.HasPrefix(trimmed, "total:") {
+			result = append(result, trimmed)
+			continue
+		}
+		
+		// For function breakdown, only keep lines that are NOT 100.0%
+		// This highlights areas that need work.
+		if strings.Contains(trimmed, "%") && !strings.Contains(trimmed, "100.0%") {
+			result = append(result, trimmed)
+		}
+	}
+	
+	if len(result) == 0 {
+		// If everything is 100%, just show the total if we found it, or a success message
+		for _, line := range lines {
+			if strings.HasPrefix(strings.TrimSpace(line), "total:") {
+				return line
+			}
+		}
+		return "Coverage: 100.0% across all functions."
+	}
+	
+	// Limit to top 30 "problem" functions
+	if len(result) > 30 {
+		result = append(result[:30], "... (truncated coverage list)")
+	}
+	
+	return strings.Join(result, "\n")
+}
+
 // GitHubParser (NEW)
 type GitHubParser struct{}
 

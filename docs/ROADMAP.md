@@ -3,6 +3,9 @@
 ## Current Focus (v0.12.x)
 - [x] Implement High Fidelity Parsing for source and tests.
 - [x] Establish "Reasoning Over Brevity" standard.
+- [x] Implement Snag log parser (snag list --json).
+- [x] Implement Go coverage report parser (go tool cover).
+- [x] Improve command extraction for PowerShell & quoted paths.
 - [ ] Stabilize token tracking and cost analytics.
 - [ ] Expand parser coverage for common developer tools.
 
