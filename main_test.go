@@ -231,6 +231,9 @@ func TestHookCmd(t *testing.T) {
 	if output.Decision != "deny" {
 		t.Errorf("Expected decision deny, got %s", output.Decision)
 	}
+	if !strings.Contains(output.SystemMessage, "tokens saved:") {
+		t.Errorf("Expected SystemMessage to contain 'tokens saved:', got %s", output.SystemMessage)
+	}
 }
 
 func TestGainCmd_Empty(t *testing.T) {

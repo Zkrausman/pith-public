@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.13.1] - 2026-04-23
+### Added
+- **Real-time Token Reporting**: The informational message displayed after optimization now includes the exact number of **tokens saved**.
+    - Example: `Output optimized by Pith (parser: tests, tokens saved: 450, truncated: false)`
+
 ## [v0.13.0] - 2026-04-23
 ### Added
 - **Expanded Parser Coverage**:

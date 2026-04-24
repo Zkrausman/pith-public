@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.13.0"
+const version = "v0.13.1"
 
 // Internal Hook Input/Output schemas
 type HookInput struct {
@@ -452,11 +452,15 @@ func runHook(cmd *cobra.Command, args []string) error {
 	truncated := run.ApplyMiddleOutTruncation(compressed)
 	wasTruncated := truncated != compressed
 
+	origTokens := runner.EstimateTokensWithHeuristic(originalOutput, cfg.TokenHeuristic)
+	compTokens := runner.EstimateTokensWithHeuristic(truncated, cfg.TokenHeuristic)
+	savedTokens := origTokens - compTokens
+
 	if tel != nil {
 		_ = tel.Record(telemetry.ExecutionRecord{
 			Command:          command,
-			OriginalTokens:   runner.EstimateTokensWithHeuristic(originalOutput, cfg.TokenHeuristic),
-			CompressedTokens: runner.EstimateTokensWithHeuristic(truncated, cfg.TokenHeuristic),
+			OriginalTokens:   origTokens,
+			CompressedTokens: compTokens,
 			ParserUsed:       parserUsed,
 			IsPassthrough:    isPassthrough,
 			Source:           source,
@@ -470,7 +474,7 @@ func runHook(cmd *cobra.Command, args []string) error {
 	output := HookOutput{
 		Decision:      "deny",
 		Reason:        prefix + truncated,
-		SystemMessage: fmt.Sprintf("Output optimized by Pith (parser: %s, truncated: %v)", parserUsed, wasTruncated),
+		SystemMessage: fmt.Sprintf("Output optimized by Pith (parser: %s, tokens saved: %d, truncated: %v)", parserUsed, savedTokens, wasTruncated),
 	}
 	return json.NewEncoder(cmd.OutOrStdout()).Encode(output)
 }
