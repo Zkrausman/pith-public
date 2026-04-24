@@ -11,22 +11,74 @@ func TestSourceParser(t *testing.T) {
 	
 	import "fmt"
 	
-	// This is a comment
+	// This is a generic comment
+	// BUG: This is a high-signal comment
 	func main() {
 		/* Multi-line
+		   TODO: Fix this
 		   comment */
-		fmt.Println("Hello") // Inline comment
+		fmt.Println("Hello") // Inline HACK
+		fmt.Println("World") // Standard inline
 	}`
 
 	output := p.Parse(input)
-	if strings.Contains(output, "// This is a comment") {
-		t.Errorf("Expected inline comment to be removed")
+	if strings.Contains(output, "// This is a generic comment") {
+		t.Errorf("Expected generic comment to be removed")
 	}
-	if strings.Contains(output, "Multi-line") {
-		t.Errorf("Expected multi-line comment to be removed")
+	if !strings.Contains(output, "// BUG: This is a high-signal comment") {
+		t.Errorf("Expected high-signal BUG comment to be preserved")
+	}
+	if !strings.Contains(output, "TODO: Fix this") {
+		t.Errorf("Expected high-signal TODO block comment to be preserved")
+	}
+	if !strings.Contains(output, "// Inline HACK") {
+		t.Errorf("Expected high-signal inline HACK to be preserved")
+	}
+	if strings.Contains(output, "// Standard inline") {
+		t.Errorf("Expected standard inline comment to be removed")
 	}
 	if !strings.Contains(output, "func main()") {
 		t.Errorf("Expected function signature to be preserved")
+	}
+}
+
+func TestTestParserFidelity(t *testing.T) {
+	p := &TestParser{}
+	
+	input := `PASS: TestOne
+FAIL: TestTwo
+    Error: Assertion failed
+    Expected: 1
+    Actual: 2
+
+    Stack Trace:
+    at main.go:10
+    at testing.go:100
+
+ok  	pith/pkg/parser	0.123s
+PASS: TestThree`
+
+	output := p.Parse(input)
+	
+	if !strings.Contains(output, "FAIL: TestTwo") {
+		t.Errorf("Expected failure line to be preserved")
+	}
+	if !strings.Contains(output, "Error: Assertion failed") {
+		t.Errorf("Expected error details to be preserved")
+	}
+	if !strings.Contains(output, "Stack Trace:") {
+		t.Errorf("Expected stack trace to be preserved (even after empty line)")
+	}
+	if !strings.Contains(output, "at main.go:10") {
+		t.Errorf("Expected multi-line failure details to be preserved")
+	}
+	if !strings.Contains(output, "ok  	pith/pkg/parser") {
+		t.Errorf("Expected summary line to be preserved")
+	}
+	hasOne := strings.Contains(output, "PASS: TestOne")
+	hasThree := strings.Contains(output, "PASS: TestThree")
+	if hasOne || hasThree {
+		t.Errorf("Expected individual passing tests to be stripped. hasOne=%v, hasThree=%v. Actual output:\n%s", hasOne, hasThree, output)
 	}
 }
 

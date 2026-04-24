@@ -101,33 +101,67 @@ type TestParser struct{}
 
 func (t *TestParser) Name() string { return "tests" }
 func (t *TestParser) CanParse(cmd string, args []string) bool {
-	return (MatchCommand(cmd, "npm") && len(args) > 0 && args[0] == "test") ||
+	// Only match if it's a test command and doesn't have build-only or list-only flags
+	isTest := (MatchCommand(cmd, "npm") && len(args) > 0 && args[0] == "test") ||
 		   (MatchCommand(cmd, "go") && len(args) > 0 && args[0] == "test") ||
 		   MatchCommand(cmd, "pytest")
+	
+	if !isTest { return false }
+	
+	// Exclude go test flags that don't execute tests
+	for _, arg := range args {
+		if arg == "-c" || arg == "-i" || arg == "-list" {
+			return false
+		}
+	}
+	
+	return true
 }
 func (t *TestParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
 	var result []string
 	isFailureBlock := false
 	
+	// Failure keywords to trigger failure block tracking
+	failKeywords := regexp.MustCompile(`(?i)(FAIL|Error:|panic|exception|traceback|at\s|\[ERROR\]|!!!)`)
+	// Summary keywords to capture aggregate results (e.g., "10 passed", "TOTAL: 5", "ok  pkg/path")
+	// We avoid matching individual "PASS: test_name" lines
+	summaryKeywords := regexp.MustCompile(`(?i)(^\d+\s+(passed|failed)|TOTAL|DONE|^ok\s+|^PASS\s*$)`)
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		// Capture summary lines
-		if strings.Contains(trimmed, "passed") || strings.Contains(trimmed, "failed") ||
-		   strings.Contains(trimmed, "TOTAL") || strings.HasPrefix(trimmed, "DONE") ||
-		   strings.HasPrefix(trimmed, "ok") || strings.HasPrefix(trimmed, "PASS") {
+		
+		// Capture summary lines (always keep)
+		if summaryKeywords.MatchString(trimmed) && !strings.Contains(trimmed, "PASS:") {
 			result = append(result, trimmed)
-		}		// Capture failure details (heuristic)
-		if strings.Contains(line, "FAIL") || strings.Contains(line, "Error:") {
+			isFailureBlock = false // Reset on summary
+			continue
+		}
+
+		// Heuristic to detect failure starts
+		if failKeywords.MatchString(line) {
 			isFailureBlock = true
 		}
+		
+		// Reset failure block if we see an individual PASS line
+		if strings.Contains(trimmed, "PASS:") {
+			isFailureBlock = false
+		}
+
+		// Within a failure block, we are more permissive
 		if isFailureBlock {
 			result = append(result, line)
-			if trimmed == "" { isFailureBlock = false } // End of failure block
+			
+			// Stop the failure block if we hit a known "pass" indicator or a summary marker
+			// We no longer stop just at empty lines to avoid truncating multi-line errors
+			if strings.HasPrefix(trimmed, "--- PASS") || strings.HasPrefix(trimmed, "ok  ") {
+				isFailureBlock = false
+			}
 		}
 	}
+	
 	if len(result) == 0 { return "Tests finished. (No summary captured)" }
-return strings.Join(result, "\n")
+	return strings.Join(result, "\n")
 }
 
 // GitHubParser (NEW)
