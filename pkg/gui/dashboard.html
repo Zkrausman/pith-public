@@ -91,7 +91,7 @@
                     <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Estimated Cost Saved</span>
                     <div>
                         <div id="cost-saved" class="text-3xl font-bold accent-sky">$0.00</div>
-                        <div class="text-xs text-slate-500 mt-1">Based on $0.50/M tokens</div>
+                        <div id="cost-rate-label" class="text-xs text-slate-500 mt-1">Based on $3.00/M tokens</div>
                     </div>
                 </div>
             </div>
@@ -133,7 +133,7 @@
                                 <th class="pb-3 font-medium">Command Pattern</th>
                                 <th class="pb-3 font-medium">Invocations</th>
                                 <th class="pb-3 font-medium text-right">Raw Tokens</th>
-                                <th class="pb-3 font-medium text-right">Potential Savings</th>
+                                <th class="pb-3 font-medium text-right">Potential USD Saved</th>
                             </tr>
                         </thead>
                         <tbody id="discover-body" class="divide-y divide-slate-800/50">
@@ -187,6 +187,7 @@
 
     <script>
         let timeChart, commandChart;
+        let costRate = 3.0; // Default
 
         async function loadData() {
             const source = document.getElementById('source-filter').value;
@@ -195,6 +196,11 @@
             const stats = await fetch(`/api/stats${query}`).then(res => res.json());
             const discover = await fetch(`/api/discover${query}`).then(res => res.json());
             const recent = await fetch(`/api/recent${query}`).then(res => res.json());
+
+            if (stats.usd_per_million_tokens) {
+                costRate = stats.usd_per_million_tokens;
+                document.getElementById('cost-rate-label').innerText = `Based on $${costRate.toFixed(2)}/M tokens`;
+            }
 
             updateSummary(stats);
             updateActivityStream(recent);
@@ -210,7 +216,7 @@
             
             document.getElementById('total-saved').innerText = saved.toLocaleString();
             
-            const costSaved = (saved / 1000000) * 0.5;
+            const costSaved = (saved / 1000000) * costRate;
             document.getElementById('cost-saved').innerText = `$${costSaved.toFixed(2)}`;
 
             const efficiency = totalOrig > 0 ? Math.round((saved / totalOrig) * 100) : 0;
@@ -369,12 +375,13 @@
             discover.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.className = "group hover:bg-slate-800/30 transition-colors";
-                const est = Math.round(row.TotalRawTokens * 0.7);
+                const estSavedTokens = Math.round(row.TotalRawTokens * 0.7); // Assume 70% compression for unparsed
+                const estSavedUSD = (estSavedTokens / 1000000) * costRate;
                 tr.innerHTML = `
                     <td class="py-4 mono text-sky-400 group-hover:text-sky-300">${row.Pattern}</td>
                     <td class="py-4 text-slate-400">${row.InvocationCount}</td>
                     <td class="py-4 text-right text-slate-300">${row.TotalRawTokens.toLocaleString()}</td>
-                    <td class="py-4 text-right font-bold accent-emerald">${est.toLocaleString()}</td>
+                    <td class="py-4 text-right font-bold accent-emerald">$${estSavedUSD.toFixed(3)}</td>
                 `;
                 tbody.appendChild(tr);
             });

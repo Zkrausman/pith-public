@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"pith/pkg/config"
 	"pith/pkg/telemetry"
 	"embed"
 	"encoding/json"
@@ -13,8 +14,8 @@ import (
 //go:embed dashboard.html
 var staticFiles embed.FS
 
-func StartDashboard(tel *telemetry.Telemetry, port int) error {
-	registerHandlers(tel)
+func StartDashboard(cfg *config.Config, tel *telemetry.Telemetry, port int) error {
+	registerHandlers(cfg, tel)
 
 	url := fmt.Sprintf("http://localhost:%d", port)
 	fmt.Printf("Starting Pith Dashboard at %s\n", url)
@@ -25,7 +26,7 @@ func StartDashboard(tel *telemetry.Telemetry, port int) error {
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
-func registerHandlers(tel *telemetry.Telemetry) {
+func registerHandlers(cfg *config.Config, tel *telemetry.Telemetry) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		data, err := staticFiles.ReadFile("dashboard.html")
 		if err != nil {
@@ -43,10 +44,11 @@ func registerHandlers(tel *telemetry.Telemetry) {
 		daily, _ := tel.GetStatsByDay(source)
 
 		resp := map[string]interface{}{
-			"total_original":   totalOrig,
-			"total_compressed": totalComp,
-			"by_command":       byCmd,
-			"daily":            daily,
+			"total_original":          totalOrig,
+			"total_compressed":        totalComp,
+			"by_command":              byCmd,
+			"daily":                   daily,
+			"usd_per_million_tokens": cfg.USDPerMillionTokens,
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)

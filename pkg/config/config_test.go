@@ -178,13 +178,17 @@ func TestInteractiveConfig(t *testing.T) {
 
 		// Simulate answers
 		resp := response.(*struct {
-			MaxLines  int `survey:"maxlines"`
-			HeadLines int `survey:"headlines"`
-			TailLines int `survey:"taillines"`
+			MaxLines  int     `survey:"maxlines"`
+			HeadLines int     `survey:"headlines"`
+			TailLines int     `survey:"taillines"`
+			USDRate   float64 `survey:"usdrate"`
+			Heuristic float64 `survey:"heuristic"`
 		})
 		resp.MaxLines = 1000
 		resp.HeadLines = 200
 		resp.TailLines = 200
+		resp.USDRate = 5.0
+		resp.Heuristic = 3.5
 		return nil
 	}
 

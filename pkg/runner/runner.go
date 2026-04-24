@@ -139,7 +139,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	// Log for Snag before doing any compression/truncation
 	r.LogForSnag(fullCmd, fullOutput, exitCode)
 
-	originalTokens := EstimateTokens(fullOutput)
+	originalTokens := r.EstimateTokens(fullOutput)
 
 	var p parser.Parser
 	if !skipParsing {
@@ -207,7 +207,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	// Apply Middle-Out Truncation
 	finalOutput = r.ApplyMiddleOutTruncation(finalOutput)
 
-	compressedTokens := EstimateTokens(finalOutput)
+	compressedTokens := r.EstimateTokens(finalOutput)
 
 	// Output to stdout
 	fmt.Print(finalOutput)
@@ -251,7 +251,18 @@ func (r *Runner) ApplyMiddleOutTruncation(output string) string {
 	return strings.Join(resultLines, "\n")
 }
 
+func (r *Runner) EstimateTokens(s string) int {
+	return EstimateTokensWithHeuristic(s, r.cfg.TokenHeuristic)
+}
+
+func EstimateTokensWithHeuristic(s string, heuristic float64) int {
+	if heuristic <= 0 {
+		heuristic = 4.0
+	}
+	return int(float64(utf8.RuneCountInString(s)) / heuristic)
+}
+
+// Deprecated: Use Runner.EstimateTokens or EstimateTokensWithHeuristic
 func EstimateTokens(s string) int {
-	// Heuristic: 1 token ≈ 4 characters
-	return utf8.RuneCountInString(s) / 4
+	return EstimateTokensWithHeuristic(s, 4.0)
 }

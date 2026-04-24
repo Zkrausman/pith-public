@@ -6,7 +6,7 @@
 - [x] Implement Snag log parser (snag list --json).
 - [x] Implement Go coverage report parser (go tool cover).
 - [x] Improve command extraction for PowerShell & quoted paths.
-- [ ] Stabilize token tracking and cost analytics.
+- [x] Stabilize token tracking and cost analytics.
 - [ ] Expand parser coverage for common developer tools.
 
 ## Future Plans

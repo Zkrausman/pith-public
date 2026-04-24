@@ -232,14 +232,17 @@ func runGain(cmd *cobra.Command, args []string) error {
 
 	saved := totalOrig - totalComp
 	percent := (float64(saved) / float64(totalOrig)) * 100
+	usdSaved := (float64(saved) / 1000000.0) * cfg.USDPerMillionTokens
+
 	cmd.Printf("Raw Tokens:        %d\n", totalOrig)
 	cmd.Printf("Compressed:        %d\n", totalComp)
 	cmd.Printf("Tokens Saved:      %d (%.2f%%)\n", saved, percent)
+	cmd.Printf("Est. USD Saved:    $%.2f (at $%.2f/M tokens)\n", usdSaved, cfg.USDPerMillionTokens)
 
 	byCmd, err := tel.GetStatsByCommand("")
 	if err == nil && len(byCmd) > 0 {
 		cmd.Printf("\n--- Breakdown by Command and Agent ---\n")
-		cmd.Printf("%-25s | %-12s | %-10s | %-10s | %-10s\n", "Command Pattern", "Agent", "Raw", "Pith", "Savings")
+		cmd.Printf("%-25s | %-12s | %-10s | %-10s | %-10s\n", "Command Pattern", "Agent", "Raw", "Pith", "USD Saved")
 		cmd.Println(strings.Repeat("-", 76))
 
 		limit := len(byCmd)
@@ -250,7 +253,8 @@ func runGain(cmd *cobra.Command, args []string) error {
 		for i := 0; i < limit; i++ {
 			r := byCmd[i]
 			savings := r.Original - r.Compressed
-			cmd.Printf("%-25s | %-12s | %-10d | %-10d | %-10d\n", r.Command, r.Source, r.Original, r.Compressed, savings)
+			usdCmd := (float64(savings) / 1000000.0) * cfg.USDPerMillionTokens
+			cmd.Printf("%-25s | %-12s | %-10d | %-10d | $%-10.3f\n", r.Command, r.Source, r.Original, r.Compressed, usdCmd)
 		}
 
 		if len(byCmd) > 20 {
@@ -300,12 +304,13 @@ func runDiscover(cmd *cobra.Command, args []string) error {
 	}
 
 	cmd.Printf("--- Opportunity Discovery (Unparsed Commands) ---\n")
-	cmd.Printf("%-30s | %-12s | %-10s | %-15s | %-15s\n", "Command Pattern", "Agent", "Count", "Total Tokens", "Est. Savings (70%)")
+	cmd.Printf("%-30s | %-12s | %-10s | %-15s | %-15s\n", "Command Pattern", "Agent", "Count", "Total Tokens", "Est. USD Saved")
 	cmd.Println(strings.Repeat("-", 91))
 
 	for _, r := range unparsed {
-		estSavings := float64(r.TotalRawTokens) * 0.7
-		cmd.Printf("%-30s | %-12s | %-10d | %-15d | %-15.0f\n", r.Pattern, r.Source, r.InvocationCount, r.TotalRawTokens, estSavings)
+		estSavedTokens := float64(r.TotalRawTokens) * 0.7
+		estSavingsUSD := (estSavedTokens / 1000000.0) * cfg.USDPerMillionTokens
+		cmd.Printf("%-30s | %-12s | %-10d | %-15d | $%-15.3f\n", r.Pattern, r.Source, r.InvocationCount, r.TotalRawTokens, estSavingsUSD)
 	}
 
 	return nil
@@ -450,8 +455,8 @@ func runHook(cmd *cobra.Command, args []string) error {
 	if tel != nil {
 		_ = tel.Record(telemetry.ExecutionRecord{
 			Command:          command,
-			OriginalTokens:   runner.EstimateTokens(originalOutput),
-			CompressedTokens: runner.EstimateTokens(truncated),
+			OriginalTokens:   runner.EstimateTokensWithHeuristic(originalOutput, cfg.TokenHeuristic),
+			CompressedTokens: runner.EstimateTokensWithHeuristic(truncated, cfg.TokenHeuristic),
 			ParserUsed:       parserUsed,
 			IsPassthrough:    isPassthrough,
 			Source:           source,
@@ -579,5 +584,5 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 	defer tel.Close()
 
 	port, _ := cmd.Flags().GetInt("port")
-	return gui.StartDashboard(tel, port)
+	return gui.StartDashboard(cfg, tel, port)
 }

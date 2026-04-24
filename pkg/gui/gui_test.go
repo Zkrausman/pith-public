@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"pith/pkg/config"
 	"pith/pkg/telemetry"
 	"net/http"
 	"net/http/httptest"
@@ -26,7 +27,8 @@ func TestDashboardHandlers(t *testing.T) {
 		Source: "test",
 	})
 
-	registerHandlers(tel)
+	cfg := &config.Config{USDPerMillionTokens: 3.0}
+	registerHandlers(cfg, tel)
 
 	// Now we can use httptest to hit the DefaultServeMux
 	req := httptest.NewRequest("GET", "/", nil)

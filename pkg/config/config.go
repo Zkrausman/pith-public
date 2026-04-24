@@ -15,12 +15,14 @@ var SurveyAskOne = survey.AskOne
 var SurveyAsk = survey.Ask
 
 type Config struct {
-	EnabledParsers  map[string]bool `json:"enabled_parsers"`
-	LastUpdateCheck int64           `json:"last_update_check"`
-	MaxLines        int             `json:"max_lines"`
-	HeadLines       int             `json:"head_lines"`
-	TailLines       int             `json:"tail_lines"`
-	StoragePath     string          `json:"storage_path"`
+	EnabledParsers       map[string]bool `json:"enabled_parsers"`
+	LastUpdateCheck      int64           `json:"last_update_check"`
+	MaxLines             int             `json:"max_lines"`
+	HeadLines            int             `json:"head_lines"`
+	TailLines            int             `json:"tail_lines"`
+	StoragePath          string          `json:"storage_path"`
+	USDPerMillionTokens  float64         `json:"usd_per_million_tokens"`
+	TokenHeuristic       float64         `json:"token_heuristic"`
 }
 
 var TheBrainBase = "E:\\"
@@ -93,6 +95,12 @@ func LoadConfig() (*Config, error) {
 	}
 	if cfg.TailLines == 0 {
 		cfg.TailLines = 100
+	}
+	if cfg.USDPerMillionTokens == 0 {
+		cfg.USDPerMillionTokens = 3.0 // Default to Claude 3.5 Sonnet Rate
+	}
+	if cfg.TokenHeuristic == 0 {
+		cfg.TokenHeuristic = 4.0
 	}
 
 	return cfg, nil
@@ -174,12 +182,28 @@ func (c *Config) InteractiveConfig(availableParsers []string) error {
 				Default: fmt.Sprintf("%d", c.TailLines),
 			},
 		},
+		{
+			Name: "usdrate",
+			Prompt: &survey.Input{
+				Message: "USD Cost per 1 Million Input Tokens (e.g., 3.0 for Sonnet 3.5):",
+				Default: fmt.Sprintf("%.2f", c.USDPerMillionTokens),
+			},
+		},
+		{
+			Name: "heuristic",
+			Prompt: &survey.Input{
+				Message: "Token Heuristic (Average characters per token, e.g., 4.0):",
+				Default: fmt.Sprintf("%.2f", c.TokenHeuristic),
+			},
+		},
 	}
 
 	answers := struct {
-		MaxLines  int `survey:"maxlines"`
-		HeadLines int `survey:"headlines"`
-		TailLines int `survey:"taillines"`
+		MaxLines  int     `survey:"maxlines"`
+		HeadLines int     `survey:"headlines"`
+		TailLines int     `survey:"taillines"`
+		USDRate   float64 `survey:"usdrate"`
+		Heuristic float64 `survey:"heuristic"`
 	}{}
 
 	err = SurveyAsk(qs, &answers)
@@ -191,6 +215,8 @@ func (c *Config) InteractiveConfig(availableParsers []string) error {
 	c.MaxLines = answers.MaxLines
 	c.HeadLines = answers.HeadLines
 	c.TailLines = answers.TailLines
+	c.USDPerMillionTokens = answers.USDRate
+	c.TokenHeuristic = answers.Heuristic
 
 	return c.Save()
 }

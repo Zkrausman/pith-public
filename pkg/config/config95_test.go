@@ -126,13 +126,17 @@ func TestInteractiveConfig_EnablesExistingParsers(t *testing.T) {
 	}
 	SurveyAsk = func(qs []*survey.Question, response interface{}, opts ...survey.AskOpt) error {
 		resp := response.(*struct {
-			MaxLines  int `survey:"maxlines"`
-			HeadLines int `survey:"headlines"`
-			TailLines int `survey:"taillines"`
+			MaxLines  int     `survey:"maxlines"`
+			HeadLines int     `survey:"headlines"`
+			TailLines int     `survey:"taillines"`
+			USDRate   float64 `survey:"usdrate"`
+			Heuristic float64 `survey:"heuristic"`
 		})
 		resp.MaxLines = 750
 		resp.HeadLines = 50
 		resp.TailLines = 50
+		resp.USDRate = 3.0
+		resp.Heuristic = 4.0
 		return nil
 	}
 
