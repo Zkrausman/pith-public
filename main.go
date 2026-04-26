@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"pith/pkg/config"
@@ -19,7 +19,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.14.0"
+const version = "v0.14.1"
 
 type HookInput struct {
 	ToolResponse struct {
@@ -550,7 +550,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	}
 	defer tel.Close()
 
-	fmt.Println("\nðŸ” Pith Predictive Analytics")
+	fmt.Println("\n🔍 Pith Predictive Analytics")
 	fmt.Println("---------------------------------------")
 
 	// 1. Anomaly Detection
@@ -558,17 +558,17 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Printf("Anomaly Detection Error: %v\n", err)
 	} else if len(anomalies) > 0 {
-		fmt.Printf("âš ï¸  Detected %d Anomalies:\n", len(anomalies))
+		fmt.Printf("⚠️  Detected %d Anomalies:\n", len(anomalies))
 		for _, a := range anomalies {
 			fmt.Printf("  - [%d] %s\n", a.ExecutionID, a.Reason)
 		}
 	} else {
-		fmt.Println("âœ… No unusual token consumption detected.")
+		fmt.Println("✅ No unusual token consumption detected.")
 	}
 
 	// 2. Cost Advisor
 	estimate := advisor.EstimateSessionCost(10, 2000, cfg.USDPerMillionTokens)
-	fmt.Printf("\nðŸ’° %s\n", estimate.FormatReport())
+	fmt.Printf("\n💰 %s\n", estimate.FormatReport())
 
 	fmt.Println("---------------------------------------")
 	return nil
