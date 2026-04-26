@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"pith/pkg/config"
@@ -8,28 +8,26 @@ import (
 	"pith/pkg/runner"
 	"pith/pkg/selfupdate"
 	"pith/pkg/telemetry"
+	"pith/pkg/anomaly"
+	"pith/pkg/advisor"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 	"time"
-
 	"github.com/spf13/cobra"
 )
 
 const version = "v0.14.0"
 
-// Internal Hook Input/Output schemas
 type HookInput struct {
 	ToolResponse struct {
 		LlmContent string `json:"llmContent"`
 	} `json:"tool_response"`
-	// Older schema
 	ToolCallRequest struct {
 		Arguments string `json:"arguments"`
 	} `json:"tool_call_request"`
-	// Newer schema
 	ToolInput map[string]interface{} `json:"tool_input"`
 }
 
@@ -55,44 +53,44 @@ func NewRootCmd() *cobra.Command {
 		Version: version,
 		Long:    `Pith intercepts terminal commands, compresses their output, and filters out noise to save tokens for LLMs.`,
 		Args:    cobra.ArbitraryArgs,
-		RunE: runRoot,
+		RunE:    runRoot,
 	}
 
 	var configCmd = &cobra.Command{
 		Use:   "config",
 		Short: "Interactive configuration tool",
-		RunE: runConfig,
+		RunE:  runConfig,
 	}
 
 	var gainCmd = &cobra.Command{
 		Use:   "gain",
 		Short: "Show token savings analytics",
-		RunE: runGain,
+		RunE:  runGain,
 	}
 
 	var discoverCmd = &cobra.Command{
 		Use:   "discover",
 		Short: "Identify commands that could benefit from dedicated parsers",
-		RunE: runDiscover,
+		RunE:  runDiscover,
 	}
 
 	var hookCmd = &cobra.Command{
 		Use:    "_hook",
 		Short:  "Internal hook for Gemini CLI",
 		Hidden: true,
-		RunE: runHook,
+		RunE:   runHook,
 	}
 
 	var installCmd = &cobra.Command{
 		Use:   "install",
 		Short: "Install Pith to your system PATH and setup CLI hooks",
-		RunE: runInstall,
+		RunE:  runInstall,
 	}
 
 	var updateCmd = &cobra.Command{
 		Use:   "update",
 		Short: "Update Pith to the latest version from GitHub",
-		RunE: runUpdate,
+		RunE:  runUpdate,
 	}
 
 	var versionCmd = &cobra.Command{
@@ -106,19 +104,25 @@ func NewRootCmd() *cobra.Command {
 	var resetCmd = &cobra.Command{
 		Use:   "reset",
 		Short: "Reset telemetry data",
-		RunE: runReset,
+		RunE:  runReset,
 	}
 
 	var rawCmd = &cobra.Command{
 		Use:   "raw [command]",
 		Short: "Run a command and bypass all parsers (escape hatch)",
-		RunE: runRaw,
+		RunE:  runRaw,
 	}
 
 	var dashboardCmd = &cobra.Command{
 		Use:   "dashboard",
 		Short: "Open the interactive analytics dashboard in your browser",
-		RunE: runDashboard,
+		RunE:  runDashboard,
+	}
+
+	var analyzeCmd = &cobra.Command{
+		Use:   "analyze",
+		Short: "Run predictive analytics and anomaly detection",
+		RunE:  runAnalyze,
 	}
 
 	resetCmd.Flags().Bool("all", false, "Reset ALL telemetry data (gain and discover)")
@@ -144,18 +148,16 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(resetCmd)
 	rootCmd.AddCommand(rawCmd)
 	rootCmd.AddCommand(dashboardCmd)
-	rootCmd.AddCommand(synapseSyncCmd)
+	rootCmd.AddCommand(analyzeCmd)
 
 	return rootCmd
 }
 
 func main() {
-	// Trigger migration if needed
 	cfg, err := config.LoadConfig()
 	if err == nil {
 		_ = config.MigrateStorage(cfg.StoragePath)
 	}
-
 	rootCmd := NewRootCmd()
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -166,15 +168,12 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
 		return cmd.Help()
 	}
-
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return err
 	}
-
-	// Background update check (once a day)
 	now := time.Now().Unix()
-	if now-cfg.LastUpdateCheck > 86400 { // 24 hours
+	if now-cfg.LastUpdateCheck > 86400 {
 		cfg.LastUpdateCheck = now
 		_ = cfg.Save()
 		go func() {
@@ -184,13 +183,11 @@ func runRoot(cmd *cobra.Command, args []string) error {
 			}
 		}()
 	}
-
 	tel, err := telemetry.NewTelemetry(cfg.StoragePath)
 	if err != nil {
 		return err
 	}
 	defer tel.Close()
-
 	run := runner.NewRunner(cfg, tel)
 	return run.Run(args)
 }
@@ -200,13 +197,11 @@ func runConfig(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
 	parsers := parser.GetAllParsers()
 	var names []string
 	for _, p := range parsers {
 		names = append(names, p.Name())
 	}
-
 	return cfg.InteractiveConfig(names)
 }
 
@@ -244,19 +239,16 @@ func runGain(cmd *cobra.Command, args []string) error {
 		cmd.Printf("\n--- Breakdown by Command and Agent ---\n")
 		cmd.Printf("%-25s | %-12s | %-10s | %-10s | %-10s\n", "Command Pattern", "Agent", "Raw", "Pith", "USD Saved")
 		cmd.Println(strings.Repeat("-", 76))
-
 		limit := len(byCmd)
 		if limit > 20 {
 			limit = 20
 		}
-
 		for i := 0; i < limit; i++ {
 			r := byCmd[i]
 			savings := r.Original - r.Compressed
 			usdCmd := (float64(savings) / 1000000.0) * cfg.USDPerMillionTokens
 			cmd.Printf("%-25s | %-12s | %-10d | %-10d | $%-10.3f\n", r.Command, r.Source, r.Original, r.Compressed, usdCmd)
 		}
-
 		if len(byCmd) > 20 {
 			cmd.Printf("... and %d more. Run 'pith dashboard' for full interactive breakdown.\n", len(byCmd)-20)
 		}
@@ -306,7 +298,6 @@ func runDiscover(cmd *cobra.Command, args []string) error {
 	cmd.Printf("--- Opportunity Discovery (Unparsed Commands) ---\n")
 	cmd.Printf("%-30s | %-12s | %-10s | %-15s | %-15s\n", "Command Pattern", "Agent", "Count", "Total Tokens", "Est. USD Saved")
 	cmd.Println(strings.Repeat("-", 91))
-
 	for _, r := range unparsed {
 		estSavedTokens := float64(r.TotalRawTokens) * 0.7
 		estSavingsUSD := (estSavedTokens / 1000000.0) * cfg.USDPerMillionTokens
@@ -321,12 +312,10 @@ func runHook(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
 	var input HookInput
 	if err := json.Unmarshal(inputData, &input); err != nil {
 		return err
 	}
-
 	var command string
 	if cmdVal, ok := input.ToolInput["command"].(string); ok {
 		command = cmdVal
@@ -336,14 +325,11 @@ func runHook(cmd *cobra.Command, args []string) error {
 			command = toolArgs.Command
 		}
 	}
-
 	cfg, _ := config.LoadConfig()
 	tel, _ := telemetry.NewTelemetry(cfg.StoragePath)
 	if tel != nil {
 		defer tel.Close()
 	}
-
-	// Background update check (once a day)
 	now := time.Now().Unix()
 	if now-cfg.LastUpdateCheck > 86400 {
 		cfg.LastUpdateCheck = now
@@ -355,12 +341,10 @@ func runHook(cmd *cobra.Command, args []string) error {
 			}
 		}()
 	}
-
 	originalOutput := input.ToolResponse.LlmContent
 	if command == "" {
 		return respondAllow(cmd)
 	}
-
 	var prefix string
 	exitCode := 0
 	if strings.HasPrefix(originalOutput, "Output: ") {
@@ -371,28 +355,21 @@ func runHook(cmd *cobra.Command, args []string) error {
 		originalOutput = strings.TrimPrefix(originalOutput, "Error: ")
 		exitCode = 1
 	}
-
 	if strings.Contains(originalOutput, "Exit Code: ") && !strings.Contains(originalOutput, "Exit Code: 0") {
 		exitCode = 1
 	}
-
 	run := runner.NewRunner(cfg, tel)
 	run.LogForSnag(command, originalOutput, exitCode)
-
 	source, _ := cmd.Flags().GetString("source")
 	if source == "" {
 		source = "unknown"
 	}
-
 	cmdParts := strings.Fields(command)
 	if len(cmdParts) == 0 {
 		return respondAllow(cmd)
 	}
-
 	parsers := parser.GetAllParsers()
 	var p parser.Parser
-	
-	// Strategy 1: Direct match
 	cmdName := cmdParts[0]
 	pArgs := cmdParts[1:]
 	for _, parser := range parsers {
@@ -402,12 +379,9 @@ func runHook(cmd *cobra.Command, args []string) error {
 			break
 		}
 	}
-
-	// Strategy 2: PowerShell '&' wrapper
 	if p == nil && cmdName == "&" && len(cmdParts) > 1 {
 		cmdName = cmdParts[1]
 		pArgs = cmdParts[2:]
-		// Handle quoted path in & "path" format
 		if strings.HasPrefix(cmdName, "\"") && strings.HasSuffix(cmdName, "\"") {
 			cmdName = strings.Trim(cmdName, "\"")
 		}
@@ -419,8 +393,6 @@ func runHook(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}
-
-	// Strategy 3: Leading quoted path (e.g. "C:\bin\go.exe" version)
 	if p == nil && strings.HasPrefix(command, "\"") {
 		endQuote := strings.Index(command[1:], "\"")
 		if endQuote != -1 {
@@ -436,11 +408,9 @@ func runHook(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}
-
 	var compressed string
 	parserUsed := "none"
 	isPassthrough := true
-
 	if p != nil {
 		compressed = p.Parse(originalOutput)
 		parserUsed = p.Name()
@@ -448,14 +418,11 @@ func runHook(cmd *cobra.Command, args []string) error {
 	} else {
 		compressed = originalOutput
 	}
-
 	truncated := run.ApplyMiddleOutTruncation(compressed)
 	wasTruncated := truncated != compressed
-
 	origTokens := runner.EstimateTokensWithHeuristic(originalOutput, cfg.TokenHeuristic)
 	compTokens := runner.EstimateTokensWithHeuristic(truncated, cfg.TokenHeuristic)
 	savedTokens := origTokens - compTokens
-
 	if tel != nil {
 		_ = tel.Record(telemetry.ExecutionRecord{
 			Command:          command,
@@ -466,11 +433,9 @@ func runHook(cmd *cobra.Command, args []string) error {
 			Source:           source,
 		})
 	}
-
 	if p == nil && !wasTruncated {
 		return respondAllow(cmd)
 	}
-
 	output := HookOutput{
 		Decision:      "deny",
 		Reason:        prefix + truncated,
@@ -483,38 +448,32 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	if err := install.Install(); err != nil {
 		return err
 	}
-
 	all, _ := cmd.Flags().GetBool("all")
 	gemini, _ := cmd.Flags().GetBool("gemini")
 	claude, _ := cmd.Flags().GetBool("claude")
 	codex, _ := cmd.Flags().GetBool("codex")
 	global, _ := cmd.Flags().GetBool("global")
-
 	if !all && !gemini && !claude && !codex {
 		all = true
 		if !cmd.Flags().Changed("global") {
 			global = true
 		}
 	}
-
 	if all || gemini {
 		if err := install.SetupGeminiHook(global); err != nil {
 			cmd.PrintErrf("Gemini hook failed: %v\n", err)
 		}
 	}
-
 	if all || claude {
 		if err := install.SetupClaudeHook(global); err != nil {
 			cmd.PrintErrf("Claude hook failed: %v\n", err)
 		}
 	}
-
 	if all || codex {
 		if err := install.SetupCodexHook(global); err != nil {
 			cmd.PrintErrf("Codex hook failed: %v\n", err)
 		}
 	}
-
 	return nil
 }
 
@@ -536,10 +495,8 @@ func runReset(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer tel.Close()
-
 	passthrough, _ := cmd.Flags().GetBool("discover")
 	all, _ := cmd.Flags().GetBool("all")
-
 	if all {
 		if err := tel.ResetAll(); err != nil {
 			return err
@@ -547,7 +504,6 @@ func runReset(cmd *cobra.Command, args []string) error {
 		cmd.Println("All telemetry data has been reset.")
 		return nil
 	}
-
 	if passthrough {
 		if err := tel.ResetPassthrough(); err != nil {
 			return err
@@ -555,7 +511,6 @@ func runReset(cmd *cobra.Command, args []string) error {
 		cmd.Println("Discovery data (passthrough commands) has been reset.")
 		return nil
 	}
-
 	return fmt.Errorf("please specify what to reset using --all or --discover")
 }
 
@@ -563,18 +518,15 @@ func runRaw(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
 		return cmd.Help()
 	}
-
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return err
 	}
-
 	tel, err := telemetry.NewTelemetry(cfg.StoragePath)
 	if err != nil {
 		return err
 	}
 	defer tel.Close()
-
 	run := runner.NewRunner(cfg, tel)
 	return run.RunWithOptions(args, true)
 }
@@ -586,7 +538,38 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer tel.Close()
-
 	port, _ := cmd.Flags().GetInt("port")
 	return gui.StartDashboard(cfg, tel, port)
+}
+
+func runAnalyze(cmd *cobra.Command, args []string) error {
+	cfg, _ := config.LoadConfig()
+	tel, err := telemetry.NewTelemetry(cfg.StoragePath)
+	if err != nil {
+		return err
+	}
+	defer tel.Close()
+
+	fmt.Println("\nðŸ” Pith Predictive Analytics")
+	fmt.Println("---------------------------------------")
+
+	// 1. Anomaly Detection
+	anomalies, err := anomaly.DetectUnusualConsumption(tel.DB)
+	if err != nil {
+		fmt.Printf("Anomaly Detection Error: %v\n", err)
+	} else if len(anomalies) > 0 {
+		fmt.Printf("âš ï¸  Detected %d Anomalies:\n", len(anomalies))
+		for _, a := range anomalies {
+			fmt.Printf("  - [%d] %s\n", a.ExecutionID, a.Reason)
+		}
+	} else {
+		fmt.Println("âœ… No unusual token consumption detected.")
+	}
+
+	// 2. Cost Advisor
+	estimate := advisor.EstimateSessionCost(10, 2000, cfg.USDPerMillionTokens)
+	fmt.Printf("\nðŸ’° %s\n", estimate.FormatReport())
+
+	fmt.Println("---------------------------------------")
+	return nil
 }
