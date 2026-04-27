@@ -19,7 +19,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.14.1"
+const version = "v0.14.2"
 
 type HookInput struct {
 	ToolResponse struct {

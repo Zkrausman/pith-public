@@ -5,10 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [0.14.1] - 2026-04-26
 ### Changed
 - Estate-Wide Release Sweep: Synchronized versioning and updated dependencies.
 
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.14.0] - 2026-04-23
 ### Added
@@ -18,10 +34,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Enables high-fidelity auditing of what context was actually provided to the agent.
 - **Search API**: New `/api/search` endpoint in the telemetry engine.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.13.1] - 2026-04-23
 ### Added
 - **Real-time Token Reporting**: The informational message displayed after optimization now includes the exact number of **tokens saved**.
     - Example: `Output optimized by Pith (parser: tests, tokens saved: 450, truncated: false)`
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.13.0] - 2026-04-23
 ### Added
@@ -37,6 +69,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Token Logic**: Moved token estimation into a configurable `Runner` method, improving tracking precision for different LLMs.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.12.0] - 2026-04-23
 ### Added
 - **High Fidelity Parsing**: Upgraded `SourceParser` and `TestParser` to be context-aware. 
@@ -48,10 +88,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Build-Only Interception**: `TestParser` no longer intercepts `go test -c` or build-only flags, ensuring compilation errors are visible and not optimized away.
 - **Test Summary Detection**: Improved regex for aggregate test summaries to avoid capturing individual passing tests as false positives.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.11.3] - 2026-04-19
 ### Changed
 - **Estate Modernization**: Updated repository status to align with the new **Squire** engineering assistant.
 - **Squire Integration**: Optimized project metadata for high-signal discovery by Squire.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.11.2] - 2026-03-28
 
@@ -62,10 +118,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Improved
 - **SCS-1 Compliance**: Enhanced `synapse-sync` to report "already up to date" status via exit code 2 for better orchestration feedback.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.11.1] - 2026-03-28
 
 ### Added
 - **Synapse Compliance Standard (SCS-1)**: Implemented the hidden synapse-sync command to allow for automated orchestration via Synapse.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.11.0] - 2026-03-25
 
@@ -83,6 +155,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cost Basis Update:** Updated the dashboard's cost-saving calculation to $0.50/M tokens to align with modern frontier model pricing (e.g., Gemini 1.5 Flash / Claude 3 Haiku).
 - **Gain Command Optimization:** Limited `pith gain` to display only the top 20 commands and top 10 discovery opportunities, ensuring a concise summary that doesn't bloat logs.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.10.0] - 2026-03-24
 9: 
 10: ### Added
@@ -95,7 +175,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 17: ### Improved
 18: - **Git Parser Extension:** The `git_status` parser now also handles `git add`, `git commit`, and `git push`, ensuring a clean, token-efficient developer experience across the entire branch workflow.
 19: 
-20: ## [v0.9.4] - 2026-03-22
+20: ## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
+## [v0.9.4] - 2026-03-22
 
 ### Fixed
 - **Removed non-functional Antigravity support.** The VSCode-based Antigravity agent does not honor `.gemini/settings.json` hooks, so the `run_command` / `send_command_input` matchers and `CommandLine` schema support have been removed.
@@ -105,6 +193,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dashboard Agent Filter:** The web dashboard (`pith dashboard`) includes a dropdown to filter all metrics by agent source.
 - **`ls` Parser Optimization:** Removed file permissions from `ls -l` output to further reduce token usage.
 - **Installer Hook Overwrite:** Re-running `pith install` now correctly updates existing hooks instead of silently skipping them.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.9.3] - 2026-03-22 [YANKED]
 
@@ -118,6 +214,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Installer Hook Overwrite:** Re-running `pith install` now correctly updates existing hooks instead of silently skipping them.
 - **Repository Hygiene:** Removed the `.gemini` folder from version control that was accidentally committed, ensuring user configurations remain purely local.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.9.2] - 2026-03-22
 
 ### Added
@@ -129,10 +233,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Testing:** Fixed a syntax error involving duplicate package declarations and imports in `pkg/parser/fs_test.go` that prevented tests from running.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.9.1] - 2026-03-22
 
 ### Fixed
 - **Cross-Platform Command Matching:** Fixed a bug where Windows backslashes in paths were not correctly handled on Linux CI runners, ensuring `MatchCommand` works reliably in all environments.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.9.0] - 2026-03-22
 
@@ -145,6 +265,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `VitestParser`, `BDParser`, `PowerShellParser`, and `PromptfooParser` to leverage the new robust command matching logic, ensuring higher hit rates on Windows.
 - Standardized all `CanParse` implementations to use slice-based argument matching for better accuracy.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.8.0] - 2026-03-20
 
 ### Added
@@ -153,6 +281,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `BDParser`: Compresses massive help output and long issue lists from the Beads (bd) issue tracker.
     - `PromptfooParser`: Minifies evaluation tables and progress bars from promptfoo.
 - **Enhanced PowerShell Parsing:** Improved `Get-ChildItem` (ls/dir) optimization by removing redundant mode/date columns and preserving only essential file/size info.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.7.0] - 2026-03-19
 
@@ -168,6 +304,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GUI Endpoints:**
     - New `/api/recent` and `/api/execution` API endpoints to power the live dashboard and detailed views.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.6.0] - 2026-03-19
 
 ### Added
@@ -176,6 +320,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `PithParser`: Internal optimizer for Pith's own help and log outputs.
     - `PowerShellParser`: Cleans up verbose Windows PowerShell and CMD headers while preserving file details.
     - `GoParser`: Targeted optimization for `go version`, `go build`, and module listings.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.5.9] - 2026-03-18
 
@@ -186,6 +338,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Log Files:** Renamed `diet.log` to `pith.log` and `diet.db` to `pith.db`.
 - **Hooks:** Updated CLI hooks to use the new `pith` command and `pith-optimizer` name.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.5.8] - 2026-03-17
 
 ### Improved
@@ -193,6 +353,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **JSON Configuration Merging:** Installer now safely merges Pith hooks into existing `settings.json` files instead of skipping them. It correctly preserves existing hooks (like `bd prime`) and custom settings (like `security` or `ui`).
 - **Safety Backups:** Automatically creates a `settings.json.bak` backup before any modification.
 - **Duplicate Prevention:** Improved logic to detect and avoid duplicate hook entries during installation.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.5.7] - 2026-03-17
 
@@ -202,6 +370,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Support for **Codex** (and compatible agents) via `.codex/settings.json` (using `AfterTool` event).
     - New `--claude` and `--codex` flags for `pith install`.
     - Generic `setupHook` internal helper for easier future hook additions.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.5.6] - 2026-03-16
 
@@ -215,10 +391,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed `dashboard` command being incorrectly proxied as a target command.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.5.5] - 2026-03-16
 
 ### Fixed
 - Fixed `pith update` to correctly identify and download platform-specific binaries (e.g., `pith-windows-amd64.exe`) from GitHub releases.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.5.4] - 2026-03-16
 
@@ -226,32 +418,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Interactive Dashboard:** Introduced `pith dashboard`, a web-based GUI that provides a visual overview of token savings, command breakdowns, and opportunity discovery using Chart.js.
 - New `GetStatsByDay` method in telemetry to support historical analysis in the dashboard.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.5.3] - 2026-03-16
 
 ### Added
 - Added a GitHub Actions workflow to automate Go testing on all pushes and pull requests.
 - Integrated automated cross-platform releases; pushing a version tag now triggers a build for Windows, Linux, and macOS (amd64 and arm64) and creates a GitHub Release with the binaries attached.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.5.2] - 2026-03-16
 
 ### Improved
 - Improved the `gain` and `discover` commands to display helpful empty-state messages when no telemetry data has been recorded yet, rather than printing empty tables.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.5.1] - 2026-03-16
 
 ### Fixed
 - Fixed an issue where commands intercepted by the Gemini CLI hook were not being logged to the Snag log. Pith now correctly parses exit codes from the hook payload to ensure accurate behavioral tracking.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.5.0] - 2026-03-16
 
 ### Added
 - **Snag Integration:** Pith now actively exports a plain text log file specifically formatted for the [Snag](https://github.com/zkrau/snag) behavioral learning tool. Every intercepted command, its output (truncated to the last 50 lines to prevent bloat), and its exit code are appended to `~/.pith/pith.log` using the `[CMD]` and `[EXIT]` syntax required by Snag's collector.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.4.9] - 2026-03-16
 
 ### Improved
 - Overhauled `install` command to copy Pith binary to a permanent location (`~/.pith/bin`) and add that to the system `PATH`.
 - Updated CLI hooks to use the permanent binary location, making them resilient to source directory changes.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.4.8] - 2026-03-16
 
@@ -262,12 +502,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `promptfooconfig.yaml` with more comprehensive evaluation cases for all major parsers.
 - Updated `tests/prompts.txt` to be more flexible for different evaluation tasks.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.4.7] - 2026-03-16
 
 ### Fixed
 - Improved `GitHubParser` to correctly handle `gh repo list` and other list variants.
 - Fixed `Runner` to correctly split command arguments when proxied.
 - Updated `Runner` to capture combined stdout/stderr for more reliable parsing.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.4.6] - 2026-03-16
 
@@ -277,12 +533,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Improved `LsParser` reliability across different `ls -l` and `dir` variants.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.4.5] - 2026-03-16
 
 ### Improved
 - Balanced `LsParser` and `MinifyParser` to preserve critical context for LLMs while still saving tokens, specifically addressing issues seen in other CLI optimizers (RTK-AI/rtk#582).
 - `LsParser` now keeps file mode and size when available.
 - `MinifyParser` now strips comments but preserves line structure.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.4.4] - 2026-03-16
 
@@ -293,6 +565,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Improved
 - Updated `README.md` with new features and updated parser counts.
 
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
+
 ## [v0.4.3] - 2026-03-16
 
 ### Fixed
@@ -301,6 +581,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Improved `.gitignore` to include `.beads/` and `test_hook_input.json`.
+
+## [0.14.2] - 2026-04-27
+### Changed
+Maintenance & Compliance Release:
+- Standardized binary hygiene across estate.
+- Achieved 100% documentation compliance (Package READMEs + Mermaid diagrams).
+- Infrastructure coverage sprint (50%+ target reached).
+- Implemented Estate-Wide Compliance Auditor.
 
 ## [v0.4.2] - 2026-03-16
 
