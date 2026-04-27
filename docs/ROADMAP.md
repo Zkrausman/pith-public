@@ -20,3 +20,20 @@
 - [x] **Anomaly Detection**: Use local DuckDB models to flag unusual token usage or execution patterns.
 - [ ] **Context ROI Heatmap**: Visualize which injected files consistently result in "Hits" vs. "Misses" to optimize `whet` injection logic.
 - [x] **Predictive Cost Advisor**: Estimate the total session cost based on current roadmap complexity.
+
+## Maintenance & Stabilization
+- [x] **Binary Hygiene: Standardize .gitignore and clean up artifacts (pith-zqn)**
+- [x] **Binary Hygiene: Standardize .gitignore and clean up artifacts (pith-1l2)**
+- [x] **v0.11.0: Fix token tracking feedback loops and update cost basis (pith-bgf)**
+- [x] **Implement PowerShell Get-Content parser (pith-bhx)**
+- [x] **Increase code coverage to 75% (pith-a4t)**
+- [x] **Enforce Thneed-Aware Architectural Standards (pith-wth)**
+- [x] **Implement Beads (bd) CLI parser (pith-os4)**
+- [x] **Implement Vitest parser (pith-4uf)**
+- [x] **Continue parser discovery for high-impact commands (pith-0d3)**
+- [x] **Pith vs. Raw Deep Dive (pith-wg4)**
+- [x] **Live Activity Stream (pith-lcw)**
+- [x] **Bento Grid Layout & Efficiency Gauge (pith-5ju)**
+- [x] **Rename project from Diet to Pith (pith-bph)**
+- [x] **Reach 95% total code coverage (pith-1mj)**
+- [x] **Implement PowerShell Get-ChildItem parser (pith-41w)**
