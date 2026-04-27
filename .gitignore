@@ -16,3 +16,5 @@ test_hook_input.json
 
 # Beads / Dolt files (added by bd init)
 .beads-credential-key
+*.exe
+*.exe.old.*
