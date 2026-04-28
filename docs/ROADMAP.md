@@ -17,7 +17,7 @@
 - [ ] **Deep-Dive Search:** Add full-text search across all recorded command executions in the dashboard.
 
 ## Phase 4: Predictive Analytics (New)
-- [x] **Anomaly Detection**: Use local DuckDB models to flag unusual token usage or execution patterns.
+- [x] **Anomaly Detection**: Use local DuckDB models to bridge Overseer and flag behavioral failures. (pith-lcw): Use local DuckDB models to flag unusual token usage or execution patterns.
 - [ ] **Context ROI Heatmap**: Visualize which injected files consistently result in "Hits" vs. "Misses" to optimize `whet` injection logic.
 - [x] **Predictive Cost Advisor**: Estimate the total session cost based on current roadmap complexity.
 
@@ -37,3 +37,4 @@
 - [x] **Rename project from Diet to Pith (pith-bph)**
 - [x] **Reach 95% total code coverage (pith-1mj)**
 - [x] **Implement PowerShell Get-ChildItem parser (pith-41w)**
+

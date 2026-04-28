@@ -19,7 +19,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "v0.14.2"
+const version = "v0.14.3"
 
 type HookInput struct {
 	ToolResponse struct {
@@ -619,4 +619,5 @@ func runAuditAnomalies(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
+
 
