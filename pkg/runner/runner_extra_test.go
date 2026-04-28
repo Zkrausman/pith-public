@@ -1,10 +1,10 @@
 package runner
 
 import (
-	"pith/pkg/config"
-	"pith/pkg/telemetry"
 	"os"
 	"path/filepath"
+	"pith/pkg/config"
+	"pith/pkg/telemetry"
 	"strings"
 	"testing"
 )
@@ -14,7 +14,7 @@ func TestRunner_RunWithOptions_CombinedArgs(t *testing.T) {
 	cfg := &config.Config{StoragePath: tmpDir, MaxLines: 100, HeadLines: 10, TailLines: 10}
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	defer tel.Close()
-	
+
 	r := NewRunner(cfg, tel)
 	err := r.RunWithOptions([]string{"cmd /c echo hello"}, true)
 	if err != nil {
@@ -27,7 +27,7 @@ func TestRunner_RunWithOptions_Error(t *testing.T) {
 	cfg := &config.Config{StoragePath: tmpDir, MaxLines: 100}
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	defer tel.Close()
-	
+
 	r := NewRunner(cfg, tel)
 	err := r.RunWithOptions([]string{"non-existent-command-xyz"}, true)
 	if err == nil {
@@ -60,7 +60,7 @@ func TestRunner_LogForSnag_EmptyPath(t *testing.T) {
 
 	r := &Runner{cfg: &config.Config{StoragePath: ""}}
 	r.LogForSnag("test cmd", "test output", 0)
-	
+
 	logPath := filepath.Join(tmpHome, ".pith", "pith.log")
 	if _, err := os.Stat(logPath); os.IsNotExist(err) {
 		t.Errorf("Log file not created at default path: %s", logPath)
@@ -71,7 +71,7 @@ func TestRunner_LogForSnag_NoNewline(t *testing.T) {
 	tmpDir := t.TempDir()
 	r := &Runner{cfg: &config.Config{StoragePath: tmpDir}}
 	r.LogForSnag("test cmd", "output without newline", 0)
-	
+
 	data, _ := os.ReadFile(filepath.Join(tmpDir, "pith.log"))
 	if !strings.Contains(string(data), "output without newline\n[EXIT] 0") {
 		t.Error("Log entry should ensure newline before [EXIT]")
@@ -96,7 +96,7 @@ func TestRunner_RunWithOptions_DisabledParser(t *testing.T) {
 		EnabledParsers: map[string]bool{"git": false},
 	}
 	r := NewRunner(cfg, tel)
-	
+
 	err := r.RunWithOptions([]string{"cmd /c echo git status"}, false)
 	if err != nil {
 		t.Fatalf("RunWithOptions failed: %v", err)
@@ -120,7 +120,7 @@ func TestRunner_LogForSnag_EmptyOutput(t *testing.T) {
 	tmpDir := t.TempDir()
 	r := &Runner{cfg: &config.Config{StoragePath: tmpDir}}
 	r.LogForSnag("test cmd", "", 0)
-	
+
 	data, _ := os.ReadFile(filepath.Join(tmpDir, "pith.log"))
 	if strings.Contains(string(data), "output") {
 		t.Error("Log entry should not contain output when it is empty")
@@ -152,7 +152,7 @@ func TestRunner_RunWithOptions_NoParts(t *testing.T) {
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	defer tel.Close()
 	r := NewRunner(&config.Config{StoragePath: tmpDir}, tel)
-	
+
 	err := r.RunWithOptions([]string{"   "}, false)
 	if err == nil {
 		t.Error("Expected error for command with only spaces")

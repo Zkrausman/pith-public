@@ -49,7 +49,7 @@ func TestTelemetryFull(t *testing.T) {
 		t.Fatalf("Failed to record rec1: %v", err)
 	}
 	// Sleep to ensure distinct timestamps for reliable DESC order
-	time.Sleep(1100 * time.Millisecond) 
+	time.Sleep(1100 * time.Millisecond)
 	if err := tel.Record(rec2); err != nil {
 		t.Fatalf("Failed to record rec2: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestTelemetryFiltering(t *testing.T) {
 
 	tel.Record(ExecutionRecord{Command: "cmd1", Source: "src1", OriginalTokens: 10, CompressedTokens: 5})
 	tel.Record(ExecutionRecord{Command: "cmd2", Source: "src2", OriginalTokens: 20, CompressedTokens: 10})
-	tel.Record(ExecutionRecord{Command: "cmd3", Source: "",     OriginalTokens: 30, CompressedTokens: 15})
+	tel.Record(ExecutionRecord{Command: "cmd3", Source: "", OriginalTokens: 30, CompressedTokens: 15})
 
 	// Test GetStats with empty source
 	orig, _, _ := tel.GetStats("")

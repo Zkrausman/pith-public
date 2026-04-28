@@ -27,7 +27,7 @@ func Install() error {
 	}
 
 	destPath := filepath.Join(pithBinDir, filepath.Base(exePath))
-	
+
 	// Skip copy if we are already running from the destination path
 	absExe, _ := filepath.Abs(exePath)
 	absDest, _ := filepath.Abs(destPath)
@@ -146,7 +146,7 @@ func setupHook(dirName, eventName, matcher string, global bool, source string) (
 			// Create a backup before modifying
 			backupPath := settingsPath + ".bak"
 			_ = os.WriteFile(backupPath, data, 0644)
-			
+
 			_ = json.Unmarshal(data, &settings)
 		}
 	}

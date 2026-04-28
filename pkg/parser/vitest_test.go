@@ -69,7 +69,7 @@ TypeError: exec.mockImplementation is not a function
 
 func TestBDParser(t *testing.T) {
 	p := &BDParser{}
-	
+
 	if !p.CanParse("bd", []string{"ready"}) {
 		t.Errorf("Expected CanParse to handle bd ready")
 	}

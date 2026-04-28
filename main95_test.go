@@ -223,7 +223,7 @@ func TestDashboardCmd_Port(t *testing.T) {
 }
 
 // =====================================================================
-// runConfig - error paths  
+// runConfig - error paths
 // =====================================================================
 
 func TestConfigCmd_SurveyError(t *testing.T) {

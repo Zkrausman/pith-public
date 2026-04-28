@@ -1,13 +1,13 @@
 package gui
 
 import (
-	"pith/pkg/config"
-	"pith/pkg/telemetry"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os/exec"
+	"pith/pkg/config"
+	"pith/pkg/telemetry"
 	"runtime"
 )
 
@@ -19,7 +19,7 @@ func StartDashboard(cfg *config.Config, tel *telemetry.Telemetry, port int) erro
 
 	url := fmt.Sprintf("http://localhost:%d", port)
 	fmt.Printf("Starting Pith Dashboard at %s\n", url)
-	
+
 	// Open browser in background
 	go openBrowser(url)
 
@@ -44,10 +44,10 @@ func registerHandlers(cfg *config.Config, tel *telemetry.Telemetry) {
 		daily, _ := tel.GetStatsByDay(source)
 
 		resp := map[string]interface{}{
-			"total_original":          totalOrig,
-			"total_compressed":        totalComp,
-			"by_command":              byCmd,
-			"daily":                   daily,
+			"total_original":         totalOrig,
+			"total_compressed":       totalComp,
+			"by_command":             byCmd,
+			"daily":                  daily,
 			"usd_per_million_tokens": cfg.USDPerMillionTokens,
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -92,7 +92,7 @@ func registerHandlers(cfg *config.Config, tel *telemetry.Telemetry) {
 		idStr := r.URL.Query().Get("id")
 		var id int64
 		fmt.Sscanf(idStr, "%d", &id)
-		
+
 		execution, err := tel.GetExecutionDetails(id)
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusNotFound)

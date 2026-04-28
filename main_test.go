@@ -12,11 +12,10 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 )
 
-
 func TestRootCmd(t *testing.T) {
 	cmd := NewRootCmd()
 	cmd.SetArgs([]string{"--version"})
-	
+
 	b := new(bytes.Buffer)
 	cmd.SetOut(b)
 	cmd.SetErr(b)
@@ -202,10 +201,10 @@ func TestHookCmd(t *testing.T) {
 	input.ToolResponse.LlmContent = "Output: On branch main\nnothing to commit"
 
 	data, _ := json.Marshal(input)
-	
+
 	oldStdin := os.Stdin
 	defer func() { os.Stdin = oldStdin }()
-	
+
 	r, w, _ := os.Pipe()
 	os.Stdin = r
 	go func() {
@@ -217,16 +216,16 @@ func TestHookCmd(t *testing.T) {
 	cmd.SetArgs([]string{"_hook"})
 	b := new(bytes.Buffer)
 	cmd.SetOut(b)
-	
+
 	if err := cmd.Execute(); err != nil {
 		t.Errorf("_hook failed: %v", err)
 	}
-	
+
 	var output HookOutput
 	if err := json.Unmarshal(b.Bytes(), &output); err != nil {
 		t.Fatalf("Failed to parse hook output: %v", err)
 	}
-	
+
 	// Since git status should be parsed, decision should be deny
 	if output.Decision != "deny" {
 		t.Errorf("Expected decision deny, got %s", output.Decision)
@@ -277,7 +276,7 @@ func TestHookCmd_NoCmd(t *testing.T) {
 	input := HookInput{}
 	input.ToolResponse.LlmContent = "some content"
 	data, _ := json.Marshal(input)
-	
+
 	oldStdin := os.Stdin
 	defer func() { os.Stdin = oldStdin }()
 	r, w, _ := os.Pipe()
@@ -294,7 +293,7 @@ func TestHookCmd_NoCmd(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Errorf("_hook failed: %v", err)
 	}
-	
+
 	var output HookOutput
 	json.Unmarshal(b.Bytes(), &output)
 	if output.Decision != "allow" {
@@ -311,7 +310,7 @@ func TestHookCmd_Error(t *testing.T) {
 	input.ToolInput["command"] = "git status"
 	input.ToolResponse.LlmContent = "Error: fatal error"
 	data, _ := json.Marshal(input)
-	
+
 	oldStdin := os.Stdin
 	defer func() { os.Stdin = oldStdin }()
 	r, w, _ := os.Pipe()
@@ -328,7 +327,7 @@ func TestHookCmd_Error(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Errorf("_hook failed: %v", err)
 	}
-	
+
 	var output HookOutput
 	json.Unmarshal(b.Bytes(), &output)
 	if !strings.Contains(output.Reason, "fatal error") {
@@ -345,7 +344,7 @@ func TestHookCmd_OutputPrefix(t *testing.T) {
 	input.ToolInput["command"] = "git status"
 	input.ToolResponse.LlmContent = "Output: On branch main"
 	data, _ := json.Marshal(input)
-	
+
 	oldStdin := os.Stdin
 	defer func() { os.Stdin = oldStdin }()
 	r, w, _ := os.Pipe()
@@ -384,8 +383,6 @@ func TestInstallCmd_NoFlags(t *testing.T) {
 	_ = cmd.Execute()
 }
 
-
-
 func TestInstallCmd_All(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
@@ -395,10 +392,8 @@ func TestInstallCmd_All(t *testing.T) {
 	b := new(bytes.Buffer)
 	cmd.SetOut(b)
 	cmd.SetErr(b)
-	_ = cmd.Execute() 
+	_ = cmd.Execute()
 }
-
-
 
 func TestInstallCmd(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -409,8 +404,8 @@ func TestInstallCmd(t *testing.T) {
 	b := new(bytes.Buffer)
 	cmd.SetOut(b)
 	cmd.SetErr(b)
-	
-	_ = cmd.Execute() 
+
+	_ = cmd.Execute()
 }
 
 func TestUpdateCmd(t *testing.T) {
@@ -424,7 +419,7 @@ func TestUpdateCmd(t *testing.T) {
 func TestRawCmd(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
-	
+
 	cmd := NewRootCmd()
 	cmd.SetArgs([]string{"raw", "cmd", "/c", "echo", "hello"})
 	b := new(bytes.Buffer)
@@ -439,7 +434,7 @@ func TestResetCmd_Errors(t *testing.T) {
 	t.Setenv("PITH_STORAGE", tmpDir)
 
 	cmd := NewRootCmd()
-	cmd.SetArgs([]string{"reset"}) 
+	cmd.SetArgs([]string{"reset"})
 	b := new(bytes.Buffer)
 	cmd.SetOut(b)
 	if err := cmd.Execute(); err == nil {
@@ -450,7 +445,7 @@ func TestResetCmd_Errors(t *testing.T) {
 func TestRootCmd_Run(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
-	
+
 	cmd := NewRootCmd()
 	cmd.SetArgs([]string{"cmd", "/c", "echo", "hello"})
 	b := new(bytes.Buffer)
@@ -483,7 +478,7 @@ func TestRawCmd_Help(t *testing.T) {
 func TestRootCmd_Empty(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
-	
+
 	cmd := NewRootCmd()
 	cmd.SetArgs([]string{}) // No args
 	b := new(bytes.Buffer)
@@ -503,7 +498,7 @@ func TestConfigCmd_Run(t *testing.T) {
 		config.SurveyAskOne = oldAskOne
 		config.SurveyAsk = oldAsk
 	}()
-	
+
 	config.SurveyAskOne = func(p survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
 		return nil
 	}
@@ -516,17 +511,8 @@ func TestConfigCmd_Run(t *testing.T) {
 	b := new(bytes.Buffer)
 	cmd.SetOut(b)
 	cmd.SetErr(b)
-	
+
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("config command failed: %v", err)
 	}
 }
-
-
-
-
-
-
-
-
-

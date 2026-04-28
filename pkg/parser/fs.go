@@ -17,26 +17,26 @@ func (l *LsParser) Parse(output string) string {
 	var result []string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" || strings.HasPrefix(trimmed, "total ") || strings.HasPrefix(trimmed, "Directory:") || strings.HasPrefix(trimmed, "Mode") || strings.HasPrefix(trimmed, "----") { 
-			continue 
+		if trimmed == "" || strings.HasPrefix(trimmed, "total ") || strings.HasPrefix(trimmed, "Directory:") || strings.HasPrefix(trimmed, "Mode") || strings.HasPrefix(trimmed, "----") {
+			continue
 		}
-		
+
 		fields := strings.Fields(trimmed)
 		if len(fields) >= 4 {
 			// For standard ls -l: mode (0), links (1), user (2), group (3), size (4), month (5), day (6), time (7), name (8)
 			// For Windows dir: mode (0), date (1), time (2), size (3), name (4)
-			
+
 			// Simple heuristic: if field 0 looks like a mode (-rwx... or d----)
 			if strings.HasPrefix(fields[0], "d") || strings.HasPrefix(fields[0], "-") || strings.HasPrefix(fields[0], "l") {
 				name := fields[len(fields)-1]
 				size := ""
-				
+
 				if len(fields) >= 9 { // Standard Linux ls -l
 					size = fields[4]
 				} else if len(fields) >= 5 { // Windows Mode/Date/Time/Size/Name
 					size = fields[3]
 				}
-				
+
 				if size != "" {
 					result = append(result, fmt.Sprintf("%s %s", size, name))
 				} else {
@@ -50,7 +50,7 @@ func (l *LsParser) Parse(output string) string {
 			result = append(result, fields[len(fields)-1])
 		}
 	}
-	
+
 	// If it's a long list, return as lines, otherwise join as space-separated
 	if len(result) > 5 {
 		return strings.Join(result, "\n")
@@ -71,9 +71,13 @@ func (f *FindParser) Parse(output string) string {
 	count := 0
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" { continue }
+		if trimmed == "" {
+			continue
+		}
 		count++
-		if count > 50 { continue } // Limit to 50 results
+		if count > 50 {
+			continue
+		} // Limit to 50 results
 		result = append(result, trimmed)
 	}
 	res := strings.Join(result, "\n")
@@ -94,7 +98,9 @@ func (t *TreeParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
 	var result []string
 	for _, line := range lines {
-		if strings.TrimSpace(line) == "" { continue }
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
 		// Replace ASCII tree characters with simple spaces
 		r := strings.NewReplacer("│", " ", "├", " ", "└", " ", "─", " ", "──", " ", "   ", "  ")
 		cleaned := r.Replace(line)
@@ -115,7 +121,9 @@ func (d *DuParser) Parse(output string) string {
 	var result []string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" { continue }
+		if trimmed == "" {
+			continue
+		}
 		fields := strings.Fields(trimmed)
 		if len(fields) >= 2 {
 			size := fields[0]

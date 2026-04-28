@@ -20,12 +20,18 @@ func (e *EnvParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
 	var result []string
 	for _, line := range lines {
-		if line == "" || !strings.Contains(line, "=") { continue }
+		if line == "" || !strings.Contains(line, "=") {
+			continue
+		}
 		parts := strings.SplitN(line, "=", 2)
 		key := parts[0]
-		if skipEnvRegex.MatchString(key) { continue }
+		if skipEnvRegex.MatchString(key) {
+			continue
+		}
 		val := parts[1]
-		if len(val) > 100 { val = val[:100] + "..." }
+		if len(val) > 100 {
+			val = val[:100] + "..."
+		}
 		result = append(result, key+"="+val)
 	}
 	return strings.Join(result, "\n")
@@ -43,7 +49,9 @@ func (d *DockerPsParser) Parse(output string) string {
 	var result []string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" { continue }
+		if trimmed == "" {
+			continue
+		}
 		// Docker output is column-based. We extract the first and last few columns.
 		fields := strings.Fields(trimmed)
 		if len(fields) >= 2 {
@@ -60,20 +68,22 @@ type DependencyParser struct{}
 func (d *DependencyParser) Name() string { return "dependencies" }
 func (d *DependencyParser) CanParse(cmd string, args []string) bool {
 	return (MatchCommand(cmd, "npm") && len(args) > 0 && args[0] == "list") ||
-		   (MatchCommand(cmd, "pip") && len(args) > 0 && args[0] == "list")
+		(MatchCommand(cmd, "pip") && len(args) > 0 && args[0] == "list")
 }
 func (d *DependencyParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
 	var result []string
 	count := 0
-	
+
 	// Characters to strip from the beginning of dependency lines
 	replacer := strings.NewReplacer("├── ", "", "└── ", "", "│   ", "", "├─ ", "", "└─ ", "")
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" || strings.Contains(trimmed, "empty") { continue }
-		
+		if trimmed == "" || strings.Contains(trimmed, "empty") {
+			continue
+		}
+
 		cleaned := replacer.Replace(trimmed)
 		if cleaned == trimmed && (strings.Contains(trimmed, "├──") || strings.Contains(trimmed, "└──")) {
 			// Fallback if formatting is slightly different
@@ -84,10 +94,12 @@ func (d *DependencyParser) Parse(output string) string {
 				return r
 			}, trimmed)
 		}
-		
+
 		result = append(result, strings.TrimSpace(cleaned))
 		count++
-		if count > 30 { break }
+		if count > 30 {
+			break
+		}
 	}
 	res := strings.Join(result, "\n")
 	if len(lines) > 30 {
@@ -103,25 +115,27 @@ func (t *TestParser) Name() string { return "tests" }
 func (t *TestParser) CanParse(cmd string, args []string) bool {
 	// Only match if it's a test command and doesn't have build-only or list-only flags
 	isTest := (MatchCommand(cmd, "npm") && len(args) > 0 && args[0] == "test") ||
-		   (MatchCommand(cmd, "go") && len(args) > 0 && args[0] == "test") ||
-		   MatchCommand(cmd, "pytest")
-	
-	if !isTest { return false }
-	
+		(MatchCommand(cmd, "go") && len(args) > 0 && args[0] == "test") ||
+		MatchCommand(cmd, "pytest")
+
+	if !isTest {
+		return false
+	}
+
 	// Exclude go test flags that don't execute tests
 	for _, arg := range args {
 		if arg == "-c" || arg == "-i" || arg == "-list" {
 			return false
 		}
 	}
-	
+
 	return true
 }
 func (t *TestParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
 	var result []string
 	isFailureBlock := false
-	
+
 	// Failure keywords to trigger failure block tracking
 	failKeywords := regexp.MustCompile(`(?i)(FAIL|Error:|panic|exception|traceback|at\s|\[ERROR\]|!!!)`)
 	// Summary keywords to capture aggregate results (e.g., "10 passed", "TOTAL: 5", "ok  pkg/path")
@@ -130,7 +144,7 @@ func (t *TestParser) Parse(output string) string {
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Capture summary lines (always keep)
 		if summaryKeywords.MatchString(trimmed) && !strings.Contains(trimmed, "PASS:") {
 			result = append(result, trimmed)
@@ -142,7 +156,7 @@ func (t *TestParser) Parse(output string) string {
 		if failKeywords.MatchString(line) {
 			isFailureBlock = true
 		}
-		
+
 		// Reset failure block if we see an individual PASS line
 		if strings.Contains(trimmed, "PASS:") {
 			isFailureBlock = false
@@ -151,7 +165,7 @@ func (t *TestParser) Parse(output string) string {
 		// Within a failure block, we are more permissive
 		if isFailureBlock {
 			result = append(result, line)
-			
+
 			// Stop the failure block if we hit a known "pass" indicator or a summary marker
 			// We no longer stop just at empty lines to avoid truncating multi-line errors
 			if strings.HasPrefix(trimmed, "--- PASS") || strings.HasPrefix(trimmed, "ok  ") {
@@ -159,8 +173,10 @@ func (t *TestParser) Parse(output string) string {
 			}
 		}
 	}
-	
-	if len(result) == 0 { return "Tests finished. (No summary captured)" }
+
+	if len(result) == 0 {
+		return "Tests finished. (No summary captured)"
+	}
 	return strings.Join(result, "\n")
 }
 
@@ -174,24 +190,26 @@ func (g *GoToolCoverParser) CanParse(cmd string, args []string) bool {
 func (g *GoToolCoverParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
 	var result []string
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" { continue }
-		
+		if trimmed == "" {
+			continue
+		}
+
 		// Always keep the total line
 		if strings.HasPrefix(trimmed, "total:") {
 			result = append(result, trimmed)
 			continue
 		}
-		
+
 		// For function breakdown, only keep lines that are NOT 100.0%
 		// This highlights areas that need work.
 		if strings.Contains(trimmed, "%") && !strings.Contains(trimmed, "100.0%") {
 			result = append(result, trimmed)
 		}
 	}
-	
+
 	if len(result) == 0 {
 		// If everything is 100%, just show the total if we found it, or a success message
 		for _, line := range lines {
@@ -201,12 +219,12 @@ func (g *GoToolCoverParser) Parse(output string) string {
 		}
 		return "Coverage: 100.0% across all functions."
 	}
-	
+
 	// Limit to top 30 "problem" functions
 	if len(result) > 30 {
 		result = append(result[:30], "... (truncated coverage list)")
 	}
-	
+
 	return strings.Join(result, "\n")
 }
 
@@ -215,18 +233,20 @@ type GitHubParser struct{}
 
 func (g *GitHubParser) Name() string { return "github" }
 func (g *GitHubParser) CanParse(cmd string, args []string) bool {
-	return MatchCommand(cmd, "gh") && len(args) > 0 && 
-		   (args[0] == "issue" || args[0] == "pr" || args[0] == "release" || args[0] == "repo" || args[0] == "run") &&
-		   (strings.Contains(strings.Join(args, " "), " list") || strings.Contains(strings.Join(args, " "), " view"))
+	return MatchCommand(cmd, "gh") && len(args) > 0 &&
+		(args[0] == "issue" || args[0] == "pr" || args[0] == "release" || args[0] == "repo" || args[0] == "run") &&
+		(strings.Contains(strings.Join(args, " "), " list") || strings.Contains(strings.Join(args, " "), " view"))
 }
 func (g *GitHubParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
 	var result []string
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" { continue }
-		
+		if trimmed == "" {
+			continue
+		}
+
 		// Skip header lines if present
 		if strings.HasPrefix(trimmed, "Showing ") || strings.HasPrefix(trimmed, "NAME") || strings.HasPrefix(trimmed, "TITLE") {
 			continue
@@ -237,13 +257,15 @@ func (g *GitHubParser) Parse(output string) string {
 			// For issues/PRs/repos: ID/NAME  TITLE/DESCRIPTION  STATUS/DATE
 			id := fields[0]
 			title := fields[1]
-			
+
 			status := ""
 			if len(fields) >= 3 {
 				status = fields[2]
-				if len(status) > 15 { status = status[:15] }
+				if len(status) > 15 {
+					status = status[:15]
+				}
 			}
-			
+
 			if status != "" {
 				result = append(result, fmt.Sprintf("%s | %s | %s", id, title, status))
 			} else {
@@ -252,12 +274,12 @@ func (g *GitHubParser) Parse(output string) string {
 		} else {
 			result = append(result, trimmed)
 		}
-		
+
 		if len(result) > 25 {
 			result = append(result, "... (truncated gh list)")
 			break
 		}
 	}
-	
+
 	return strings.Join(result, "\n")
 }

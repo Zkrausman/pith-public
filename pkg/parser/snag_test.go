@@ -37,7 +37,7 @@ func TestSnagParser(t *testing.T) {
 	]`
 
 	output := p.Parse(input)
-	
+
 	if !strings.Contains(output, "Snag found 2 issues:") {
 		t.Errorf("Expected summary line, got: %s", output)
 	}

@@ -11,7 +11,6 @@ import (
 	"testing"
 )
 
-
 func TestGetAuthTokenEnv(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "test-token")
 	token := getAuthToken()
@@ -81,10 +80,10 @@ func TestCheckAndApplyUpdate_Mock(t *testing.T) {
 	// But in tests, os.Executable() might point to a temp test binary.
 	// We can't easily mock os.Executable() without more refactoring.
 	// So we might skip the actual download/replace part or mock it if possible.
-	
+
 	// For now, let's just test up to the point where it finds the asset.
 	// To do this properly, we should refactor downloadAndReplace too.
-	
+
 	t.Log("Testing CheckAndApplyUpdate with mock server (partial)")
 }
 
@@ -144,8 +143,6 @@ func TestCheckAndApplyUpdate_NoAssets(t *testing.T) {
 		t.Errorf("Expected 'could not find binary' error, got %v", err)
 	}
 }
-
-
 
 func TestDownloadAndReplace(t *testing.T) {
 	tmpDir := t.TempDir()

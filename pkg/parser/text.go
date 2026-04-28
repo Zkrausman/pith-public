@@ -18,7 +18,9 @@ func (g *GrepParser) Parse(output string) string {
 	currentFile := ""
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" { continue }
+		if trimmed == "" {
+			continue
+		}
 		// Try to detect file:line:content
 		parts := strings.SplitN(trimmed, ":", 3)
 		if len(parts) >= 2 {
@@ -44,38 +46,44 @@ type MinifyParser struct{}
 
 func (m *MinifyParser) Name() string { return "minify" }
 func (m *MinifyParser) CanParse(cmd string, args []string) bool {
-	if cmd != "cat" && cmd != "type" { return false }
-	if len(args) == 0 { return false }
+	if cmd != "cat" && cmd != "type" {
+		return false
+	}
+	if len(args) == 0 {
+		return false
+	}
 	file := args[0]
-	return strings.HasSuffix(file, ".json") || strings.HasSuffix(file, ".xml") || 
-		   strings.HasSuffix(file, ".html") || strings.HasSuffix(file, ".css")
+	return strings.HasSuffix(file, ".json") || strings.HasSuffix(file, ".xml") ||
+		strings.HasSuffix(file, ".html") || strings.HasSuffix(file, ".css")
 }
 
 var whitespaceRegex = regexp.MustCompile(`\s+`)
 
 func (m *MinifyParser) Parse(output string) string {
-	// Moderated minification: 
+	// Moderated minification:
 	// 1. Strip comments (simple heuristic)
 	// 2. Collapse extreme whitespace, but keep some structure if large
 	// 3. Keep first 50 and last 50 lines to avoid model confusion (middle-out is handled by runner)
-	
+
 	lines := strings.Split(output, "\n")
 	var result []string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" { continue }
-		
-		// Skip typical comments for common file types
-		if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || 
-		   strings.HasPrefix(trimmed, "<!--") || strings.HasPrefix(trimmed, "#") {
+		if trimmed == "" {
 			continue
 		}
-		
+
+		// Skip typical comments for common file types
+		if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") ||
+			strings.HasPrefix(trimmed, "<!--") || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+
 		// Collapse excessive spaces within the line
 		collapsed := whitespaceRegex.ReplaceAllString(trimmed, " ")
 		result = append(result, collapsed)
 	}
-	
+
 	// If it's still huge, we'll let the middle-out truncation handle it,
 	// but we've at least removed the metadata/comment noise.
 	return strings.Join(result, "\n")

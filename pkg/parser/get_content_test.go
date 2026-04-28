@@ -35,7 +35,7 @@ func TestGetContentParser(t *testing.T) {
 	}
 
 	// Test Large JSON Truncation
-	largeJsonInput := `[` + strings.Repeat(`{"key":"` + strings.Repeat("v", 100) + `"},`, 20) + `{"key":"final"}]`
+	largeJsonInput := `[` + strings.Repeat(`{"key":"`+strings.Repeat("v", 100)+`"},`, 20) + `{"key":"final"}]`
 	largeJsonOutput := p.Parse(largeJsonInput)
 	if len(largeJsonOutput) > 2100 {
 		t.Errorf("Expected large JSON to be truncated, got length %d", len(largeJsonOutput))
@@ -49,7 +49,7 @@ func TestGetContentParser(t *testing.T) {
 	textOutput := p.Parse(textInput)
 	lines := strings.Split(strings.TrimSpace(textOutput), "\n")
 	// Note: p.Parse adds a line for truncation message
-	if len(lines) > 52 { 
+	if len(lines) > 52 {
 		t.Errorf("Expected plain text to be truncated to ~50 lines, got %d", len(lines))
 	}
 	if !strings.Contains(textOutput, "truncated by Pith") {

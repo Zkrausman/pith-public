@@ -11,7 +11,7 @@ import (
 
 func TestGetConfigPath_NewDefault(t *testing.T) {
 	tmpDir := t.TempDir()
-	
+
 	oldBase := TheBrainBase
 	TheBrainBase = tmpDir
 	defer func() { TheBrainBase = oldBase }()
@@ -303,4 +303,3 @@ func TestMigrateStorage_WithExtraFile(t *testing.T) {
 		t.Error("Expected pith.db NOT to be migrated (it didn't exist)")
 	}
 }
-

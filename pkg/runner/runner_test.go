@@ -1,10 +1,10 @@
 package runner
 
 import (
-	"pith/pkg/config"
-	"pith/pkg/telemetry"
 	"os"
 	"path/filepath"
+	"pith/pkg/config"
+	"pith/pkg/telemetry"
 	"strings"
 	"testing"
 )
@@ -148,7 +148,7 @@ func TestRunWithOptions_Error(t *testing.T) {
 func TestApplyMiddleOutTruncation_Short(t *testing.T) {
 	cfg := &config.Config{MaxLines: 10, HeadLines: 5, TailLines: 5}
 	r := &Runner{cfg: cfg}
-	
+
 	input := "1\n2\n3\n4\n5\n6\n7\n8\n9\n10"
 	output := r.ApplyMiddleOutTruncation(input)
 	if output != input {
@@ -173,19 +173,17 @@ func TestLogForSnag_Default(t *testing.T) {
 func TestLogForSnag_Truncate(t *testing.T) {
 	tmpDir := t.TempDir()
 	r := &Runner{cfg: &config.Config{StoragePath: tmpDir}}
-	
+
 	output := ""
 	for i := 0; i < 100; i++ {
 		output += "line\n"
 	}
-	
+
 	r.LogForSnag("long cmd", output, 0)
-	
+
 	logPath := filepath.Join(tmpDir, "pith.log")
 	data, _ := os.ReadFile(logPath)
 	if !strings.Contains(string(data), "truncated by Pith for Snag log") {
 		t.Error("Expected log truncation message")
 	}
 }
-
-

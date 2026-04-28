@@ -28,10 +28,9 @@ func TestThneedParseJson(t *testing.T) {
 	}
 }
 
-
 func TestWebParser_Edge(t *testing.T) {
 	p := &WebParser{}
-	
+
 	// JSON with keys
 	largeJSON := `{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6, "g": 7, "h": 8, "i": 9, "j": 10, "k": 11, "l": 12, "m": 13, "n": 14, "o": 15, "p": 16, "q": 17, "r": 18, "s": 19, "t": 20, "u": 21, "v": 22, "w": 23, "x": 24, "y": 25, "z": 26, "long": "this is a very long string to make the json large enough to trigger the key summary branch if it was over 500 chars total minified........................................................................................................................................................................................................................................................................................................................................................................................................................................"}`
 	output := p.Parse(largeJSON)
@@ -70,10 +69,9 @@ func TestThneedParseError(t *testing.T) {
 	}
 }
 
-
 func TestBDParser_Edge(t *testing.T) {
 	p := &BDParser{}
-	
+
 	// Help output
 	help := `Usage: bd [command]
 Available Commands:
@@ -91,10 +89,9 @@ Flags:
 		issues += fmt.Sprintf("○ issue-%d P1 summary\n", i)
 	}
 	output = p.Parse(issues)
-	if !strings.Contains(output, "more lines") { 
+	if !strings.Contains(output, "more lines") {
 		t.Errorf("Expected truncation message, got %s", output)
 	}
-
 
 	// Long line
 	longLine := "○ " + strings.Repeat("A", 200)
@@ -116,4 +113,3 @@ View on GitHub: http://example.com`
 		t.Error("Expected output for github release")
 	}
 }
-

@@ -17,7 +17,6 @@ const repo = "Zkrausman/Pith"
 var githubAPI = "https://api.github.com"
 var osExecutable = os.Executable
 
-
 type Release struct {
 	TagName string `json:"tag_name"`
 	Body    string `json:"body"`
@@ -91,7 +90,7 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	if release.Body != "" {
 		fmt.Printf("\n--- Changelog ---\n%s\n-----------------\n\n", release.Body)
 	}
-	
+
 	var assetURL string
 	expectedSuffix := fmt.Sprintf("-%s-%s", runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {
@@ -163,10 +162,10 @@ func downloadAndReplace(url string, token string) error {
 		return err
 	}
 	req.Header.Set("User-Agent", "Pith-Updater")
-	
+
 	// CRITICAL for private asset downloads via API
 	req.Header.Set("Accept", "application/octet-stream")
-	
+
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -198,7 +197,7 @@ func downloadAndReplace(url string, token string) error {
 	// We rename the current one and move the new one in
 	oldPath := executablePath + ".old"
 	_ = os.Remove(oldPath) // Clean up any previous old file
-	
+
 	if err := os.Rename(executablePath, oldPath); err != nil {
 		return err
 	}

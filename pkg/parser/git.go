@@ -10,7 +10,9 @@ type GitStatusParser struct{}
 
 func (g *GitStatusParser) Name() string { return "git_status" }
 func (g *GitStatusParser) CanParse(cmd string, args []string) bool {
-	if cmd != "git" || len(args) == 0 { return false }
+	if cmd != "git" || len(args) == 0 {
+		return false
+	}
 	sub := args[0]
 	return sub == "status" || sub == "add" || sub == "commit" || sub == "push"
 }
@@ -31,11 +33,11 @@ func (g *GitStatusParser) Parse(output string) string {
 		}
 		result = append(result, trimmed)
 	}
-	
+
 	if len(result) == 0 {
 		return "Git: Success (No verbose output)"
 	}
-	
+
 	if len(result) > 20 {
 		return strings.Join(result[:10], "\n") + "\n...\n" + strings.Join(result[len(result)-10:], "\n")
 	}
@@ -59,15 +61,21 @@ func (g *GitLogParser) Parse(output string) string {
 				result = append(result, formatCommit(currentCommit, currentAuthor, currentDate, currentSubject))
 			}
 			currentCommit = strings.TrimPrefix(line, "commit ")
-			if len(currentCommit) > 7 { currentCommit = currentCommit[:7] }
+			if len(currentCommit) > 7 {
+				currentCommit = currentCommit[:7]
+			}
 			currentAuthor, currentDate, currentSubject = "", "", ""
 		} else if strings.HasPrefix(line, "Author: ") {
 			currentAuthor = strings.TrimPrefix(line, "Author: ")
-			if idx := strings.Index(currentAuthor, " <"); idx != -1 { currentAuthor = currentAuthor[:idx] }
+			if idx := strings.Index(currentAuthor, " <"); idx != -1 {
+				currentAuthor = currentAuthor[:idx]
+			}
 		} else if strings.HasPrefix(line, "Date: ") {
 			currentDate = strings.TrimPrefix(line, "Date: ")
 			fields := strings.Fields(currentDate)
-			if len(fields) >= 3 { currentDate = fields[1] + " " + fields[2] + " " + fields[4] }
+			if len(fields) >= 3 {
+				currentDate = fields[1] + " " + fields[2] + " " + fields[4]
+			}
 		} else if strings.HasPrefix(line, "    ") && currentSubject == "" {
 			currentSubject = strings.TrimSpace(line)
 		}
@@ -129,7 +137,9 @@ func (g *GitBranchParser) Parse(output string) string {
 	var others []string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" { continue }
+		if trimmed == "" {
+			continue
+		}
 		if strings.HasPrefix(trimmed, "*") {
 			current = trimmed
 		} else {
@@ -156,21 +166,21 @@ func (c *CompositeGitParser) CanParse(cmd string, args []string) bool {
 	return strings.Contains(cmd, "git ") && (strings.Contains(cmd, ";") || strings.Contains(cmd, "&"))
 }
 func (c *CompositeGitParser) Parse(output string) string {
-	// A more effective approach for composite git output: 
+	// A more effective approach for composite git output:
 	// 1. Split into lines
 	// 2. Filter out known git noise (headers, use-instructions, etc.)
 	// 3. For logs, condense the commit headers
 	// 4. For diffs, keep only +/- lines and @@ markers
-	
+
 	lines := strings.Split(output, "\n")
 	var result []string
-	
+
 	// Track state for log condensation within composite output
 	var currentCommit, currentAuthor, currentDate, currentSubject string
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Skip standard status/branch noise
 		if trimmed == "" || strings.HasPrefix(trimmed, "(use ") ||
 			strings.HasPrefix(trimmed, "On branch") || strings.HasPrefix(trimmed, "Your branch") ||
@@ -203,17 +213,23 @@ func (c *CompositeGitParser) Parse(output string) string {
 				result = append(result, formatCommit(currentCommit, currentAuthor, currentDate, currentSubject))
 			}
 			currentCommit = strings.TrimPrefix(line, "commit ")
-			if len(currentCommit) > 7 { currentCommit = currentCommit[:7] }
+			if len(currentCommit) > 7 {
+				currentCommit = currentCommit[:7]
+			}
 			currentAuthor, currentDate, currentSubject = "", "", ""
 			continue
 		} else if strings.HasPrefix(line, "Author: ") {
 			currentAuthor = strings.TrimPrefix(line, "Author: ")
-			if idx := strings.Index(currentAuthor, " <"); idx != -1 { currentAuthor = currentAuthor[:idx] }
+			if idx := strings.Index(currentAuthor, " <"); idx != -1 {
+				currentAuthor = currentAuthor[:idx]
+			}
 			continue
 		} else if strings.HasPrefix(line, "Date: ") {
 			currentDate = strings.TrimPrefix(line, "Date: ")
 			fields := strings.Fields(currentDate)
-			if len(fields) >= 3 { currentDate = fields[1] + " " + fields[2] + " " + fields[4] }
+			if len(fields) >= 3 {
+				currentDate = fields[1] + " " + fields[2] + " " + fields[4]
+			}
 			continue
 		} else if strings.HasPrefix(line, "    ") && currentSubject == "" && currentCommit != "" {
 			currentSubject = strings.TrimSpace(line)
@@ -250,6 +266,6 @@ func (c *CompositeGitParser) Parse(output string) string {
 			seen[l] = true
 		}
 	}
-	
+
 	return strings.Join(final, "\n")
 }

@@ -60,20 +60,20 @@ func TestGainCmd_ManyRecords(t *testing.T) {
 	// 25 different commands to hit the >20 limit
 	for i := 0; i < 25; i++ {
 		tel.Record(telemetry.ExecutionRecord{
-			Command:        "cmd-" + string(rune('a'+i)),
-			OriginalTokens: 100,
+			Command:          "cmd-" + string(rune('a'+i)),
+			OriginalTokens:   100,
 			CompressedTokens: 50,
-			Source:         "gemini",
+			Source:           "gemini",
 		})
 	}
 	// 15 unparsed to hit the >10 limit
 	for i := 0; i < 15; i++ {
 		tel.Record(telemetry.ExecutionRecord{
-			Command:        "unparsed-" + string(rune('a'+i)),
-			OriginalTokens: 100,
+			Command:          "unparsed-" + string(rune('a'+i)),
+			OriginalTokens:   100,
 			CompressedTokens: 100,
-			IsPassthrough:  true,
-			Source:         "gemini",
+			IsPassthrough:    true,
+			Source:           "gemini",
 		})
 	}
 	tel.Close()
@@ -107,7 +107,7 @@ func TestHookCmd_OldSchemas(t *testing.T) {
 
 	oldStdin := os.Stdin
 	os.Stdin = r1
-	
+
 	cmd := NewRootCmd()
 	cmd.SetArgs([]string{"_hook"})
 	_ = cmd.Execute()

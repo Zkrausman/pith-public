@@ -15,7 +15,7 @@ var synapseSyncCmd = &cobra.Command{
 	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Synapse syncing Pith via its built-in update command...")
-		
+
 		exe, err := os.Executable()
 		if err != nil {
 			return err

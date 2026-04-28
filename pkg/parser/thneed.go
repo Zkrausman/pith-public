@@ -88,7 +88,7 @@ func (t *ThneedParser) parseJsonObject(obj map[string]interface{}) string {
 	if path != "" || id != "" {
 		return fmt.Sprintf("Thneed Node: %s (%s)", path, id)
 	}
-	
+
 	// Just return a simplified JSON summary if it's some other object
 	return "Thneed: [Structured Metadata Object]"
 }

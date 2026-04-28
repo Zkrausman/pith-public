@@ -1,12 +1,12 @@
 package gui
 
 import (
-	"pith/pkg/config"
-	"pith/pkg/telemetry"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"pith/pkg/config"
+	"pith/pkg/telemetry"
 	"testing"
 )
 
@@ -20,11 +20,11 @@ func TestDashboardHandlers(t *testing.T) {
 
 	// Seed some telemetry
 	tel.Record(telemetry.ExecutionRecord{
-		Command: "go version",
-		OriginalTokens: 10,
+		Command:          "go version",
+		OriginalTokens:   10,
 		CompressedTokens: 5,
-		IsPassthrough: false,
-		Source: "test",
+		IsPassthrough:    false,
+		Source:           "test",
 	})
 
 	cfg := &config.Config{USDPerMillionTokens: 3.0}

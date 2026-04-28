@@ -20,10 +20,10 @@ func TestGetConfigPath_EnvEmpty(t *testing.T) {
 func TestLoadConfig_MalformedJSON(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
-	
+
 	path := filepath.Join(tmpDir, "config.json")
 	os.WriteFile(path, []byte("{ malformed json }"), 0644)
-	
+
 	cfg, err := LoadConfig()
 	if err != nil {
 		t.Fatalf("LoadConfig should not return error on malformed JSON, got %v", err)
@@ -36,10 +36,10 @@ func TestLoadConfig_MalformedJSON(t *testing.T) {
 func TestLoadConfig_PartialJSON(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
-	
+
 	path := filepath.Join(tmpDir, "config.json")
 	os.WriteFile(path, []byte(`{"enabled_parsers": {"git": true}}`), 0644)
-	
+
 	cfg, err := LoadConfig()
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
@@ -52,11 +52,11 @@ func TestLoadConfig_PartialJSON(t *testing.T) {
 func TestSave_WriteError(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
-	
+
 	// Create a directory where the config file should be
 	path := filepath.Join(tmpDir, "config.json")
 	os.MkdirAll(path, 0755)
-	
+
 	cfg := &Config{}
 	err := cfg.Save()
 	if err == nil {

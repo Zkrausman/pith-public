@@ -1,10 +1,10 @@
 package runner
 
 import (
-	"pith/pkg/config"
-	"pith/pkg/telemetry"
 	"os"
 	"path/filepath"
+	"pith/pkg/config"
+	"pith/pkg/telemetry"
 	"testing"
 )
 

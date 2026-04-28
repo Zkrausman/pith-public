@@ -23,7 +23,7 @@ func MatchCommand(cmd string, target string) bool {
 	normalized := strings.ReplaceAll(cmd, "\\", "/")
 	base := strings.ToLower(filepath.Base(normalized))
 	targetLow := strings.ToLower(target)
-	
+
 	if base == targetLow {
 		return true
 	}

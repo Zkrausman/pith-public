@@ -11,8 +11,6 @@ import (
 	"testing"
 )
 
-
-
 func TestCheckAndApplyUpdate_NoAsset(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		releases := []Release{

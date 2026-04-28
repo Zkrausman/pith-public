@@ -1,8 +1,8 @@
 package parser
 
 import (
-	"testing"
 	"strings"
+	"testing"
 )
 
 func TestSourceParser(t *testing.T) {
@@ -44,7 +44,7 @@ func TestSourceParser(t *testing.T) {
 
 func TestTestParserFidelity(t *testing.T) {
 	p := &TestParser{}
-	
+
 	input := `PASS: TestOne
 FAIL: TestTwo
     Error: Assertion failed
@@ -59,7 +59,7 @@ ok  	pith/pkg/parser	0.123s
 PASS: TestThree`
 
 	output := p.Parse(input)
-	
+
 	if !strings.Contains(output, "FAIL: TestTwo") {
 		t.Errorf("Expected failure line to be preserved")
 	}
@@ -112,7 +112,7 @@ func TestChainParser(t *testing.T) {
 	if !p.CanParse("go test && go build", []string{}) {
 		t.Errorf("Expected ChainParser to handle &&")
 	}
-	
+
 	subcmds := p.SplitSubCommands("git status; git log && ls")
 	if len(subcmds) != 3 {
 		t.Errorf("Expected 3 sub-commands, got %d", len(subcmds))

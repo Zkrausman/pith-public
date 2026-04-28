@@ -165,12 +165,10 @@ func TestSetupHook_Existing(t *testing.T) {
 
 	// First install
 	setupHook(".gemini", "AfterTool", "run_shell_command", true, "gemini")
-	
+
 	// Second install (should hit the "exists" branch)
 	_, err := setupHook(".gemini", "AfterTool", "run_shell_command", true, "gemini")
 	if err != nil {
 		t.Errorf("setupHook failed on existing: %v", err)
 	}
 }
-
-

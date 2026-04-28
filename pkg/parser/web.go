@@ -32,7 +32,7 @@ func (w *WebParser) Parse(output string) string {
 				for k := range m {
 					keys = append(keys, k)
 				}
-				return fmt.Sprintf("JSON Object Keys: [%s] (Total minified: %d chars)", 
+				return fmt.Sprintf("JSON Object Keys: [%s] (Total minified: %d chars)",
 					strings.Join(keys, ", "), len(minified))
 			}
 			return string(minified)

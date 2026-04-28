@@ -2,13 +2,13 @@ package runner
 
 import (
 	"bytes"
-	"pith/pkg/config"
-	"pith/pkg/parser"
-	"pith/pkg/telemetry"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"pith/pkg/config"
+	"pith/pkg/parser"
+	"pith/pkg/telemetry"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -54,11 +54,11 @@ func (r *Runner) LogForSnag(cmdStr string, output string, exitCode int) {
 		}
 		logDir = filepath.Join(home, ".pith")
 	}
-	
+
 	_ = os.MkdirAll(logDir, 0755)
-	
+
 	logPath := filepath.Join(logDir, "pith.log")
-	
+
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return
@@ -92,7 +92,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 
 	fullCmd := strings.Join(args, " ")
 	start := time.Now()
-	
+
 	var cmd *exec.Cmd
 	// If it's a composite command or has shell redirects, run through shell
 	if strings.ContainsAny(fullCmd, ";|&><") {
@@ -101,7 +101,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 		// On Linux/macOS you'd use "sh", "-c", fullCmd
 	} else {
 		// IMPORTANT: If 'args' has more than one element, they are the arguments.
-		// If 'args' has only one element but it contains spaces, it's a combined string 
+		// If 'args' has only one element but it contains spaces, it's a combined string
 		// that needs splitting (often happens when called via proxy).
 		if len(args) == 1 && strings.Contains(args[0], " ") {
 			parts := strings.Fields(args[0])
@@ -122,7 +122,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 
 	err := cmd.Run()
 	duration := time.Since(start).Milliseconds()
-	
+
 	exitCode := 0
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -135,7 +135,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	stdoutStr := out.String()
 	stderrStr := stderr.String()
 	fullOutput := stdoutStr + stderrStr
-	
+
 	// Log for Snag before doing any compression/truncation
 	r.LogForSnag(fullCmd, fullOutput, exitCode)
 
@@ -160,7 +160,9 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 					// Identify the best parser for this sub-command
 					var bestP parser.Parser
 					subParts := strings.Fields(sub)
-					if len(subParts) == 0 { continue }
+					if len(subParts) == 0 {
+						continue
+					}
 					subCmdName := subParts[0]
 					subArgs := subParts[1:]
 
@@ -171,7 +173,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 							break
 						}
 					}
-					
+
 					if bestP != nil {
 						p = cp
 						break
@@ -224,7 +226,7 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 		IsPassthrough:     isPassthrough,
 		Source:            r.Source,
 	}
-	
+
 	_ = r.telemetry.Record(record)
 
 	return err

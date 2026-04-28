@@ -1,0 +1,9 @@
+# Whet Repo Defaults
+refinement:
+  oracle_enabled: true
+  max_tokens: 4096
+  cockpit_enabled: true
+  cockpit_timer: 3
+  grit: "high"
+  log_level: "more"
+

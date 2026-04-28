@@ -48,7 +48,7 @@ func MigrateStorage(targetPath string) error {
 		if err := copyFile(src, dst); err != nil {
 			return fmt.Errorf("failed to migrate %s: %w", f, err)
 		}
-		
+
 		// Optional: rename old file to .bak instead of deleting immediately for safety
 		_ = os.Rename(src, src+".bak")
 	}

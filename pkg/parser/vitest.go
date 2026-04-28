@@ -19,26 +19,28 @@ func (v *VitestParser) CanParse(cmd string, args []string) bool {
 func (v *VitestParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
 	var result []string
-	
+
 	hasSummary := false
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" { continue }
-		
+		if trimmed == "" {
+			continue
+		}
+
 		// Skip decorative lines
 		if strings.Contains(trimmed, "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯") {
 			continue
 		}
-		
+
 		// Keep summary lines
-		if strings.Contains(trimmed, "Test Files") || strings.Contains(trimmed, "Tests") || 
-		   strings.Contains(trimmed, "Duration") || strings.Contains(trimmed, "Start at") {
+		if strings.Contains(trimmed, "Test Files") || strings.Contains(trimmed, "Tests") ||
+			strings.Contains(trimmed, "Duration") || strings.Contains(trimmed, "Start at") {
 			result = append(result, trimmed)
 			hasSummary = true
 			continue
 		}
-		
+
 		// Keep failure headers
 		if strings.HasPrefix(trimmed, "FAIL") {
 			result = append(result, trimmed)
@@ -50,13 +52,13 @@ func (v *VitestParser) Parse(output string) string {
 			result = append(result, trimmed)
 			continue
 		}
-		
+
 		// Keep error messages
 		if strings.Contains(trimmed, "Error:") || strings.Contains(trimmed, "AssertionError") || strings.Contains(trimmed, "TypeError:") {
 			result = append(result, trimmed)
 			continue
 		}
-		
+
 		// If we're in a failure block (identified by FAIL), keep some context
 		if len(result) > 0 && strings.HasPrefix(result[len(result)-1], "FAIL") && len(result) < 30 {
 			result = append(result, trimmed)
@@ -68,11 +70,11 @@ func (v *VitestParser) Parse(output string) string {
 			result = append(result, trimmed)
 		}
 	}
-	
+
 	if len(result) == 0 {
 		return "No summary found in vitest output."
 	}
-	
+
 	if len(lines) > 50 && !hasSummary {
 		return strings.Join(result, "\n") + fmt.Sprintf("\n... (+ %d more lines, no summary found)", len(lines)-len(result))
 	}

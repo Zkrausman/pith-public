@@ -1,6 +1,13 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/spf13/cobra"
+	"io"
+	"os"
+	"pith/pkg/advisor"
+	"pith/pkg/anomaly"
 	"pith/pkg/config"
 	"pith/pkg/gui"
 	"pith/pkg/install"
@@ -8,18 +15,11 @@ import (
 	"pith/pkg/runner"
 	"pith/pkg/selfupdate"
 	"pith/pkg/telemetry"
-	"pith/pkg/anomaly"
-	"pith/pkg/advisor"
-	"encoding/json"
-	"fmt"
-	"io"
-	"os"
 	"strings"
 	"time"
-	"github.com/spf13/cobra"
 )
 
-const version = "v0.14.3"
+const version = "v0.14.4"
 
 type HookInput struct {
 	ToolResponse struct {
@@ -149,7 +149,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(rawCmd)
 	rootCmd.AddCommand(dashboardCmd)
 	rootCmd.AddCommand(analyzeCmd)
-		rootCmd.AddCommand(newAuditCmd())
+	rootCmd.AddCommand(newAuditCmd())
 
 	return rootCmd
 }
@@ -575,7 +575,6 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-
 func newAuditCmd() *cobra.Command {
 	auditCmd := &cobra.Command{
 		Use:   "audit",
@@ -588,6 +587,7 @@ func newAuditCmd() *cobra.Command {
 		RunE:  runAuditAnomalies,
 	}
 	anomaliesCmd.Flags().Int("lookback", 60, "Lookback window in minutes")
+	anomaliesCmd.Flags().Bool("diagnose", false, "Run autonomous AI diagnostics on detected anomalies")
 
 	auditCmd.AddCommand(anomaliesCmd)
 	return auditCmd
@@ -610,14 +610,25 @@ func runAuditAnomalies(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("âš ï¸  Detected %d Anomalies:\n", len(anomalies))
 	fmt.Println(strings.Repeat("-", 60))
+	diagnose, _ := cmd.Flags().GetBool("diagnose")
+
 	for _, a := range anomalies {
 		fmt.Printf("[%s] [%s] %s\n", a.Timestamp.Format("15:04:05"), a.Project, a.Reason)
 		fmt.Printf("  Model: %s\n", a.Model)
 		fmt.Printf("  Prompt: %.50s...\n", a.Prompt)
-		fmt.Printf("  Response: %.100s...\n\n", a.Response)
+		fmt.Printf("  Response: %.100s...\n", a.Response)
+
+		if diagnose {
+			diagnosis, err := anomaly.Diagnose(a)
+			if err != nil {
+				fmt.Printf("\n  [Diagnostic Error] %v\n", err)
+			} else {
+				fmt.Printf("\n  [Forensic Analysis]\n%s\n", diagnosis)
+			}
+		}
+		fmt.Println("\n")
 	}
 
 	return nil
 }
-
 

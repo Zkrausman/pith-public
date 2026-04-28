@@ -18,30 +18,32 @@ func (p *PromptfooParser) CanParse(cmd string, args []string) bool {
 func (p *PromptfooParser) Parse(output string) string {
 	lines := strings.Split(output, "\n")
 	var result []string
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "" { continue }
-		
-		// Skip table borders
-		if strings.HasPrefix(trimmed, "┌") || strings.HasPrefix(trimmed, "├") || 
-		   strings.HasPrefix(trimmed, "└") || strings.Contains(trimmed, "───") {
+		if trimmed == "" {
 			continue
 		}
-		
+
+		// Skip table borders
+		if strings.HasPrefix(trimmed, "┌") || strings.HasPrefix(trimmed, "├") ||
+			strings.HasPrefix(trimmed, "└") || strings.Contains(trimmed, "───") {
+			continue
+		}
+
 		// Progress bars
 		if strings.Contains(trimmed, "████") || (strings.Contains(trimmed, "%") && strings.Contains(trimmed, "|")) {
 			result = append(result, trimmed)
 			continue
 		}
-		
+
 		// Summary lines
 		if strings.Contains(trimmed, "Starting evaluation") || strings.Contains(trimmed, "Evaluating") ||
-		   strings.Contains(trimmed, "Tests") || strings.Contains(trimmed, "Duration") {
+			strings.Contains(trimmed, "Tests") || strings.Contains(trimmed, "Duration") {
 			result = append(result, trimmed)
 			continue
 		}
-		
+
 		// Handle table content (lines with pipe separators)
 		if strings.Contains(trimmed, "│") {
 			// Clean up pipe characters and extra spaces
@@ -64,7 +66,7 @@ func (p *PromptfooParser) Parse(output string) string {
 			result = append(result, trimmed)
 		}
 	}
-	
+
 	if len(lines) > 40 && len(result) >= 40 {
 		return strings.Join(result, "\n") + fmt.Sprintf("\n... (+ %d more lines)", len(lines)-len(result))
 	}

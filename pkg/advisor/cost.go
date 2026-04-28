@@ -14,7 +14,7 @@ type SessionEstimate struct {
 func EstimateSessionCost(taskCount int, avgTokensPerTask int, pricePerMillion float64) SessionEstimate {
 	totalTokens := float64(taskCount * avgTokensPerTask)
 	cost := (totalTokens / 1000000.0) * pricePerMillion
-	
+
 	return SessionEstimate{
 		RemainingTasks: taskCount,
 		EstimatedCost:  cost,

@@ -212,4 +212,3 @@ func TestInteractiveConfig(t *testing.T) {
 		t.Errorf("Expected MaxLines 1000, got %d", cfg.MaxLines)
 	}
 }
-

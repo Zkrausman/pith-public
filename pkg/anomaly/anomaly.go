@@ -12,13 +12,13 @@ import (
 )
 
 type Anomaly struct {
-	Timestamp   time.Time
-	Project     string
-	Reason      string
-	Severity    string // warning, critical
-	Prompt      string
-	Response    string
-	Model       string
+	Timestamp time.Time
+	Project   string
+	Reason    string
+	Severity  string // warning, critical
+	Prompt    string
+	Response  string
+	Model     string
 }
 
 // DetectUnusualConsumption flags executions that exceed the average token usage in Pith's local DB.
@@ -79,7 +79,9 @@ func AuditOverseerLogs(lookback time.Duration) ([]Anomaly, error) {
 	var markersQuery strings.Builder
 	markersQuery.WriteString("SELECT timestamp, service_name, model_name, prompt, response FROM logs WHERE ")
 	for i, m := range lazyMarkers {
-		if i > 0 { markersQuery.WriteString(" OR ") }
+		if i > 0 {
+			markersQuery.WriteString(" OR ")
+		}
 		markersQuery.WriteString(fmt.Sprintf("response LIKE '%%%s%%'", m))
 	}
 	markersQuery.WriteString(fmt.Sprintf(" AND timestamp::TIMESTAMP > now() - interval '%d minutes'", int(lookback.Minutes())))

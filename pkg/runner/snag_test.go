@@ -1,9 +1,9 @@
 package runner
 
 import (
-	"pith/pkg/config"
 	"os"
 	"path/filepath"
+	"pith/pkg/config"
 	"strings"
 	"testing"
 )

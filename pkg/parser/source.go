@@ -21,16 +21,16 @@ func (s *SourceParser) Parse(output string) string {
 
 	// Regex for common comment styles (Go, JS, C, Python, etc.)
 	reInline := regexp.MustCompile(`(//.*|#.*)`)
-	
+
 	// High-signal keywords we want to preserve in comments
 	highSignal := regexp.MustCompile(`(?i)(BUG|TODO|FIXME|NOTE|HACK|WARN|IMPORTANT|CRITICAL)`)
-	
+
 	// Track if we are inside a block comment
 	inBlock := false
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Handle block comments (/* ... */)
 		if strings.Contains(trimmed, "/*") {
 			// If the block comment is small or has high-signal info, keep it
@@ -69,7 +69,7 @@ func (s *SourceParser) Parse(output string) string {
 			// Otherwise, strip the comment but keep the code
 			line = strings.TrimSpace(reInline.ReplaceAllString(line, ""))
 		}
-		
+
 		// Collapse excessive spaces (Issue #582: balance savings vs context)
 		// We preserve indentation (up to 8 spaces) but collapse huge gaps
 		reHugeGaps := regexp.MustCompile(`\s{12,}`)

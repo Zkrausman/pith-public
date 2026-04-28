@@ -124,7 +124,7 @@ func TestSearchExecutions(t *testing.T) {
 	if len(results) != 1 || results[0].Command != "ls -l" {
 		t.Errorf("Expected 1 result for 'l' with claude, got %d", len(results))
 	}
-	
+
 	results, _ = tel.SearchExecutions("l", "gemini", 10)
 	if len(results) != 0 {
 		t.Errorf("Expected 0 results for 'l' with gemini, got %d", len(results))

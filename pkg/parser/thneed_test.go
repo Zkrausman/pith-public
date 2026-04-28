@@ -31,7 +31,7 @@ func TestThneedParser(t *testing.T) {
 	]`
 
 	output := p.Parse(input)
-	
+
 	if !strings.Contains(output, "Thneed found 2 nodes:") {
 		t.Errorf("Expected summary line, got: %s", output)
 	}

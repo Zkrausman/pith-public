@@ -15,14 +15,14 @@ var SurveyAskOne = survey.AskOne
 var SurveyAsk = survey.Ask
 
 type Config struct {
-	EnabledParsers       map[string]bool `json:"enabled_parsers"`
-	LastUpdateCheck      int64           `json:"last_update_check"`
-	MaxLines             int             `json:"max_lines"`
-	HeadLines            int             `json:"head_lines"`
-	TailLines            int             `json:"tail_lines"`
-	StoragePath          string          `json:"storage_path"`
-	USDPerMillionTokens  float64         `json:"usd_per_million_tokens"`
-	TokenHeuristic       float64         `json:"token_heuristic"`
+	EnabledParsers      map[string]bool `json:"enabled_parsers"`
+	LastUpdateCheck     int64           `json:"last_update_check"`
+	MaxLines            int             `json:"max_lines"`
+	HeadLines           int             `json:"head_lines"`
+	TailLines           int             `json:"tail_lines"`
+	StoragePath         string          `json:"storage_path"`
+	USDPerMillionTokens float64         `json:"usd_per_million_tokens"`
+	TokenHeuristic      float64         `json:"token_heuristic"`
 }
 
 var TheBrainBase = "E:\\"
@@ -129,10 +129,10 @@ func (c *Config) InteractiveConfig(availableParsers []string) error {
 	// Toggle parsers
 	var parserOpts []string
 	var defaultSelected []string
-	
+
 	// Sort for consistent UI
 	sort.Strings(availableParsers)
-	
+
 	for _, p := range availableParsers {
 		parserOpts = append(parserOpts, p)
 		if c.EnabledParsers[p] {
@@ -210,7 +210,6 @@ func (c *Config) InteractiveConfig(availableParsers []string) error {
 	if err != nil {
 		return err
 	}
-
 
 	c.MaxLines = answers.MaxLines
 	c.HeadLines = answers.HeadLines
