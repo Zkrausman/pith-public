@@ -149,6 +149,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(rawCmd)
 	rootCmd.AddCommand(dashboardCmd)
 	rootCmd.AddCommand(analyzeCmd)
+		rootCmd.AddCommand(newAuditCmd())
 
 	return rootCmd
 }
@@ -560,7 +561,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	} else if len(anomalies) > 0 {
 		fmt.Printf("⚠️  Detected %d Anomalies:\n", len(anomalies))
 		for _, a := range anomalies {
-			fmt.Printf("  - [%d] %s\n", a.ExecutionID, a.Reason)
+			fmt.Printf("  - %s\n", a.Reason)
 		}
 	} else {
 		fmt.Println("✅ No unusual token consumption detected.")
@@ -573,3 +574,49 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	fmt.Println("---------------------------------------")
 	return nil
 }
+
+
+func newAuditCmd() *cobra.Command {
+	auditCmd := &cobra.Command{
+		Use:   "audit",
+		Short: "Audit LLM interactions for quality and anomalies",
+	}
+
+	anomaliesCmd := &cobra.Command{
+		Use:   "anomalies",
+		Short: "Scan Overseer logs for hallucinations and low-quality responses",
+		RunE:  runAuditAnomalies,
+	}
+	anomaliesCmd.Flags().Int("lookback", 60, "Lookback window in minutes")
+
+	auditCmd.AddCommand(anomaliesCmd)
+	return auditCmd
+}
+
+func runAuditAnomalies(cmd *cobra.Command, args []string) error {
+	lookbackMins, _ := cmd.Flags().GetInt("lookback")
+	lookback := time.Duration(lookbackMins) * time.Minute
+
+	fmt.Printf("\nðŸ”  Auditing Overseer logs (last %d minutes)...\n", lookbackMins)
+	anomalies, err := anomaly.AuditOverseerLogs(lookback)
+	if err != nil {
+		return fmt.Errorf("failed to audit logs: %w", err)
+	}
+
+	if len(anomalies) == 0 {
+		fmt.Println("âœ… No anomalies detected in recent telemetry.")
+		return nil
+	}
+
+	fmt.Printf("âš ï¸  Detected %d Anomalies:\n", len(anomalies))
+	fmt.Println(strings.Repeat("-", 60))
+	for _, a := range anomalies {
+		fmt.Printf("[%s] [%s] %s\n", a.Timestamp.Format("15:04:05"), a.Project, a.Reason)
+		fmt.Printf("  Model: %s\n", a.Model)
+		fmt.Printf("  Prompt: %.50s...\n", a.Prompt)
+		fmt.Printf("  Response: %.100s...\n\n", a.Response)
+	}
+
+	return nil
+}
+
