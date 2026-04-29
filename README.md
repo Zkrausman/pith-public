@@ -48,10 +48,22 @@ This bypasses all logic and returns the original system output.
 ### 2. Middle-Out Truncation
 When a command returns thousands of lines (like a massive log file), Pith prevents context overflow by keeping the most important parts: the **beginning** (setup/context) and the **end** (errors/results).
 
-**Configurable via `pith config`:**
-- `MaxLines`: Total lines allowed before truncation kicks in (default: 500).
-- `HeadLines`: Lines to preserve at the top (default: 100).
-- `TailLines`: Lines to preserve at the bottom (default: 100).
+### ⚙️ Interactive Configuration (`pith config`)
+Pith features a modern, multi-page TUI built with **Bubble Tea** to manage your optimization engine. Use **`Tab`** to switch between the **Parsers** and **Settings** pages.
+
+#### 1. Parsers Page
+Toggle individual command optimizers on or off. If a parser is causing issues with a specific command, you can disable it here without affecting the rest of the system.
+
+#### 2. Settings Page (Output Management)
+This page controls **Middle-Out Truncation** and analytics precision.
+
+| Setting | Default | Description |
+| :--- | :--- | :--- |
+| **`MaxLines`** | `500` | The threshold for truncation. Snipping occurs only if a command's output exceeds this total line count. |
+| **`HeadLines`** | `100` | The number of lines to preserve at the **top** of the output. This ensures the LLM understands the command's setup, headers, or initial context. |
+| **`TailLines`** | `100` | The number of lines to preserve at the **bottom**. This is critical for capturing final results, exit codes, and error stack traces. |
+| **`USD/M Tokens`** | `3.00` | The cost rate (USD per 1 Million Input Tokens) used to calculate financial savings in the dashboard. Adjust this to match your preferred model (e.g., $3.00 for Claude 3.5 Sonnet). |
+| **`Heuristic`** | `4.00` | Average characters per token. This is used purely for estimation in analytics and does not affect the actual compression logic. |
 
 ---
 

@@ -5,11 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"pith/pkg/config"
 	"pith/pkg/telemetry"
 	"testing"
-
-	"github.com/AlecAivazis/survey/v2"
 )
 
 // =====================================================================
@@ -220,29 +217,6 @@ func TestDashboardCmd_Port(t *testing.T) {
 	if !bytes.Contains(b.Bytes(), []byte("dashboard")) && !bytes.Contains(b.Bytes(), []byte("port")) {
 		t.Logf("Dashboard help: %s", b.String())
 	}
-}
-
-// =====================================================================
-// runConfig - error paths
-// =====================================================================
-
-func TestConfigCmd_SurveyError(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("PITH_STORAGE", tmpDir)
-
-	oldAskOne := config.SurveyAskOne
-	defer func() { config.SurveyAskOne = oldAskOne }()
-
-	config.SurveyAskOne = func(p survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
-		return nil // Return no error but don't set values
-	}
-
-	cmd := NewRootCmd()
-	cmd.SetArgs([]string{"config"})
-	b := new(bytes.Buffer)
-	cmd.SetOut(b)
-	cmd.SetErr(b)
-	cmd.Execute()
 }
 
 // =====================================================================

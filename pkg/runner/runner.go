@@ -234,22 +234,34 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 
 func (r *Runner) ApplyMiddleOutTruncation(output string) string {
 	lines := strings.Split(output, "\n")
-	if len(lines) <= r.cfg.MaxLines {
-		return output
-	}
-
+	if len(lines) <= r.cfg.MaxLines { return output }
 	head := r.cfg.HeadLines
 	tail := r.cfg.TailLines
-
-	// Safety check to ensure we don't try to keep more lines than exist
-	if head+tail >= len(lines) {
-		return output
+	if head+tail >= len(lines) { return output }
+	middleStart := head
+	middleEnd := len(lines) - tail
+	hotZones := []int{}
+	keywords := []string{"error", "fail", "fatal", "panic", "exception", "!!!", "error:", "[exit]"}
+	for i := middleStart; i < middleEnd; i++ {
+		lowerLine := strings.ToLower(lines[i])
+		for _, k := range keywords {
+			if strings.Contains(lowerLine, k) { hotZones = append(hotZones, i); break }
+		}
 	}
-
 	resultLines := append([]string{}, lines[:head]...)
-	resultLines = append(resultLines, fmt.Sprintf("\n... [%d lines removed by Pith middle-out truncation] ...\n", len(lines)-(head+tail)))
+	lastIndex := head
+	for _, zone := range hotZones {
+		if zone > lastIndex+2 { resultLines = append(resultLines, fmt.Sprintf("\n... [%d lines of non-critical output removed by Pith] ...\n", zone-lastIndex-1)) }
+		start := zone - 1
+		if start < lastIndex { start = lastIndex }
+		end := zone + 1
+		if end >= middleEnd { end = middleEnd - 1 }
+		for j := start; j <= end; j++ {
+			if j >= lastIndex { resultLines = append(resultLines, lines[j]); lastIndex = j + 1 }
+		}
+	}
+	if middleEnd > lastIndex { resultLines = append(resultLines, fmt.Sprintf("\n... [%d lines removed by Pith middle-out truncation] ...\n", middleEnd-lastIndex)) }
 	resultLines = append(resultLines, lines[len(lines)-tail:]...)
-
 	return strings.Join(resultLines, "\n")
 }
 

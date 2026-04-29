@@ -4,12 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
-	"pith/pkg/config"
 	"pith/pkg/telemetry"
 	"strings"
 	"testing"
-
-	"github.com/AlecAivazis/survey/v2"
 )
 
 func TestRootCmd(t *testing.T) {
@@ -485,34 +482,4 @@ func TestRootCmd_Empty(t *testing.T) {
 	cmd.SetOut(b)
 	cmd.SetErr(b)
 	_ = cmd.Execute()
-}
-
-func TestConfigCmd_Run(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("PITH_STORAGE", tmpDir)
-
-	// Mock survey in config package
-	oldAskOne := config.SurveyAskOne
-	oldAsk := config.SurveyAsk
-	defer func() {
-		config.SurveyAskOne = oldAskOne
-		config.SurveyAsk = oldAsk
-	}()
-
-	config.SurveyAskOne = func(p survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
-		return nil
-	}
-	config.SurveyAsk = func(qs []*survey.Question, response interface{}, opts ...survey.AskOpt) error {
-		return nil
-	}
-
-	cmd := NewRootCmd()
-	cmd.SetArgs([]string{"config"})
-	b := new(bytes.Buffer)
-	cmd.SetOut(b)
-	cmd.SetErr(b)
-
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("config command failed: %v", err)
-	}
 }

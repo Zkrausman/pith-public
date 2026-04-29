@@ -2,17 +2,10 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
-
-	"github.com/AlecAivazis/survey/v2"
 )
-
-var SurveyAskOne = survey.AskOne
-var SurveyAsk = survey.Ask
 
 type Config struct {
 	EnabledParsers      map[string]bool `json:"enabled_parsers"`
@@ -116,106 +109,4 @@ func (c *Config) Save() error {
 		return err
 	}
 	return os.WriteFile(path, data, 0644)
-}
-
-func (c *Config) InteractiveConfig(availableParsers []string) error {
-	// Sync available parsers into map (enable new ones by default)
-	for _, p := range availableParsers {
-		if _, ok := c.EnabledParsers[p]; !ok {
-			c.EnabledParsers[p] = true
-		}
-	}
-
-	// Toggle parsers
-	var parserOpts []string
-	var defaultSelected []string
-
-	// Sort for consistent UI
-	sort.Strings(availableParsers)
-
-	for _, p := range availableParsers {
-		parserOpts = append(parserOpts, p)
-		if c.EnabledParsers[p] {
-			defaultSelected = append(defaultSelected, p)
-		}
-	}
-
-	var selectedParsers []string
-	prompt := &survey.MultiSelect{
-		Message: "Enable/Disable Parsers (Space to toggle, Enter to save, Ctrl+C to exit):",
-		Options: parserOpts,
-		Default: defaultSelected,
-	}
-	err := SurveyAskOne(prompt, &selectedParsers)
-	if err != nil {
-		return err
-	}
-
-	// Update enabled parsers
-	for _, p := range availableParsers {
-		c.EnabledParsers[p] = false
-	}
-	for _, p := range selectedParsers {
-		c.EnabledParsers[p] = true
-	}
-
-	// Ask for other settings
-	qs := []*survey.Question{
-		{
-			Name: "maxlines",
-			Prompt: &survey.Input{
-				Message: "Maximum total lines to keep in output (MaxLines):",
-				Default: fmt.Sprintf("%d", c.MaxLines),
-			},
-		},
-		{
-			Name: "headlines",
-			Prompt: &survey.Input{
-				Message: "Lines to keep at the start (HeadLines):",
-				Default: fmt.Sprintf("%d", c.HeadLines),
-			},
-		},
-		{
-			Name: "taillines",
-			Prompt: &survey.Input{
-				Message: "Lines to keep at the end (TailLines):",
-				Default: fmt.Sprintf("%d", c.TailLines),
-			},
-		},
-		{
-			Name: "usdrate",
-			Prompt: &survey.Input{
-				Message: "USD Cost per 1 Million Input Tokens (e.g., 3.0 for Sonnet 3.5):",
-				Default: fmt.Sprintf("%.2f", c.USDPerMillionTokens),
-			},
-		},
-		{
-			Name: "heuristic",
-			Prompt: &survey.Input{
-				Message: "Token Heuristic (Average characters per token, e.g., 4.0):",
-				Default: fmt.Sprintf("%.2f", c.TokenHeuristic),
-			},
-		},
-	}
-
-	answers := struct {
-		MaxLines  int     `survey:"maxlines"`
-		HeadLines int     `survey:"headlines"`
-		TailLines int     `survey:"taillines"`
-		USDRate   float64 `survey:"usdrate"`
-		Heuristic float64 `survey:"heuristic"`
-	}{}
-
-	err = SurveyAsk(qs, &answers)
-	if err != nil {
-		return err
-	}
-
-	c.MaxLines = answers.MaxLines
-	c.HeadLines = answers.HeadLines
-	c.TailLines = answers.TailLines
-	c.USDPerMillionTokens = answers.USDRate
-	c.TokenHeuristic = answers.Heuristic
-
-	return c.Save()
 }

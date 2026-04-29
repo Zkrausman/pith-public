@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/AlecAivazis/survey/v2"
 )
 
 func TestGetConfigPath(t *testing.T) {
@@ -155,60 +153,5 @@ func TestGetConfigPath_Default(t *testing.T) {
 	}
 	if path == "" {
 		t.Error("Expected non-empty path")
-	}
-}
-
-func TestInteractiveConfig(t *testing.T) {
-	// Mock survey functions
-	oldAskOne := SurveyAskOne
-	oldAsk := SurveyAsk
-	defer func() {
-		SurveyAskOne = oldAskOne
-		SurveyAsk = oldAsk
-	}()
-
-	SurveyAskOne = func(p survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
-		// Simulate selecting "git" parser
-		resp := response.(*[]string)
-		*resp = []string{"git"}
-		return nil
-	}
-
-	SurveyAsk = func(qs []*survey.Question, response interface{}, opts ...survey.AskOpt) error {
-
-		// Simulate answers
-		resp := response.(*struct {
-			MaxLines  int     `survey:"maxlines"`
-			HeadLines int     `survey:"headlines"`
-			TailLines int     `survey:"taillines"`
-			USDRate   float64 `survey:"usdrate"`
-			Heuristic float64 `survey:"heuristic"`
-		})
-		resp.MaxLines = 1000
-		resp.HeadLines = 200
-		resp.TailLines = 200
-		resp.USDRate = 5.0
-		resp.Heuristic = 3.5
-		return nil
-	}
-
-	cfg := &Config{
-		EnabledParsers: make(map[string]bool),
-		MaxLines:       500,
-	}
-
-	err := cfg.InteractiveConfig([]string{"git", "docker"})
-	if err != nil {
-		t.Fatalf("InteractiveConfig failed: %v", err)
-	}
-
-	if !cfg.EnabledParsers["git"] {
-		t.Error("Expected git parser to be enabled")
-	}
-	if cfg.EnabledParsers["docker"] {
-		t.Error("Expected docker parser to be disabled")
-	}
-	if cfg.MaxLines != 1000 {
-		t.Errorf("Expected MaxLines 1000, got %d", cfg.MaxLines)
 	}
 }

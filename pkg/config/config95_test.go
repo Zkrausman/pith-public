@@ -1,12 +1,9 @@
 package config
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/AlecAivazis/survey/v2"
 )
 
 func TestGetConfigPath_NewDefault(t *testing.T) {
@@ -60,106 +57,6 @@ func TestLoadConfig_WithDefaultsApplied(t *testing.T) {
 	}
 	if cfg.TailLines != 100 {
 		t.Errorf("Expected default TailLines 100, got %d", cfg.TailLines)
-	}
-}
-
-func TestInteractiveConfig_SurveyAskOneError(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("PITH_STORAGE", tmpDir)
-
-	oldAskOne := SurveyAskOne
-	defer func() { SurveyAskOne = oldAskOne }()
-
-	SurveyAskOne = func(p survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
-		return errors.New("user cancelled")
-	}
-
-	cfg := &Config{EnabledParsers: make(map[string]bool)}
-	err := cfg.InteractiveConfig([]string{"git"})
-	if err == nil || err.Error() != "user cancelled" {
-		t.Errorf("Expected 'user cancelled' error, got %v", err)
-	}
-}
-
-func TestInteractiveConfig_SurveyAskError(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("PITH_STORAGE", tmpDir)
-
-	oldAskOne := SurveyAskOne
-	oldAsk := SurveyAsk
-	defer func() {
-		SurveyAskOne = oldAskOne
-		SurveyAsk = oldAsk
-	}()
-
-	SurveyAskOne = func(p survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
-		resp := response.(*[]string)
-		*resp = []string{"git"}
-		return nil
-	}
-	SurveyAsk = func(qs []*survey.Question, response interface{}, opts ...survey.AskOpt) error {
-		return errors.New("survey ask failed")
-	}
-
-	cfg := &Config{EnabledParsers: make(map[string]bool)}
-	err := cfg.InteractiveConfig([]string{"git"})
-	if err == nil || err.Error() != "survey ask failed" {
-		t.Errorf("Expected 'survey ask failed' error, got %v", err)
-	}
-}
-
-func TestInteractiveConfig_EnablesExistingParsers(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("PITH_STORAGE", tmpDir)
-
-	oldAskOne := SurveyAskOne
-	oldAsk := SurveyAsk
-	defer func() {
-		SurveyAskOne = oldAskOne
-		SurveyAsk = oldAsk
-	}()
-
-	SurveyAskOne = func(p survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
-		resp := response.(*[]string)
-		*resp = []string{"git", "docker"}
-		return nil
-	}
-	SurveyAsk = func(qs []*survey.Question, response interface{}, opts ...survey.AskOpt) error {
-		resp := response.(*struct {
-			MaxLines  int     `survey:"maxlines"`
-			HeadLines int     `survey:"headlines"`
-			TailLines int     `survey:"taillines"`
-			USDRate   float64 `survey:"usdrate"`
-			Heuristic float64 `survey:"heuristic"`
-		})
-		resp.MaxLines = 750
-		resp.HeadLines = 50
-		resp.TailLines = 50
-		resp.USDRate = 3.0
-		resp.Heuristic = 4.0
-		return nil
-	}
-
-	// Config already has docker enabled and git disabled
-	cfg := &Config{
-		EnabledParsers: map[string]bool{"git": false, "docker": true},
-		MaxLines:       500,
-		HeadLines:      100,
-		TailLines:      100,
-	}
-
-	err := cfg.InteractiveConfig([]string{"git", "docker"})
-	if err != nil {
-		t.Fatalf("InteractiveConfig failed: %v", err)
-	}
-	if !cfg.EnabledParsers["git"] {
-		t.Error("Expected git to be enabled")
-	}
-	if !cfg.EnabledParsers["docker"] {
-		t.Error("Expected docker to remain enabled")
-	}
-	if cfg.MaxLines != 750 {
-		t.Errorf("Expected MaxLines 750, got %d", cfg.MaxLines)
 	}
 }
 
