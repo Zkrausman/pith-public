@@ -1,4 +1,4 @@
-﻿# Pith: Token-Optimized CLI Proxy
+# Pith: Token-Optimized CLI Proxy
 > Skip the peel, get to the pith.
 
 [![Test and Release](https://github.com/Zkrausman/Pith/actions/workflows/test.yml/badge.svg)](https://github.com/Zkrausman/Pith/actions/workflows/test.yml)
@@ -6,7 +6,7 @@
 
 `pith` is a high-performance CLI tool that intercepts terminal command outputs, compresses them, and filters out noise to save tokens for LLMs (like Claude Code, Gemini CLI, etc.).
 
-## ðŸš€ Features
+## 🚀 Features
 - **Zero-Overhead Proxy:** Fast Go-based binary for near-instant command interception.
 - **Smart Parsers:** 20+ specialized optimizers for common developer commands, now featuring **High Fidelity Parsing** for source code and test results.
 - **Reasoning Over Brevity Standard:** Built-in mandate that prioritizes comprehensive technical depth over brevity to prevent LLM intelligence loss.
@@ -19,7 +19,7 @@
 - **Interactive Configuration:** Toggle parsers and adjust truncation limits via `pith config`.
 - **Interactive Dashboard:** Launch a local web-based analytics dashboard via `pith dashboard`.
 
-## ðŸ“¦ Installation
+## 📦 Installation
 1. Download the latest `pith.exe` from [Releases](https://github.com/Zkrausman/Pith/releases).
 2. Run the installer (defaults to global install for all CLIs):
    ```bash
@@ -30,7 +30,7 @@
 
 ---
 
-## ðŸ› ï¸ Power User Features
+## 🛠️ Power User Features
 
 ### 1. Targeted Installation
 If you only want to install hooks for a specific CLI or only for the current project:
@@ -45,10 +45,10 @@ pith raw git diff
 ```
 This bypasses all logic and returns the original system output.
 
-### 2. Middle-Out Truncation
+### 3. Middle-Out Truncation
 When a command returns thousands of lines (like a massive log file), Pith prevents context overflow by keeping the most important parts: the **beginning** (setup/context) and the **end** (errors/results).
 
-### âš™ï¸ Interactive Configuration (`pith config`)
+### ⚙️ Interactive Configuration (`pith config`)
 Pith features a modern, multi-page TUI built with **Bubble Tea** to manage your optimization engine. Use **`Tab`** to switch between the **Parsers** and **Settings** pages.
 
 #### 1. Parsers Page
@@ -67,7 +67,7 @@ This page controls **Middle-Out Truncation** and analytics precision.
 
 ---
 
-## ðŸ› ï¸ Supported Parsers
+## 🛠️ Supported Parsers
 Pith currently optimizes the following commands:
 - **Git:** `status`, `log`, `diff`, `branch`, and **composite commands** (e.g., `git status & git log`)
 - **PowerShell:** `Get-Content` (JSON minification & truncation), `Get-ChildItem` (ls/dir minification)
@@ -79,7 +79,7 @@ Pith currently optimizes the following commands:
 
 ---
 
-## ðŸ“Š Compression Examples
+## 📊 Compression Examples
 
 ### 1. `git status`
 **Raw Output (~80 tokens):**
@@ -140,13 +140,13 @@ main.go README.md
 
 ---
 
-## ðŸ§ª Testing & Quality
+## 🧪 Testing & Quality
 Pith uses [promptfoo](https://promptfoo.dev/) to evaluate the performance and quality of its token-optimization strategies.
 
-- **Status:** **Work In Progress (WIP)** ðŸ› ï¸
+- **Status:** **Work In Progress (WIP)** 🛠️
 - **Latest Evaluation:** [tests/report.md](tests/report.md)
 
-## ðŸ“Š Analytics Dashboard
+## 📊 Analytics Dashboard
 Pith includes an interactive web dashboard to visualize your token savings and discover new optimization opportunities.
 
 - **Launch:** `pith dashboard`
@@ -155,7 +155,7 @@ Pith includes an interactive web dashboard to visualize your token savings and d
 
 ---
 
-## âŒ¨ï¸ CLI Usage
+## ⌨️ CLI Usage
 - `pith <command>`: Proxy any command manually.
 - `pith config`: Toggle parsers on/off.
 - `pith gain`: View total tokens saved.
