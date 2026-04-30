@@ -43,7 +43,9 @@ If a parser is being too aggressive and you need to see the raw, bit-for-bit out
 ```bash
 pith raw git diff
 ```
-This bypasses all logic and returns the original system output.
+This bypasses all logic and returns the original system output. 
+
+> **Note:** This is intended as a **temporary workaround**. If a specific parser consistently causes issues, you can permanently disable it using the **Parsers Page** in `pith config`.
 
 ### 3. Middle-Out Truncation
 When a command returns thousands of lines (like a massive log file), Pith prevents context overflow by keeping the most important parts: the **beginning** (setup/context) and the **end** (errors/results).
