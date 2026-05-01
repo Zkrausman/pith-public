@@ -22,6 +22,9 @@
 - [x] **Predictive Cost Advisor**: Estimate the total session cost based on current roadmap complexity.
 
 ## Maintenance & Stabilization
+- [x] **Pith Optimization: Semantic Compression (pith-8e8)**
+- [x] **Implement Autonomous Root Cause Forensics (--diagnose) (pith-o7c)**
+- [x] **Binary Hygiene: Standardize .gitignore and clean up artifacts (pith-ppz)**
 - [x] **Binary Hygiene: Standardize .gitignore and clean up artifacts (pith-zqn)**
 - [x] **Binary Hygiene: Standardize .gitignore and clean up artifacts (pith-1l2)**
 - [x] **v0.11.0: Fix token tracking feedback loops and update cost basis (pith-bgf)**
