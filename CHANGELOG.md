@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.8] - 2026-05-01
+### Fixed
+- **CI Stability**: Resolved remaining "exec: 'cmd': executable file not found" errors on Linux runners by refactoring `pkg/runner/runner_extra_test.go` to be platform-aware.
+
 ## [0.14.7] - 2026-05-01
 ### Fixed
 - **Cross-Platform Execution**: Fixed a critical bug in the runner that hardcoded `cmd /c` for shell execution, which caused failures on Linux and macOS. Now correctly uses `sh -c` on non-Windows systems.
