@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"pith/pkg/config"
 	"pith/pkg/telemetry"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -96,8 +97,14 @@ func TestRunWithOptions_Simple(t *testing.T) {
 	cfg := &config.Config{StoragePath: tmpDir}
 	run := NewRunner(cfg, tel)
 
-	// Run 'cmd /c echo hello' on Windows
-	err := run.RunWithOptions([]string{"cmd", "/c", "echo", "hello"}, false)
+	var args []string
+	if runtime.GOOS == "windows" {
+		args = []string{"cmd", "/c", "echo hello"}
+	} else {
+		args = []string{"echo", "hello"}
+	}
+
+	err := run.RunWithOptions(args, false)
 	if err != nil {
 		t.Errorf("Run failed: %v", err)
 	}
@@ -124,8 +131,14 @@ func TestRunWithOptions_Chain(t *testing.T) {
 	defer tel.Close()
 	r := NewRunner(cfg, tel)
 
-	// Test composite command
-	err := r.RunWithOptions([]string{"cmd", "/c", "echo line1 & echo line2"}, false)
+	var args []string
+	if runtime.GOOS == "windows" {
+		args = []string{"cmd", "/c", "echo line1 & echo line2"}
+	} else {
+		args = []string{"sh", "-c", "echo line1; echo line2"}
+	}
+
+	err := r.RunWithOptions(args, false)
 	if err != nil {
 		t.Fatalf("RunWithOptions chain failed: %v", err)
 	}
@@ -138,8 +151,14 @@ func TestRunWithOptions_Error(t *testing.T) {
 	defer tel.Close()
 	r := NewRunner(cfg, tel)
 
-	// Command that fails
-	err := r.RunWithOptions([]string{"cmd", "/c", "exit 1"}, false)
+	var args []string
+	if runtime.GOOS == "windows" {
+		args = []string{"cmd", "/c", "exit 1"}
+	} else {
+		args = []string{"sh", "-c", "exit 1"}
+	}
+
+	err := r.RunWithOptions(args, false)
 	if err == nil {
 		t.Error("Expected error for exit 1")
 	}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"pith/pkg/telemetry"
+	"runtime"
 	"testing"
 )
 
@@ -167,8 +168,15 @@ func TestRawCmd_WithEcho(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
 
+	var args []string
+	if runtime.GOOS == "windows" {
+		args = []string{"raw", "cmd", "/c", "echo", "hello"}
+	} else {
+		args = []string{"raw", "echo", "hello"}
+	}
+
 	cmd := NewRootCmd()
-	cmd.SetArgs([]string{"raw", "cmd", "/c", "echo", "hello"})
+	cmd.SetArgs(args)
 	b := new(bytes.Buffer)
 	cmd.SetOut(b)
 	cmd.SetErr(b)

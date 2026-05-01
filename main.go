@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-const version = "v0.14.6"
+const version = "v0.14.7"
 
 type HookInput struct {
 	ToolResponse struct {

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.7] - 2026-05-01
+### Fixed
+- **Cross-Platform Execution**: Fixed a critical bug in the runner that hardcoded `cmd /c` for shell execution, which caused failures on Linux and macOS. Now correctly uses `sh -c` on non-Windows systems.
+- **Test Stability**: Refactored the test suite (`main_test.go`, `runner_test.go`, etc.) to be cross-platform, resolving CI failures on Ubuntu runners.
+
 ## [0.14.6] - 2026-05-01
 ### Added
 - **Roadmap Enhancement**: Updated Phase 4 objectives in `docs/ROADMAP.md` to prioritize estate-wide synchronization.

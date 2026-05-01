@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"pith/pkg/telemetry"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -417,8 +418,15 @@ func TestRawCmd(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
 
+	var args []string
+	if runtime.GOOS == "windows" {
+		args = []string{"raw", "cmd", "/c", "echo", "hello"}
+	} else {
+		args = []string{"raw", "echo", "hello"}
+	}
+
 	cmd := NewRootCmd()
-	cmd.SetArgs([]string{"raw", "cmd", "/c", "echo", "hello"})
+	cmd.SetArgs(args)
 	b := new(bytes.Buffer)
 	cmd.SetOut(b)
 	if err := cmd.Execute(); err != nil {
@@ -443,8 +451,15 @@ func TestRootCmd_Run(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
 
+	var args []string
+	if runtime.GOOS == "windows" {
+		args = []string{"cmd", "/c", "echo", "hello"}
+	} else {
+		args = []string{"echo", "hello"}
+	}
+
 	cmd := NewRootCmd()
-	cmd.SetArgs([]string{"cmd", "/c", "echo", "hello"})
+	cmd.SetArgs(args)
 	b := new(bytes.Buffer)
 	cmd.SetOut(b)
 	if err := cmd.Execute(); err != nil {

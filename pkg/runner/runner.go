@@ -9,6 +9,7 @@ import (
 	"pith/pkg/config"
 	"pith/pkg/parser"
 	"pith/pkg/telemetry"
+	"runtime"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -96,9 +97,11 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	var cmd *exec.Cmd
 	// If it's a composite command or has shell redirects, run through shell
 	if strings.ContainsAny(fullCmd, ";|&><") {
-		// Windows
-		cmd = exec.Command("cmd", "/c", fullCmd)
-		// On Linux/macOS you'd use "sh", "-c", fullCmd
+		if runtime.GOOS == "windows" {
+			cmd = exec.Command("cmd", "/c", fullCmd)
+		} else {
+			cmd = exec.Command("sh", "-c", fullCmd)
+		}
 	} else {
 		// IMPORTANT: If 'args' has more than one element, they are the arguments.
 		// If 'args' has only one element but it contains spaces, it's a combined string
