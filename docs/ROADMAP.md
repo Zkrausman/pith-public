@@ -22,6 +22,7 @@
 - [x] **Predictive Cost Advisor**: Estimate the total session cost based on current roadmap complexity.
 
 ## Maintenance & Stabilization
+- [x] **Release Surge v2.0.0 (Pith-surge)**
 - [x] **Pith Optimization: Semantic Compression (pith-8e8)**
 - [x] **Implement Autonomous Root Cause Forensics (--diagnose) (pith-o7c)**
 - [x] **Binary Hygiene: Standardize .gitignore and clean up artifacts (pith-ppz)**

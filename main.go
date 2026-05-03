@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-const version = "v0.14.8"
+const version = "v2.0.0"
 
 type HookInput struct {
 	ToolResponse struct {
@@ -551,7 +551,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	}
 	defer tel.Close()
 
-	fmt.Println("\nðŸ” Pith Predictive Analytics")
+	fmt.Println("\n🔍 Pith Predictive Analytics")
 	fmt.Println("---------------------------------------")
 
 	// 1. Anomaly Detection
@@ -559,17 +559,17 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Printf("Anomaly Detection Error: %v\n", err)
 	} else if len(anomalies) > 0 {
-		fmt.Printf("âš ï¸  Detected %d Anomalies:\n", len(anomalies))
+		fmt.Printf("⚠️  Detected %d Anomalies:\n", len(anomalies))
 		for _, a := range anomalies {
 			fmt.Printf("  - %s\n", a.Reason)
 		}
 	} else {
-		fmt.Println("âœ… No unusual token consumption detected.")
+		fmt.Println("✅ No unusual token consumption detected.")
 	}
 
 	// 2. Cost Advisor
 	estimate := advisor.EstimateSessionCost(10, 2000, cfg.USDPerMillionTokens)
-	fmt.Printf("\nðŸ’° %s\n", estimate.FormatReport())
+	fmt.Printf("\n💰 %s\n", estimate.FormatReport())
 
 	fmt.Println("---------------------------------------")
 	return nil
@@ -599,7 +599,7 @@ func runAuditAnomalies(cmd *cobra.Command, args []string) error {
 	lookbackMins, _ := cmd.Flags().GetInt("lookback")
 	lookback := time.Duration(lookbackMins) * time.Minute
 
-	if !jsonOutput { fmt.Printf("\nÃ°Å¸â€  Auditing Overseer logs (last %d minutes)...\n", lookbackMins) }
+	if !jsonOutput { fmt.Printf("\nðŸ”  Auditing Overseer logs (last %d minutes)...\n", lookbackMins) }
 	anomalies, err := anomaly.AuditOverseerLogs(lookback)
 	if jsonOutput {
 		return json.NewEncoder(os.Stdout).Encode(anomalies)
@@ -609,11 +609,11 @@ func runAuditAnomalies(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(anomalies) == 0 {
-		fmt.Println("Ã¢Å“â€¦ No anomalies detected in recent telemetry.")
+		fmt.Println("âœ… No anomalies detected in recent telemetry.")
 		return nil
 	}
 
-	fmt.Printf("Ã¢Å¡Â Ã¯Â¸  Detected %d Anomalies:\n", len(anomalies))
+	fmt.Printf("âš ï¸  Detected %d Anomalies:\n", len(anomalies))
 	fmt.Println(strings.Repeat("-", 60))
 	diagnose, _ := cmd.Flags().GetBool("diagnose")
 
