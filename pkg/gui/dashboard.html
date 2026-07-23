@@ -46,12 +46,12 @@
         <!-- Header -->
         <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h1 class="text-3xl font-bold tracking-tight">Pith <span class="accent-sky">Dashboard</span> <span class="text-xs bg-sky-500/10 text-sky-400 px-2 py-1 rounded-full ml-2 border border-sky-500/20">v2.0</span></h1>
+                <h1 class="text-3xl font-bold tracking-tight">Pith <span class="accent-sky">Dashboard</span> <span class="text-xs bg-sky-500/10 text-sky-400 px-2 py-1 rounded-full ml-2 border border-sky-500/20">v2.1.0</span></h1>
                 <p class="text-slate-400 mt-1">Intelligent Token Optimization & Efficiency Monitoring</p>
             </div>
             <div class="flex gap-4 items-center">
                 <div class="relative">
-                    <input type="text" id="search-input" placeholder="Forensic Search..." 
+                    <input type="text" id="search-input" placeholder="Full-Text FTS5 Search..." 
                            class="bg-slate-800 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 focus:outline-none focus:border-sky-500 w-64 mono transition-all"
                            onkeyup="handleSearch(event)">
                     <div id="search-clear" class="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer hidden" onclick="clearSearch()">✕</div>
@@ -61,6 +61,9 @@
                 </select>
                 <button onclick="loadData()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 transition-colors">
                     Refresh Data
+                </button>
+                <button id="sync-button" onclick="syncTelemetry()" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                    <span id="sync-icon">🔄</span> <span id="sync-text">Sync Telemetry</span>
                 </button>
             </div>
         </header>
@@ -196,6 +199,57 @@
         let costRate = 3.0; // Default
         let isSearchActive = false;
 
+        function highlightText(text, search) {
+            if (!search) return text;
+            const terms = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split(/\s+/).filter(t => t.length > 0 && t.toUpperCase() !== 'AND' && t.toUpperCase() !== 'OR' && !t.includes('*'));
+            if (terms.length === 0) return text;
+            
+            let highlighted = text;
+            terms.forEach(term => {
+                const regex = new RegExp(`(${term})`, 'gi');
+                highlighted = highlighted.replace(regex, '<mark class="bg-yellow-500/30 text-yellow-200 px-0.5 rounded">$1</mark>');
+            });
+            return highlighted;
+        }
+
+        async function syncTelemetry() {
+            const btn = document.getElementById('sync-button');
+            const text = document.getElementById('sync-text');
+            const icon = document.getElementById('sync-icon');
+            
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            text.innerText = 'Syncing...';
+            icon.classList.add('animate-spin');
+
+            try {
+                const res = await fetch('/api/telemetry/sync', { method: 'POST' }).then(res => res.json());
+                if (res.status === 'ok') {
+                    text.innerText = 'Sync Success!';
+                    setTimeout(() => {
+                        text.innerText = 'Sync Telemetry';
+                    }, 3000);
+                    loadData();
+                } else {
+                    alert('Sync failed: ' + res.error);
+                    text.innerText = 'Sync Failed';
+                    setTimeout(() => {
+                        text.innerText = 'Sync Telemetry';
+                    }, 3000);
+                }
+            } catch (err) {
+                alert('Sync error: ' + err);
+                text.innerText = 'Sync Error';
+                setTimeout(() => {
+                    text.innerText = 'Sync Telemetry';
+                }, 3000);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                icon.classList.remove('animate-spin');
+            }
+        }
+
         async function loadData() {
             if (isSearchActive) return; // Don't refresh data if user is searching
             
@@ -286,6 +340,9 @@
                 const savingsPct = item.OriginalTokens > 0 ? Math.round((savings / item.OriginalTokens) * 100) : 0;
                 const time = new Date(item.Timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+                const query = document.getElementById('search-input').value.trim();
+                const cmdHtml = isSearchActive ? highlightText(item.Command, query) : item.Command;
+
                 div.innerHTML = `
                     <div class="flex justify-between items-start mb-1">
                         <span class="text-xs text-slate-500 font-medium">${time}</span>
@@ -293,7 +350,7 @@
                             ${isHit ? 'Optimized' : 'Passthrough'}
                         </span>
                     </div>
-                    <div class="mono text-xs text-slate-300 truncate mb-1" title="${item.Command}">${item.Command}</div>
+                    <div class="mono text-xs text-slate-300 truncate mb-1" title="${item.Command}">${cmdHtml}</div>
                     <div class="text-[10px] text-slate-500">
                         ${item.OriginalTokens.toLocaleString()} tokens &rarr; 
                         <span class="${isHit ? 'text-emerald-400 font-bold' : ''}">${item.CompressedTokens.toLocaleString()}</span>

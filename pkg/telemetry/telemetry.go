@@ -2,9 +2,12 @@ package telemetry
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -80,10 +83,53 @@ func (t *Telemetry) init() error {
 		return err
 	}
 
-	// Migrations
+	// Migrations for columns
 	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN original_content TEXT")
 	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN compressed_content TEXT")
 	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN source TEXT DEFAULT 'unknown'")
+
+	// Uniqueness constraint to prevent duplication on sync
+	_, _ = t.DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_executions_unique ON executions(timestamp, command, duration_ms)")
+
+	// FTS5 Setup
+	_, err = t.DB.Exec(`
+	CREATE VIRTUAL TABLE IF NOT EXISTS executions_fts USING fts5(
+		command,
+		original_content,
+		compressed_content,
+		content='executions',
+		content_rowid='id'
+	);`)
+	if err != nil {
+		return fmt.Errorf("failed to create FTS5 table: %w", err)
+	}
+
+	// Triggers to keep FTS5 synchronized
+	_, _ = t.DB.Exec(`
+	CREATE TRIGGER IF NOT EXISTS executions_ai AFTER INSERT ON executions BEGIN
+		INSERT INTO executions_fts(rowid, command, original_content, compressed_content)
+		VALUES (new.id, new.command, new.original_content, new.compressed_content);
+	END;`)
+
+	_, _ = t.DB.Exec(`
+	CREATE TRIGGER IF NOT EXISTS executions_ad AFTER DELETE ON executions BEGIN
+		INSERT INTO executions_fts(executions_fts, rowid, command, original_content, compressed_content)
+		VALUES ('delete', old.id, old.command, old.original_content, old.compressed_content);
+	END;`)
+
+	_, _ = t.DB.Exec(`
+	CREATE TRIGGER IF NOT EXISTS executions_au AFTER UPDATE ON executions BEGIN
+		INSERT INTO executions_fts(executions_fts, rowid, command, original_content, compressed_content)
+		VALUES ('delete', old.id, old.command, old.original_content, old.compressed_content);
+		INSERT INTO executions_fts(rowid, command, original_content, compressed_content)
+		VALUES (new.id, new.command, new.original_content, new.compressed_content);
+	END;`)
+
+	// Backfill existing records into FTS index if any
+	_, _ = t.DB.Exec(`
+	INSERT INTO executions_fts(rowid, command, original_content, compressed_content)
+	SELECT id, command, original_content, compressed_content FROM executions
+	WHERE id NOT IN (SELECT rowid FROM executions_fts);`)
 
 	return nil
 }
@@ -339,8 +385,23 @@ func (t *Telemetry) GetExecutionDetails(id int64) (*ExecutionRecord, error) {
 }
 
 func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) ([]ExecutionRecord, error) {
-	whereClause := "WHERE (command LIKE ? OR original_content LIKE ? OR compressed_content LIKE ?)"
-	args := []interface{}{"%" + queryStr + "%", "%" + queryStr + "%", "%" + queryStr + "%"}
+	if queryStr == "" {
+		return nil, nil
+	}
+
+	ftsQuery := queryStr
+	// If it doesn't contain any advanced syntax operators (*, AND, OR, MATCH), we can support suffix wildcard matching:
+	if !strings.ContainsAny(queryStr, `*"`+"'") && !strings.Contains(queryStr, "AND") && !strings.Contains(queryStr, "OR") {
+		terms := strings.Fields(queryStr)
+		if len(terms) > 0 {
+			terms[len(terms)-1] = terms[len(terms)-1] + "*"
+			ftsQuery = strings.Join(terms, " ")
+		}
+	}
+
+	whereClause := "WHERE executions.id IN (SELECT rowid FROM executions_fts WHERE executions_fts MATCH ?)"
+	args := []interface{}{ftsQuery}
+
 	if source != "" && source != "all" {
 		whereClause += " AND source = ?"
 		args = append(args, source)
@@ -356,12 +417,30 @@ func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) 
 
 	rows, err := t.DB.Query(sqlQuery, args...)
 	if err != nil {
-		return nil, err
+		// Fallback to traditional LIKE search if FTS syntax error
+		fallbackClause := "WHERE (command LIKE ? OR original_content LIKE ? OR compressed_content LIKE ?)"
+		fallbackArgs := []interface{}{"%" + queryStr + "%", "%" + queryStr + "%", "%" + queryStr + "%"}
+		if source != "" && source != "all" {
+			fallbackClause += " AND source = ?"
+			fallbackArgs = append(fallbackArgs, source)
+		}
+		fallbackArgs = append(fallbackArgs, limit)
+
+		fallbackSqlQuery := fmt.Sprintf(`
+		SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source
+		FROM executions
+		%s
+		ORDER BY timestamp DESC
+		LIMIT ?`, fallbackClause)
+
+		rows, err = t.DB.Query(fallbackSqlQuery, fallbackArgs...)
+		if err != nil {
+			return nil, err
+		}
 	}
 	defer rows.Close()
 
 	var results []ExecutionRecord
-
 	for rows.Next() {
 		var r ExecutionRecord
 		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source); err != nil {
@@ -371,4 +450,97 @@ func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) 
 	}
 
 	return results, nil
+}
+
+func (t *Telemetry) ExportJSONL(w io.Writer) error {
+	query := `
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source
+	FROM executions
+	ORDER BY id ASC`
+
+	rows, err := t.DB.Query(query)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	encoder := json.NewEncoder(w)
+	for rows.Next() {
+		var r ExecutionRecord
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source); err != nil {
+			return err
+		}
+		if err := encoder.Encode(r); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t *Telemetry) ImportJSONL(r io.Reader) error {
+	tx, err := t.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	decoder := json.NewDecoder(r)
+	query := `
+	INSERT OR IGNORE INTO executions (timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for {
+		var rec ExecutionRecord
+		if err := decoder.Decode(&rec); err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		tVal := rec.Timestamp
+		if tVal.IsZero() {
+			tVal = time.Now()
+		}
+
+		_, err = stmt.Exec(tVal, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough, rec.Source)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (t *Telemetry) ExportJSONLSince(w io.Writer, sinceID int64) error {
+	query := `
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source
+	FROM executions
+	WHERE id > ?
+	ORDER BY id ASC`
+
+	rows, err := t.DB.Query(query, sinceID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	encoder := json.NewEncoder(w)
+	for rows.Next() {
+		var r ExecutionRecord
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source); err != nil {
+			return err
+		}
+		if err := encoder.Encode(r); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

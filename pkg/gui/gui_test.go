@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"pith/pkg/config"
 	"pith/pkg/telemetry"
+	"strings"
 	"testing"
 )
 
@@ -72,5 +73,30 @@ func TestDashboardHandlers(t *testing.T) {
 	http.DefaultServeMux.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected 200 OK for sources, got %d", w.Code)
+	}
+
+	// Test /api/telemetry/pull
+	req = httptest.NewRequest("GET", "/api/telemetry/pull?since_id=0", nil)
+	w = httptest.NewRecorder()
+	http.DefaultServeMux.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected 200 OK for telemetry pull, got %d", w.Code)
+	}
+	pullBody := w.Body.String()
+
+	// Test /api/telemetry/push
+	req = httptest.NewRequest("POST", "/api/telemetry/push", strings.NewReader(pullBody))
+	w = httptest.NewRecorder()
+	http.DefaultServeMux.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected 200 OK for telemetry push, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Test /api/telemetry/sync
+	req = httptest.NewRequest("POST", "/api/telemetry/sync", nil)
+	w = httptest.NewRecorder()
+	http.DefaultServeMux.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest && w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected bad request or internal error for telemetry sync, got %d", w.Code)
 	}
 }

@@ -9,6 +9,8 @@ import (
 	"pith/pkg/config"
 	"pith/pkg/telemetry"
 	"runtime"
+	"strings"
+	"time"
 )
 
 //go:embed dashboard.html
@@ -78,6 +80,121 @@ func registerHandlers(cfg *config.Config, tel *telemetry.Telemetry) {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(results)
+	})
+
+	http.HandleFunc("/api/telemetry/push", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		err := tel.ImportJSONL(r.Body)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Import failed: %v", err), http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, `{"status":"ok"}`)
+	})
+
+	http.HandleFunc("/api/telemetry/pull", func(w http.ResponseWriter, r *http.Request) {
+		sinceIDStr := r.URL.Query().Get("since_id")
+		var sinceID int64
+		if sinceIDStr != "" {
+			fmt.Sscanf(sinceIDStr, "%d", &sinceID)
+		}
+		w.Header().Set("Content-Type", "application/x-jsonlines")
+		err := tel.ExportJSONLSince(w, sinceID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
+
+	http.HandleFunc("/api/telemetry/sync", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		serverURL := cfg.SyncServerURL
+		if serverURL == "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintln(w, `{"status":"error","error":"Sync server URL not configured"}`)
+			return
+		}
+
+		var pushBuf strings.Builder
+		if err := tel.ExportJSONL(&pushBuf); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, `{"status":"error","error":"Failed to export local telemetry: %v"}\n`, err)
+			return
+		}
+
+		importEndpoint := strings.TrimSuffix(serverURL, "/") + "/api/telemetry/push"
+		importReq, err := http.NewRequest("POST", importEndpoint, strings.NewReader(pushBuf.String()))
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, `{"status":"error","error":"Failed to prepare push request: %v"}\n`, err)
+			return
+		}
+		importReq.Header.Set("Content-Type", "application/x-jsonlines")
+
+		client := &http.Client{Timeout: 10 * time.Second}
+		importResp, err := client.Do(importReq)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, `{"status":"error","error":"Push server connection failed: %v"}\n`, err)
+			return
+		}
+		defer importResp.Body.Close()
+
+		if importResp.StatusCode != http.StatusOK {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, `{"status":"error","error":"Push failed with status %d"}\n`, importResp.StatusCode)
+			return
+		}
+
+		pullEndpoint := strings.TrimSuffix(serverURL, "/") + "/api/telemetry/pull?since_id=0"
+		pullReq, err := http.NewRequest("GET", pullEndpoint, nil)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, `{"status":"error","error":"Failed to prepare pull request: %v"}\n`, err)
+			return
+		}
+
+		pullResp, err := client.Do(pullReq)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, `{"status":"error","error":"Pull server connection failed: %v"}\n`, err)
+			return
+		}
+		defer pullResp.Body.Close()
+
+		if pullResp.StatusCode != http.StatusOK {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, `{"status":"error","error":"Pull failed with status %d"}\n`, pullResp.StatusCode)
+			return
+		}
+
+		if err := tel.ImportJSONL(pullResp.Body); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, `{"status":"error","error":"Failed to import telemetry: %v"}\n`, err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, `{"status":"ok"}`)
 	})
 
 	http.HandleFunc("/api/recent", func(w http.ResponseWriter, r *http.Request) {

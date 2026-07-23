@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"pith/pkg/telemetry"
 	"testing"
 )
@@ -134,5 +135,41 @@ func TestUpdateCmd_Run(t *testing.T) {
 	cmd.SetOut(b)
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("update failed: %v", err)
+	}
+}
+
+func TestSyncCmd_Manual(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+
+	tel, _ := telemetry.NewTelemetry(tmpDir)
+	tel.Record(telemetry.ExecutionRecord{
+		Command: "pith sync test",
+		Source:  "test",
+	})
+	tel.Close()
+
+	exportFile := filepath.Join(tmpDir, "exported.jsonl")
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"sync", "--export", exportFile})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	cmd.SetErr(b)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("sync export failed: %v", err)
+	}
+
+	if _, err := os.Stat(exportFile); os.IsNotExist(err) {
+		t.Errorf("Export file not created: %s", exportFile)
+	}
+
+	cmd2 := NewRootCmd()
+	cmd2.SetArgs([]string{"sync", "--import", exportFile})
+	b2 := new(bytes.Buffer)
+	cmd2.SetOut(b2)
+	cmd2.SetErr(b2)
+	if err := cmd2.Execute(); err != nil {
+		t.Fatalf("sync import failed: %v", err)
 	}
 }

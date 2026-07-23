@@ -3,6 +3,7 @@ package telemetry
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -206,5 +207,115 @@ func TestTelemetryFiltering(t *testing.T) {
 	unparsed, _ := tel.GetUnparsedCommands("src1")
 	if len(unparsed) != 1 || unparsed[0].Pattern != "unparsed1" {
 		t.Errorf("Expected 1 unparsed for src1, got %v", unparsed)
+	}
+}
+
+func TestTelemetryFTSSearch(t *testing.T) {
+	tmpDir := t.TempDir()
+	tel, err := NewTelemetry(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tel.Close()
+
+	tel.Record(ExecutionRecord{Command: "npm run build", OriginalContent: "webpack compilation success", CompressedContent: "compilation ok", Source: "term"})
+	tel.Record(ExecutionRecord{Command: "git commit -m 'fix bug'", OriginalContent: "git commit output success", CompressedContent: "success", Source: "term"})
+	tel.Record(ExecutionRecord{Command: "ls -la", OriginalContent: "list directory", CompressedContent: "dir", Source: "term"})
+
+	// Test prefix wildcard MATCH
+	res, err := tel.SearchExecutions("compil", "all", 10)
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+	if len(res) != 1 || res[0].Command != "npm run build" {
+		t.Errorf("Expected npm run build, got %v", res)
+	}
+
+	// Test simple word match
+	res, err = tel.SearchExecutions("webpack success", "all", 10)
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+	if len(res) != 1 || res[0].Command != "npm run build" {
+		t.Errorf("Expected npm run build, got %v", res)
+	}
+
+	// Test boolean operator OR
+	res, err = tel.SearchExecutions("webpack OR success", "all", 10)
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+	if len(res) != 2 {
+		t.Errorf("Expected 2 matches for OR search, got %d", len(res))
+	}
+
+	// Test syntax error fallback (LIKE fallback)
+	tel.Record(ExecutionRecord{Command: "git commit -m 'fix bug (error)'", OriginalContent: "special (log)", CompressedContent: "special", Source: "term"})
+	res, err = tel.SearchExecutions("special (", "all", 10)
+	if err != nil {
+		t.Fatalf("Fallback search failed: %v", err)
+	}
+	if len(res) != 1 || !strings.Contains(res[0].Command, "fix bug") {
+		t.Errorf("Expected fallback match to find the record, got %v", res)
+	}
+}
+
+func TestTelemetryJSONL(t *testing.T) {
+	tmpDir := t.TempDir()
+	tel, err := NewTelemetry(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tel.Close()
+
+	rec := ExecutionRecord{
+		Command:           "grep pattern",
+		OriginalTokens:    150,
+		CompressedTokens:  75,
+		OriginalContent:   "grep output",
+		CompressedContent: "grep short",
+		DurationMs:        30,
+		ParserUsed:        "grep",
+		IsPassthrough:     false,
+		Source:            "terminal",
+	}
+
+	if err := tel.Record(rec); err != nil {
+		t.Fatalf("Failed to record: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tel.ExportJSONL(&buf); err != nil {
+		t.Fatalf("ExportJSONL failed: %v", err)
+	}
+
+	tmpDir2 := t.TempDir()
+	tel2, err := NewTelemetry(tmpDir2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tel2.Close()
+
+	inReader := strings.NewReader(buf.String())
+	if err := tel2.ImportJSONL(inReader); err != nil {
+		t.Fatalf("ImportJSONL failed: %v", err)
+	}
+
+	stats, err := tel2.GetStatsByCommand("terminal")
+	if err != nil {
+		t.Fatalf("GetStatsByCommand failed: %v", err)
+	}
+	if len(stats) != 1 || stats[0].Command != "grep pattern" {
+		t.Errorf("Expected grep pattern in imported telemetry, got %v", stats)
+	}
+
+	inReader2 := strings.NewReader(buf.String())
+	if err := tel2.ImportJSONL(inReader2); err != nil {
+		t.Fatalf("Re-importing same data failed: %v", err)
+	}
+
+	stats2, _ := tel2.GetStatsByCommand("terminal")
+	if len(stats2) != 1 {
+		t.Errorf("Expected deduplicated count to be 1, got %d", len(stats2))
 	}
 }

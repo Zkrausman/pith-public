@@ -11,17 +11,19 @@
 - [x] Stabilize token tracking and cost analytics.
 - [x] Expand parser coverage for common developer tools.
 
-## Phase 3: Advanced Optimization (Current)
+## Phase 3: Advanced Optimization (Complete)
 - [x] **Semantic Compression:** Move beyond heuristic-based truncation to LLM-driven summarization for ultra-high-value outputs.
-- [ ] **Multi-Agent Sync:** Centralize Pith telemetry across multiple machines/users for enterprise-wide token savings.
-- [ ] **Deep-Dive Search:** Add full-text search across all recorded command executions in the dashboard.
+- [x] **Multi-Agent Sync:** Centralize Pith telemetry across multiple machines/users for enterprise-wide token savings.
+- [x] **Deep-Dive Search:** Add full-text search across all recorded command executions in the dashboard.
 
 ## Phase 4: Predictive Analytics (New)
 - [x] **Anomaly Detection**: Use local DuckDB models to bridge Overseer and flag behavioral failures. (pith-lcw): Use local DuckDB models to flag unusual token usage or execution patterns.
-- [ ] **Context ROI Heatmap**: Visualize which injected files consistently result in "Hits" vs. "Misses" to optimize `whet` injection logic.
+- [x] **Context ROI Heatmap**: Visualize which injected files consistently result in "Hits" vs. "Misses" to optimize `whet` injection logic.
 - [x] **Predictive Cost Advisor**: Estimate the total session cost based on current roadmap complexity.
 
 ## Maintenance & Stabilization
+- [x] **Fix cross-platform CI failures and shell execution (pith-btj)**
+- [x] **Release v0.14.6 (pith-ksi)**
 - [x] **Release Surge v2.0.0 (Pith-surge)**
 - [x] **Pith Optimization: Semantic Compression (pith-8e8)**
 - [x] **Implement Autonomous Root Cause Forensics (--diagnose) (pith-o7c)**

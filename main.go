@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"io"
+	"net/http"
 	"os"
 	"pith/pkg/advisor"
 	"pith/pkg/anomaly"
@@ -19,7 +20,7 @@ import (
 	"time"
 )
 
-const version = "v2.0.0"
+const version = "v2.1.0"
 
 type HookInput struct {
 	ToolResponse struct {
@@ -125,6 +126,15 @@ func NewRootCmd() *cobra.Command {
 		RunE:  runAnalyze,
 	}
 
+	var syncCmd = &cobra.Command{
+		Use:   "sync",
+		Short: "Synchronize telemetry database with the central Pith server",
+		RunE:  runSync,
+	}
+
+	syncCmd.Flags().String("export", "", "Export all local telemetry executions to a JSONL file")
+	syncCmd.Flags().String("import", "", "Import execution records from a JSONL file")
+
 	resetCmd.Flags().Bool("all", false, "Reset ALL telemetry data (gain and discover)")
 	resetCmd.Flags().Bool("discover", false, "Reset only discovery data (passthrough commands)")
 
@@ -149,6 +159,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(rawCmd)
 	rootCmd.AddCommand(dashboardCmd)
 	rootCmd.AddCommand(analyzeCmd)
+	rootCmd.AddCommand(syncCmd)
 	rootCmd.AddCommand(newAuditCmd())
 
 	return rootCmd
@@ -541,6 +552,108 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 	defer tel.Close()
 	port, _ := cmd.Flags().GetInt("port")
 	return gui.StartDashboard(cfg, tel, port)
+}
+
+func runSync(cmd *cobra.Command, args []string) error {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return err
+	}
+
+	tel, err := telemetry.NewTelemetry(cfg.StoragePath)
+	if err != nil {
+		return err
+	}
+	defer tel.Close()
+
+	exportPath, _ := cmd.Flags().GetString("export")
+	if exportPath != "" {
+		f, err := os.Create(exportPath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		fmt.Printf("Exporting telemetry to %s...\n", exportPath)
+		if err := tel.ExportJSONL(f); err != nil {
+			return err
+		}
+		fmt.Println("Export complete.")
+		return nil
+	}
+
+	importPath, _ := cmd.Flags().GetString("import")
+	if importPath != "" {
+		f, err := os.Open(importPath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		fmt.Printf("Importing telemetry from %s...\n", importPath)
+		if err := tel.ImportJSONL(f); err != nil {
+			return err
+		}
+		fmt.Println("Import complete.")
+		return nil
+	}
+
+	serverURL := cfg.SyncServerURL
+	if serverURL == "" {
+		return fmt.Errorf("sync server URL not configured")
+	}
+
+	fmt.Printf("Syncing with central Pith server at %s...\n", serverURL)
+
+	var pushBuf strings.Builder
+	if err := tel.ExportJSONL(&pushBuf); err != nil {
+		return fmt.Errorf("failed to export local executions for sync: %w", err)
+	}
+
+	importEndpoint := strings.TrimSuffix(serverURL, "/") + "/api/telemetry/push"
+	importReq, err := http.NewRequest("POST", importEndpoint, strings.NewReader(pushBuf.String()))
+	if err != nil {
+		return err
+	}
+	importReq.Header.Set("Content-Type", "application/x-jsonlines")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	importResp, err := client.Do(importReq)
+	if err != nil {
+		return fmt.Errorf("failed to connect to central server for push: %w", err)
+	}
+	defer importResp.Body.Close()
+
+	if importResp.StatusCode != http.StatusOK {
+		respBytes, _ := io.ReadAll(importResp.Body)
+		return fmt.Errorf("push failed with status %d: %s", importResp.StatusCode, string(respBytes))
+	}
+
+	fmt.Println("✓ Local telemetry successfully pushed to central server.")
+
+	pullEndpoint := strings.TrimSuffix(serverURL, "/") + "/api/telemetry/pull?since_id=0"
+	pullReq, err := http.NewRequest("GET", pullEndpoint, nil)
+	if err != nil {
+		return err
+	}
+
+	pullResp, err := client.Do(pullReq)
+	if err != nil {
+		return fmt.Errorf("failed to connect to central server for pull: %w", err)
+	}
+	defer pullResp.Body.Close()
+
+	if pullResp.StatusCode != http.StatusOK {
+		respBytes, _ := io.ReadAll(pullResp.Body)
+		return fmt.Errorf("pull failed with status %d: %s", pullResp.StatusCode, string(respBytes))
+	}
+
+	if err := tel.ImportJSONL(pullResp.Body); err != nil {
+		return fmt.Errorf("failed to import remote executions: %w", err)
+	}
+
+	fmt.Println("✓ Remote telemetry successfully pulled and merged locally.")
+	fmt.Println("Estate telemetry synchronization complete.")
+
+	return nil
 }
 
 func runAnalyze(cmd *cobra.Command, args []string) error {

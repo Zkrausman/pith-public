@@ -16,6 +16,7 @@ type Config struct {
 	StoragePath         string          `json:"storage_path"`
 	USDPerMillionTokens float64         `json:"usd_per_million_tokens"`
 	TokenHeuristic      float64         `json:"token_heuristic"`
+	SyncServerURL       string          `json:"sync_server_url"`
 }
 
 var TheBrainBase = "E:\\"
@@ -94,6 +95,9 @@ func LoadConfig() (*Config, error) {
 	}
 	if cfg.TokenHeuristic == 0 {
 		cfg.TokenHeuristic = 4.0
+	}
+	if cfg.SyncServerURL == "" {
+		cfg.SyncServerURL = "http://localhost:8080"
 	}
 
 	return cfg, nil
