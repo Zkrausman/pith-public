@@ -3,6 +3,8 @@ package pi
 import (
 	"strings"
 	"testing"
+
+	"pith/pkg/telemetry"
 )
 
 func TestPiOptimize_LosslessSmall(t *testing.T) {
@@ -171,5 +173,89 @@ func TestPiOptimize_PithRawEquivalence(t *testing.T) {
 	bypass, _ := PiOptimizeWithConfig("any command", large, 0, PiConfig{RawBypass: true})
 	if bypass != raw {
 		t.Fatalf("pith raw equivalence failed")
+	}
+}
+
+func TestPiHarnessTracking(t *testing.T) {
+	// harness pi recorded, claude not mixed, not per-machine path (deterministic across StoragePath)
+	dir1 := t.TempDir()
+	dir2 := t.TempDir() // simulates E:\TheBrain\PithBackup vs ~/.pith
+
+	// Record pi harness from dir1 (box A)
+	_, err := PiOptimizeWithConfig("go test ./...", "hello world output for pi harness test", 0, PiConfig{
+		TelemetryEnabled: true,
+		StoragePath:      dir1,
+		Harness:          "pi",
+	})
+	if err != nil {
+		t.Fatalf("pi optimize failed: %v", err)
+	}
+	// Same harness+command via different StoragePath (box B) -> same bucket, not per-machine
+	_, err = PiOptimizeWithConfig("go test ./...", "hello world output for pi harness test second", 0, PiConfig{
+		TelemetryEnabled: true,
+		StoragePath:      dir2,
+		Harness:          "pi",
+	})
+	if err != nil {
+		t.Fatalf("pi optimize second failed: %v", err)
+	}
+	// Different harness (claude) must not mix with pi — use distinct command to avoid UNIQUE(timestamp,command,duration_ms) collision in same second
+	_, err = PiOptimizeWithConfig("go test ./pkg/telemetry -run TestClaude", "claude output distinct command", 0, PiConfig{
+		TelemetryEnabled: true,
+		StoragePath:      dir1,
+		Harness:          "claude",
+	})
+	if err != nil {
+		t.Fatalf("claude optimize failed: %v", err)
+	}
+
+	// Verify: pi rows are under harness=pi regardless of StoragePath; claude separate
+	tel1, err := telemetry.NewTelemetry(dir1)
+	if err != nil {
+		t.Fatalf("NewTelemetry dir1: %v", err)
+	}
+	defer tel1.Close()
+	stats1, err := tel1.GetStatsByHarness()
+	if err != nil {
+		t.Fatalf("GetStatsByHarness dir1: %v", err)
+	}
+	hasPi := false
+	hasClaude := false
+	for _, s := range stats1 {
+		if s.Harness == "pi" {
+			hasPi = true
+		}
+		if s.Harness == "claude" {
+			hasClaude = true
+		}
+	}
+	if !hasPi {
+		t.Fatalf("pi harness not recorded in dir1, stats=%v", stats1)
+	}
+	if !hasClaude {
+		t.Fatalf("claude harness not recorded or mixed with pi, stats=%v", stats1)
+	}
+	// pi from dir2 must also be harness=pi (deterministic, not per-machine path)
+	tel2, err := telemetry.NewTelemetry(dir2)
+	if err != nil {
+		t.Fatalf("NewTelemetry dir2: %v", err)
+	}
+	defer tel2.Close()
+	stats2, err := tel2.GetStatsByHarness()
+	if err != nil {
+		t.Fatalf("GetStatsByHarness dir2: %v", err)
+	}
+	foundPi2 := false
+	for _, s := range stats2 {
+		if s.Harness == "pi" {
+			foundPi2 = true
+		}
+	}
+	if !foundPi2 {
+		t.Fatalf("pi harness not deterministic across StoragePath, stats2=%v", stats2)
+	}
+	// NormalizeHarness determinism
+	if NormalizeHarness(" PI ") != "pi" || NormalizeHarness("Claude") != "claude" || NormalizeHarness("bogus") != "unknown" {
+		t.Fatalf("NormalizeHarness not deterministic: pi=%q claude=%q unknown=%q", NormalizeHarness(" PI "), NormalizeHarness("Claude"), NormalizeHarness("bogus"))
 	}
 }

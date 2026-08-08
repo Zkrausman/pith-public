@@ -25,6 +25,26 @@ type ExecutionRecord struct {
 	ParserUsed        string
 	IsPassthrough     bool
 	Source            string
+	Harness           string
+}
+
+// normalizeHarness returns canonical harness: pi|claude|gemini|codex|jules|unknown.
+// Deterministic: case/space insensitive, never uses StoragePath.
+func normalizeHarness(h string) string {
+	switch strings.ToLower(strings.TrimSpace(h)) {
+	case "pi":
+		return "pi"
+	case "claude":
+		return "claude"
+	case "gemini":
+		return "gemini"
+	case "codex":
+		return "codex"
+	case "jules":
+		return "jules"
+	default:
+		return "unknown"
+	}
 }
 
 type Telemetry struct {
@@ -75,7 +95,8 @@ func (t *Telemetry) init() error {
 		duration_ms INTEGER,
 		parser_used TEXT,
 		is_passthrough BOOLEAN,
-		source TEXT DEFAULT 'unknown'
+		source TEXT DEFAULT 'unknown',
+		harness TEXT DEFAULT 'unknown'
 	);`
 
 	_, err := t.DB.Exec(query)
@@ -87,6 +108,7 @@ func (t *Telemetry) init() error {
 	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN original_content TEXT")
 	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN compressed_content TEXT")
 	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN source TEXT DEFAULT 'unknown'")
+	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN harness TEXT DEFAULT 'unknown'")
 
 	// Uniqueness constraint to prevent duplication on sync
 	_, _ = t.DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_executions_unique ON executions(timestamp, command, duration_ms)")
@@ -135,10 +157,19 @@ func (t *Telemetry) init() error {
 }
 
 func (t *Telemetry) Record(rec ExecutionRecord) error {
-	query := `INSERT INTO executions (command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	if rec.Harness != "" {
+		rec.Harness = normalizeHarness(rec.Harness)
+	}
+	if rec.Harness == "" {
+		rec.Harness = "unknown"
+	}
+	if rec.Source == "" {
+		rec.Source = "unknown"
+	}
+	query := `INSERT INTO executions (command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source, harness)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	_, err := t.DB.Exec(query, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough, rec.Source)
+	_, err := t.DB.Exec(query, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough, rec.Source, rec.Harness)
 	return err
 }
 
@@ -324,7 +355,7 @@ func (t *Telemetry) GetRecentExecutions(limit int, source string) ([]ExecutionRe
 	args = append(args, limit)
 
 	query := fmt.Sprintf(`
-	SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source, COALESCE(harness,'unknown')
 	FROM executions
 	%s
 	ORDER BY timestamp DESC
@@ -340,12 +371,66 @@ func (t *Telemetry) GetRecentExecutions(limit int, source string) ([]ExecutionRe
 
 	for rows.Next() {
 		var r ExecutionRecord
-		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source); err != nil {
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness); err != nil {
 			return nil, err
+		}
+		if r.Harness == "" {
+			r.Harness = "unknown"
 		}
 		results = append(results, r)
 	}
 
+	return results, nil
+}
+
+func (t *Telemetry) GetHarnesses() ([]string, error) {
+	query := `SELECT DISTINCT COALESCE(harness,'unknown') FROM executions WHERE COALESCE(harness,'unknown') != 'unknown' AND COALESCE(harness,'unknown') != '' ORDER BY COALESCE(harness,'unknown') ASC`
+	rows, err := t.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []string
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return nil, err
+		}
+		results = append(results, s)
+	}
+	return results, nil
+}
+
+func (t *Telemetry) GetStatsByHarness() ([]struct {
+	Harness    string
+	Original   int
+	Compressed int
+}, error) {
+	query := `SELECT COALESCE(harness,'unknown') as harness, COALESCE(SUM(original_tokens),0), COALESCE(SUM(compressed_tokens),0) FROM executions GROUP BY harness ORDER BY SUM(original_tokens) DESC`
+	rows, err := t.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []struct {
+		Harness    string
+		Original   int
+		Compressed int
+	}
+	for rows.Next() {
+		var r struct {
+			Harness    string
+			Original   int
+			Compressed int
+		}
+		if err := rows.Scan(&r.Harness, &r.Original, &r.Compressed); err != nil {
+			return nil, err
+		}
+		if r.Harness == "" {
+			r.Harness = "unknown"
+		}
+		results = append(results, r)
+	}
 	return results, nil
 }
 
@@ -371,12 +456,12 @@ func (t *Telemetry) GetSources() ([]string, error) {
 
 func (t *Telemetry) GetExecutionDetails(id int64) (*ExecutionRecord, error) {
 	query := `
-	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, COALESCE(source,'unknown'), COALESCE(harness,'unknown')
 	FROM executions
 	WHERE id = ?`
 
 	var r ExecutionRecord
-	err := t.DB.QueryRow(query, id).Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough)
+	err := t.DB.QueryRow(query, id).Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness)
 	if err != nil {
 		return nil, err
 	}
@@ -409,7 +494,7 @@ func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) 
 	args = append(args, limit)
 
 	sqlQuery := fmt.Sprintf(`
-	SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source, COALESCE(harness,'unknown')
 	FROM executions
 	%s
 	ORDER BY timestamp DESC
@@ -427,7 +512,7 @@ func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) 
 		fallbackArgs = append(fallbackArgs, limit)
 
 		fallbackSqlQuery := fmt.Sprintf(`
-		SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source
+		SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source, COALESCE(harness,'unknown')
 		FROM executions
 		%s
 		ORDER BY timestamp DESC
@@ -443,8 +528,11 @@ func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) 
 	var results []ExecutionRecord
 	for rows.Next() {
 		var r ExecutionRecord
-		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source); err != nil {
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness); err != nil {
 			return nil, err
+		}
+		if r.Harness == "" {
+			r.Harness = "unknown"
 		}
 		results = append(results, r)
 	}
@@ -454,7 +542,7 @@ func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) 
 
 func (t *Telemetry) ExportJSONL(w io.Writer) error {
 	query := `
-	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source, COALESCE(harness,'unknown')
 	FROM executions
 	ORDER BY id ASC`
 
@@ -467,7 +555,7 @@ func (t *Telemetry) ExportJSONL(w io.Writer) error {
 	encoder := json.NewEncoder(w)
 	for rows.Next() {
 		var r ExecutionRecord
-		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source); err != nil {
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness); err != nil {
 			return err
 		}
 		if err := encoder.Encode(r); err != nil {
@@ -487,8 +575,8 @@ func (t *Telemetry) ImportJSONL(r io.Reader) error {
 
 	decoder := json.NewDecoder(r)
 	query := `
-	INSERT OR IGNORE INTO executions (timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	INSERT OR IGNORE INTO executions (timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source, harness)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	stmt, err := tx.Prepare(query)
 	if err != nil {
@@ -509,7 +597,15 @@ func (t *Telemetry) ImportJSONL(r io.Reader) error {
 			tVal = time.Now()
 		}
 
-		_, err = stmt.Exec(tVal, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough, rec.Source)
+		if rec.Harness != "" {
+			rec.Harness = normalizeHarness(rec.Harness)
+		} else {
+			rec.Harness = "unknown"
+		}
+		if rec.Source == "" {
+			rec.Source = "unknown"
+		}
+		_, err = stmt.Exec(tVal, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough, rec.Source, rec.Harness)
 		if err != nil {
 			return err
 		}
@@ -520,7 +616,7 @@ func (t *Telemetry) ImportJSONL(r io.Reader) error {
 
 func (t *Telemetry) ExportJSONLSince(w io.Writer, sinceID int64) error {
 	query := `
-	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source, COALESCE(harness,'unknown')
 	FROM executions
 	WHERE id > ?
 	ORDER BY id ASC`
@@ -534,7 +630,7 @@ func (t *Telemetry) ExportJSONLSince(w io.Writer, sinceID int64) error {
 	encoder := json.NewEncoder(w)
 	for rows.Next() {
 		var r ExecutionRecord
-		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source); err != nil {
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness); err != nil {
 			return err
 		}
 		if err := encoder.Encode(r); err != nil {
