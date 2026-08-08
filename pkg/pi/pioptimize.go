@@ -4,7 +4,41 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode/utf8"
+
+	"pith/pkg/telemetry"
 )
+
+// Harness identifies the coding harness/agent environment.
+// Deterministic bucket: same harness+command -> same group regardless of StoragePath.
+const (
+	HarnessPi      = "pi"
+	HarnessClaude  = "claude"
+	HarnessGemini  = "gemini"
+	HarnessCodex   = "codex"
+	HarnessJules   = "jules"
+	HarnessUnknown = "unknown"
+)
+
+// NormalizeHarness returns a canonical harness value.
+// Allowed: pi | claude | gemini | codex | jules; everything else -> unknown.
+// Deterministic: casing/whitespace insensitive, never uses StoragePath or machine path.
+func NormalizeHarness(h string) string {
+	switch strings.ToLower(strings.TrimSpace(h)) {
+	case HarnessPi:
+		return HarnessPi
+	case HarnessClaude:
+		return HarnessClaude
+	case HarnessGemini:
+		return HarnessGemini
+	case HarnessCodex:
+		return HarnessCodex
+	case HarnessJules:
+		return HarnessJules
+	default:
+		return HarnessUnknown
+	}
+}
 
 // PiConfig controls PiOptimize behavior. Zero value is valid.
 type PiConfig struct {
@@ -17,6 +51,13 @@ type PiConfig struct {
 	Redact bool
 	// RawBypass when true returns output unchanged (explicit raw escape).
 	RawBypass bool
+	// Harness identifies the caller harness (pi | claude | gemini | codex | jules | unknown).
+	// The Pi extension must pass harness:"pi" via PiOptimizeWithConfig.
+	// Pith records harness NOT StoragePath (E:\TheBrain\PithBackup vs ~/.pith differs per box).
+	Harness string
+	// StoragePath optional override for telemetry DB location (testing).
+	// When empty, default ~/.pith (or OS home) is used. Not used for grouping.
+	StoragePath string
 }
 
 func (c PiConfig) threshold() int {
@@ -65,20 +106,36 @@ func PiOptimizeWithConfig(command, output string, exitCode int, cfg PiConfig) (s
 	if output == "" {
 		return "", nil
 	}
+	var compressed string
 	if exitCode != 0 {
-		return maybeRedact(output, cfg), nil
+		compressed = maybeRedact(output, cfg)
+	} else if errorMarkerRegex.MatchString(output) {
+		compressed = maybeRedact(output, cfg)
+	} else if diffMarkerRegex.MatchString(output) {
+		compressed = maybeRedact(output, cfg)
+	} else if len(output) < cfg.threshold() {
+		compressed = maybeRedact(output, cfg)
+	} else {
+		compressed = maybeRedact(compressLargeOutput(output, cfg.threshold()), cfg)
 	}
-	if errorMarkerRegex.MatchString(output) {
-		return maybeRedact(output, cfg), nil
+	if cfg.TelemetryEnabled {
+		harness := NormalizeHarness(cfg.Harness)
+		if tel, err := telemetry.NewTelemetry(cfg.StoragePath); err == nil {
+			defer tel.Close()
+			// Estimate tokens: ~4 chars per token (same heuristic as runner).
+			origTokens := int(float64(utf8.RuneCountInString(output)) / 4.0)
+			compTokens := int(float64(utf8.RuneCountInString(compressed)) / 4.0)
+			_ = tel.Record(telemetry.ExecutionRecord{
+				Command:           command,
+				OriginalTokens:    origTokens,
+				CompressedTokens:  compTokens,
+				OriginalContent:   output,
+				CompressedContent: compressed,
+				Harness:           harness,
+			})
+		}
 	}
-	if diffMarkerRegex.MatchString(output) {
-		return maybeRedact(output, cfg), nil
-	}
-	if len(output) < cfg.threshold() {
-		return maybeRedact(output, cfg), nil
-	}
-	compressed := compressLargeOutput(output, cfg.threshold())
-	return maybeRedact(compressed, cfg), nil
+	return compressed, nil
 }
 
 // PiRedact redacts known secret patterns from text. Exported for telemetry-safe persistence.

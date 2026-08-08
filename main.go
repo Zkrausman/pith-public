@@ -68,6 +68,7 @@ func NewRootCmd() *cobra.Command {
 		Short: "Show token savings analytics",
 		RunE:  runGain,
 	}
+	gainCmd.Flags().Bool("by-harness", false, "Group token savings by harness (pi separate from claude/gemini)")
 
 	var discoverCmd = &cobra.Command{
 		Use:   "discover",
@@ -245,6 +246,24 @@ func runGain(cmd *cobra.Command, args []string) error {
 	cmd.Printf("Compressed:        %d\n", totalComp)
 	cmd.Printf("Tokens Saved:      %d (%.2f%%)\n", saved, percent)
 	cmd.Printf("Est. USD Saved:    $%.2f (at $%.2f/M tokens)\n", usdSaved, cfg.USDPerMillionTokens)
+
+	byHarness, _ := cmd.Flags().GetBool("by-harness")
+	if byHarness {
+		byH, err := tel.GetStatsByHarness()
+		if err == nil && len(byH) > 0 {
+			cmd.Printf("\n--- Breakdown by Harness ---\n")
+			cmd.Printf("%-12s | %-10s | %-10s | %-10s | %-10s\n", "Harness", "Raw", "Pith", "Saved", "USD Saved")
+			cmd.Println(strings.Repeat("-", 62))
+			for _, r := range byH {
+				savings := r.Original - r.Compressed
+				usdH := (float64(savings) / 1000000.0) * cfg.USDPerMillionTokens
+				cmd.Printf("%-12s | %-10d | %-10d | %-10d | $%-10.3f\n", r.Harness, r.Original, r.Compressed, savings, usdH)
+			}
+		}
+		// when by-harness requested, still show per-command breakdown but grouped deterministic: harness+command
+		cmd.Println()
+		return nil
+	}
 
 	byCmd, err := tel.GetStatsByCommand("")
 	if err == nil && len(byCmd) > 0 {
