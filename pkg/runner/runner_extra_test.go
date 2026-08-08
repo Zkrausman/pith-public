@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"pith/pkg/config"
 	"pith/pkg/telemetry"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -17,13 +16,7 @@ func TestRunner_RunWithOptions_CombinedArgs(t *testing.T) {
 	defer tel.Close()
 
 	r := NewRunner(cfg, tel)
-	var args []string
-	if runtime.GOOS == "windows" {
-		args = []string{"cmd /c echo hello"}
-	} else {
-		args = []string{"sh -c 'echo hello'"}
-	}
-	err := r.RunWithOptions(args, true)
+	err := r.RunWithOptions([]string{"echo hello"}, true)
 	if err != nil {
 		t.Fatalf("RunWithOptions failed: %v", err)
 	}
@@ -104,13 +97,7 @@ func TestRunner_RunWithOptions_DisabledParser(t *testing.T) {
 	}
 	r := NewRunner(cfg, tel)
 
-	var args []string
-	if runtime.GOOS == "windows" {
-		args = []string{"cmd /c echo git status"}
-	} else {
-		args = []string{"sh -c 'echo git status'"}
-	}
-	err := r.RunWithOptions(args, false)
+	err := r.RunWithOptions([]string{"echo git status"}, false)
 	if err != nil {
 		t.Fatalf("RunWithOptions failed: %v", err)
 	}
