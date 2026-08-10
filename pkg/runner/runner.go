@@ -32,6 +32,9 @@ func NewRunner(cfg *config.Config, tel *telemetry.Telemetry) *Runner {
 }
 
 func DetectSource() string {
+	if harness := strings.TrimSpace(os.Getenv("PITH_HARNESS")); harness != "" {
+		return harness
+	}
 	if os.Getenv("GEMINI_CLI") != "" || os.Getenv("GOOGLE_API_KEY") != "" {
 		return "gemini"
 	}
@@ -219,15 +222,14 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 
 	// Record telemetry
 	record := telemetry.ExecutionRecord{
-		Command:           strings.Join(args, " "),
-		OriginalTokens:    originalTokens,
-		CompressedTokens:  compressedTokens,
-		OriginalContent:   fullOutput,
-		CompressedContent: finalOutput,
-		DurationMs:        duration,
-		ParserUsed:        parserUsed,
-		IsPassthrough:     isPassthrough,
-		Source:            r.Source,
+		Command:          strings.Join(args, " "),
+		OriginalTokens:   originalTokens,
+		CompressedTokens: compressedTokens,
+		DurationMs:       duration,
+		ParserUsed:       parserUsed,
+		IsPassthrough:    isPassthrough,
+		Source:           r.Source,
+		Harness:          r.Source,
 	}
 
 	_ = r.telemetry.Record(record)
@@ -237,10 +239,14 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 
 func (r *Runner) ApplyMiddleOutTruncation(output string) string {
 	lines := strings.Split(output, "\n")
-	if len(lines) <= r.cfg.MaxLines { return output }
+	if len(lines) <= r.cfg.MaxLines {
+		return output
+	}
 	head := r.cfg.HeadLines
 	tail := r.cfg.TailLines
-	if head+tail >= len(lines) { return output }
+	if head+tail >= len(lines) {
+		return output
+	}
 	middleStart := head
 	middleEnd := len(lines) - tail
 	hotZones := []int{}
@@ -248,22 +254,36 @@ func (r *Runner) ApplyMiddleOutTruncation(output string) string {
 	for i := middleStart; i < middleEnd; i++ {
 		lowerLine := strings.ToLower(lines[i])
 		for _, k := range keywords {
-			if strings.Contains(lowerLine, k) { hotZones = append(hotZones, i); break }
+			if strings.Contains(lowerLine, k) {
+				hotZones = append(hotZones, i)
+				break
+			}
 		}
 	}
 	resultLines := append([]string{}, lines[:head]...)
 	lastIndex := head
 	for _, zone := range hotZones {
-		if zone > lastIndex+2 { resultLines = append(resultLines, fmt.Sprintf("\n... [%d lines of non-critical output removed by Pith] ...\n", zone-lastIndex-1)) }
+		if zone > lastIndex+2 {
+			resultLines = append(resultLines, fmt.Sprintf("\n... [%d lines of non-critical output removed by Pith] ...\n", zone-lastIndex-1))
+		}
 		start := zone - 1
-		if start < lastIndex { start = lastIndex }
+		if start < lastIndex {
+			start = lastIndex
+		}
 		end := zone + 1
-		if end >= middleEnd { end = middleEnd - 1 }
+		if end >= middleEnd {
+			end = middleEnd - 1
+		}
 		for j := start; j <= end; j++ {
-			if j >= lastIndex { resultLines = append(resultLines, lines[j]); lastIndex = j + 1 }
+			if j >= lastIndex {
+				resultLines = append(resultLines, lines[j])
+				lastIndex = j + 1
+			}
 		}
 	}
-	if middleEnd > lastIndex { resultLines = append(resultLines, fmt.Sprintf("\n... [%d lines removed by Pith middle-out truncation] ...\n", middleEnd-lastIndex)) }
+	if middleEnd > lastIndex {
+		resultLines = append(resultLines, fmt.Sprintf("\n... [%d lines removed by Pith middle-out truncation] ...\n", middleEnd-lastIndex))
+	}
 	resultLines = append(resultLines, lines[len(lines)-tail:]...)
 	return strings.Join(resultLines, "\n")
 }

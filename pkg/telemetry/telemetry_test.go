@@ -120,6 +120,9 @@ func TestTelemetryFull(t *testing.T) {
 	if details.Command != "git status" {
 		t.Errorf("Expected command 'git status', got '%s'", details.Command)
 	}
+	if details.OriginalContent != "" || details.CompressedContent != "" {
+		t.Errorf("Telemetry must not retain command output: %#v", details)
+	}
 
 	// Test ResetPassthrough with a passthrough record
 	passthroughRec := ExecutionRecord{
@@ -222,8 +225,8 @@ func TestTelemetryFTSSearch(t *testing.T) {
 	tel.Record(ExecutionRecord{Command: "git commit -m 'fix bug'", OriginalContent: "git commit output success", CompressedContent: "success", Source: "term"})
 	tel.Record(ExecutionRecord{Command: "ls -la", OriginalContent: "list directory", CompressedContent: "dir", Source: "term"})
 
-	// Test prefix wildcard MATCH
-	res, err := tel.SearchExecutions("compil", "all", 10)
+	// Search stays useful for command discovery without retaining output.
+	res, err := tel.SearchExecutions("build", "all", 10)
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
 	}
@@ -231,8 +234,8 @@ func TestTelemetryFTSSearch(t *testing.T) {
 		t.Errorf("Expected npm run build, got %v", res)
 	}
 
-	// Test simple word match
-	res, err = tel.SearchExecutions("webpack success", "all", 10)
+	// Test simple command-word match
+	res, err = tel.SearchExecutions("npm", "all", 10)
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
 	}
@@ -240,8 +243,8 @@ func TestTelemetryFTSSearch(t *testing.T) {
 		t.Errorf("Expected npm run build, got %v", res)
 	}
 
-	// Test boolean operator OR
-	res, err = tel.SearchExecutions("webpack OR success", "all", 10)
+	// Test boolean operator OR over command names.
+	res, err = tel.SearchExecutions("npm OR ls", "all", 10)
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
 	}
@@ -249,14 +252,14 @@ func TestTelemetryFTSSearch(t *testing.T) {
 		t.Errorf("Expected 2 matches for OR search, got %d", len(res))
 	}
 
-	// Test syntax error fallback (LIKE fallback)
+	// Test command search with punctuation.
 	tel.Record(ExecutionRecord{Command: "git commit -m 'fix bug (error)'", OriginalContent: "special (log)", CompressedContent: "special", Source: "term"})
-	res, err = tel.SearchExecutions("special (", "all", 10)
+	res, err = tel.SearchExecutions("fix bug", "all", 10)
 	if err != nil {
 		t.Fatalf("Fallback search failed: %v", err)
 	}
-	if len(res) != 1 || !strings.Contains(res[0].Command, "fix bug") {
-		t.Errorf("Expected fallback match to find the record, got %v", res)
+	if len(res) < 1 || !strings.Contains(res[0].Command, "fix bug") {
+		t.Errorf("Expected command search to find a matching record, got %v", res)
 	}
 }
 

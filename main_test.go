@@ -189,6 +189,30 @@ func TestGainCmd(t *testing.T) {
 	}
 }
 
+func TestStatsAliasDisplaysHarnessBreakdown(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+	tel, err := telemetry.NewTelemetry(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tel.Record(telemetry.ExecutionRecord{Command: "git status", OriginalTokens: 100, CompressedTokens: 50, Harness: "pi"}); err != nil {
+		t.Fatal(err)
+	}
+	tel.Close()
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"stats"})
+	out := new(bytes.Buffer)
+	cmd.SetOut(out)
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "Breakdown by Harness") || !strings.Contains(out.String(), "pi") {
+		t.Fatalf("stats must report harness savings, got %q", out.String())
+	}
+}
+
 func TestDiscoverCmd(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)

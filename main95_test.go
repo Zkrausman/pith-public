@@ -107,13 +107,15 @@ func TestDiscoverCmd_WithData(t *testing.T) {
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	for i := 0; i < 3; i++ {
 		tel.Record(telemetry.ExecutionRecord{
-			Command:          "myunknowncmd args",
+			Command:          "myunknowncmd --private-argument value",
 			OriginalTokens:   300,
 			CompressedTokens: 300,
 			IsPassthrough:    true,
 			Source:           "gemini",
+			Harness:          "pi",
 		})
 	}
+	tel.Record(telemetry.ExecutionRecord{Command: "pith discover", OriginalTokens: 900, IsPassthrough: true, Harness: "pi"})
 	tel.Close()
 
 	cmd := NewRootCmd()
@@ -124,8 +126,28 @@ func TestDiscoverCmd_WithData(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("discover command failed: %v", err)
 	}
-	if !bytes.Contains(b.Bytes(), []byte("myunknowncmd")) {
-		t.Errorf("Expected 'myunknowncmd' in discover output, got %s", b.String())
+	if !bytes.Contains(b.Bytes(), []byte("myunknowncmd")) || bytes.Contains(b.Bytes(), []byte("private-argument")) {
+		t.Errorf("discover must show a safe command family, got %s", b.String())
+	}
+}
+
+func TestDiscoverCmd_Details(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PITH_STORAGE", tmpDir)
+	tel, _ := telemetry.NewTelemetry(tmpDir)
+	tel.Record(telemetry.ExecutionRecord{Command: "custom-tool --token=raw-secret\nsecond line", OriginalTokens: 300, IsPassthrough: true, Harness: "pi"})
+	tel.Close()
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"discover", "--details", "shell script", "--limit", "1"})
+	b := new(bytes.Buffer)
+	cmd.SetOut(b)
+	cmd.SetErr(b)
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(b.Bytes(), []byte("[REDACTED]")) || bytes.Contains(b.Bytes(), []byte("\nsecond line")) {
+		t.Errorf("details must be redacted and single-line, got %s", b.String())
 	}
 }
 
