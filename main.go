@@ -74,9 +74,11 @@ func NewRootCmd() *cobra.Command {
 
 	var discoverCmd = &cobra.Command{
 		Use:   "discover",
-		Short: "Identify commands that could benefit from dedicated parsers",
+		Short: "Identify command families that could benefit from dedicated parsers",
 		RunE:  runDiscover,
 	}
+	discoverCmd.Flags().String("details", "", "Show bounded redacted command samples for a command family")
+	discoverCmd.Flags().Int("limit", 10, "Maximum command samples to show with --details")
 
 	var piCmd = &cobra.Command{Use: "pi", Short: "Pi integration commands"}
 	var piTransformCmd = &cobra.Command{
@@ -356,25 +358,44 @@ func runDiscover(cmd *cobra.Command, args []string) error {
 	}
 	defer tel.Close()
 
-	unparsed, err := tel.GetUnparsedCommands("")
-	if err != nil {
-		return err
-	}
-
-	if len(unparsed) == 0 {
-		cmd.Println("No unparsed commands discovered yet. Run some commands through Pith to gather data!")
+	detailsFamily, _ := cmd.Flags().GetString("details")
+	if detailsFamily != "" {
+		limit, _ := cmd.Flags().GetInt("limit")
+		details, err := tel.GetDiscoveryDetails(detailsFamily, "", limit)
+		if err != nil {
+			return err
+		}
+		if len(details) == 0 {
+			cmd.Printf("No passthrough samples found for command family %q.\n", detailsFamily)
+			return nil
+		}
+		cmd.Printf("--- Discovery Details: %s ---\n", detailsFamily)
+		cmd.Printf("%-20s | %-12s | %-12s | %s\n", "Timestamp", "Harness", "Raw Tokens", "Redacted Command")
+		cmd.Println(strings.Repeat("-", 90))
+		for _, detail := range details {
+			cmd.Printf("%-20s | %-12s | %-12d | %s\n", detail.Timestamp.Format("2006-01-02 15:04:05"), detail.Harness, detail.OriginalTokens, detail.Command)
+		}
 		return nil
 	}
 
-	cmd.Printf("--- Opportunity Discovery (Unparsed Commands) ---\n")
-	cmd.Printf("%-30s | %-12s | %-10s | %-15s | %-15s\n", "Command Pattern", "Agent", "Count", "Total Tokens", "Est. USD Saved")
-	cmd.Println(strings.Repeat("-", 91))
-	for _, r := range unparsed {
-		estSavedTokens := float64(r.TotalRawTokens) * 0.7
-		estSavingsUSD := (estSavedTokens / 1000000.0) * cfg.USDPerMillionTokens
-		cmd.Printf("%-30s | %-12s | %-10d | %-15d | $%-15.3f\n", r.Pattern, r.Harness, r.InvocationCount, r.TotalRawTokens, estSavingsUSD)
+	families, err := tel.GetDiscoveryFamilies("")
+	if err != nil {
+		return err
+	}
+	if len(families) == 0 {
+		cmd.Println("No unparsed command families discovered yet. Run some commands through Pith to gather data!")
+		return nil
 	}
 
+	cmd.Println("--- Opportunity Discovery (Unparsed Command Families) ---")
+	cmd.Printf("%-24s | %-12s | %-8s | %-15s | %-15s\n", "Command Family", "Harness", "Count", "Total Tokens", "Est. USD Saved")
+	cmd.Println(strings.Repeat("-", 86))
+	for _, family := range families {
+		estSavedTokens := float64(family.TotalRawTokens) * 0.7
+		estSavingsUSD := (estSavedTokens / 1000000.0) * cfg.USDPerMillionTokens
+		cmd.Printf("%-24s | %-12s | %-8d | %-15d | $%-15.3f\n", family.Family, family.Harness, family.InvocationCount, family.TotalRawTokens, estSavingsUSD)
+	}
+	cmd.Println("\nUse 'pith discover --details <family>' for bounded redacted samples.")
 	return nil
 }
 

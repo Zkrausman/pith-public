@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -236,6 +237,140 @@ func (t *Telemetry) GetStatsByDay(source string) ([]struct {
 
 func (t *Telemetry) Close() error {
 	return t.DB.Close()
+}
+
+type DiscoveryFamily struct {
+	Family          string
+	InvocationCount int
+	TotalRawTokens  int
+	Harness         string
+}
+
+type DiscoveryDetail struct {
+	Timestamp      time.Time
+	Command        string
+	OriginalTokens int
+	Harness        string
+}
+
+// CommandFamily returns a safe, argument-free label for discovery reporting.
+// It intentionally does not attempt to parse arbitrary shell syntax.
+func CommandFamily(command string) (string, bool) {
+	compact := strings.Join(strings.Fields(command), " ")
+	if compact == "" {
+		return "", false
+	}
+	fields := strings.Fields(compact)
+	first := strings.ToLower(filepath.Base(fields[0]))
+	if first == "pith" || first == "pith.exe" || (first == "go" && len(fields) >= 3 && fields[1] == "run" && fields[2] == "main.go") {
+		return "", false
+	}
+	if first == "go" && len(fields) >= 2 && (fields[1] == "test" || fields[1] == "install") {
+		return "", false
+	}
+	if strings.ContainsAny(command, "\n;|") || strings.Contains(command, "&&") || first == "set" || first == "if" || first == "for" || first == "while" || strings.Contains(fields[0], "=") {
+		return "shell script", true
+	}
+	if (first == "git" || first == "go" || first == "npm") && len(fields) >= 2 {
+		return first + " " + fields[1], true
+	}
+	return first, true
+}
+
+// CommandPreview is used only by the explicit details view. It never emits
+// newlines and caps the stored, already-redacted command metadata.
+func CommandPreview(command string) string {
+	const maxRunes = 160
+	compact := strings.Join(strings.Fields(command), " ")
+	runes := []rune(compact)
+	if len(runes) <= maxRunes {
+		return compact
+	}
+	return string(runes[:maxRunes-1]) + "…"
+}
+
+// GetDiscoveryFamilies aggregates safe command-family labels for passthrough
+// executions. It leaves GetUnparsedCommands intact for API compatibility.
+func (t *Telemetry) GetDiscoveryFamilies(source string) ([]DiscoveryFamily, error) {
+	query := "SELECT command, original_tokens, COALESCE(harness, 'unknown') FROM executions WHERE is_passthrough = 1"
+	var args []interface{}
+	if source != "" && source != "all" {
+		query += " AND source = ?"
+		args = append(args, source)
+	}
+	rows, err := t.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	families := make(map[string]*DiscoveryFamily)
+	for rows.Next() {
+		var command, harness string
+		var tokens int
+		if err := rows.Scan(&command, &tokens, &harness); err != nil {
+			return nil, err
+		}
+		family, include := CommandFamily(command)
+		if !include {
+			continue
+		}
+		key := family + "\x00" + harness
+		if families[key] == nil {
+			families[key] = &DiscoveryFamily{Family: family, Harness: harness}
+		}
+		families[key].InvocationCount++
+		families[key].TotalRawTokens += tokens
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	results := make([]DiscoveryFamily, 0, len(families))
+	for _, family := range families {
+		results = append(results, *family)
+	}
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].TotalRawTokens == results[j].TotalRawTokens {
+			if results[i].Family == results[j].Family {
+				return results[i].Harness < results[j].Harness
+			}
+			return results[i].Family < results[j].Family
+		}
+		return results[i].TotalRawTokens > results[j].TotalRawTokens
+	})
+	return results, nil
+}
+
+// GetDiscoveryDetails returns bounded, redacted command samples for one family.
+func (t *Telemetry) GetDiscoveryDetails(family, source string, limit int) ([]DiscoveryDetail, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	query := "SELECT timestamp, command, original_tokens, COALESCE(harness, 'unknown') FROM executions WHERE is_passthrough = 1"
+	var args []interface{}
+	if source != "" && source != "all" {
+		query += " AND source = ?"
+		args = append(args, source)
+	}
+	query += " ORDER BY timestamp DESC"
+	rows, err := t.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []DiscoveryDetail
+	for rows.Next() && len(results) < limit {
+		var detail DiscoveryDetail
+		if err := rows.Scan(&detail.Timestamp, &detail.Command, &detail.OriginalTokens, &detail.Harness); err != nil {
+			return nil, err
+		}
+		candidate, include := CommandFamily(detail.Command)
+		if include && candidate == family {
+			detail.Command = CommandPreview(detail.Command)
+			results = append(results, detail)
+		}
+	}
+	return results, rows.Err()
 }
 
 func (t *Telemetry) GetUnparsedCommands(source string) ([]struct {
