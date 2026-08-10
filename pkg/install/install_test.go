@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -122,16 +123,18 @@ func TestInstall(t *testing.T) {
 	t.Setenv("USERPROFILE", tmpHome)
 	t.Setenv("HOME", tmpHome)
 
-	if err := Install(); err != nil {
-		// installWindows might fail if powershell is not available or it can't set env vars in a test environment.
-		// But we want to see it hit the lines.
+	err := Install()
+	if runtime.GOOS != "windows" && err != nil {
+		t.Fatalf("Install failed on %s: %v", runtime.GOOS, err)
+	}
+	if runtime.GOOS == "windows" && err != nil {
+		// installWindows may fail when PowerShell cannot update the test user's PATH.
 		t.Logf("Install returned: %v", err)
 	}
 
-	// Verify pith bin dir created
 	pithBinDir := filepath.Join(tmpHome, ".pith", "bin")
-	if _, err := os.Stat(pithBinDir); os.IsNotExist(err) {
-		t.Error("pith/bin directory not created")
+	if _, err := os.Stat(filepath.Join(pithBinDir, installedBinaryName())); err != nil {
+		t.Errorf("installed Pith binary missing: %v", err)
 	}
 }
 

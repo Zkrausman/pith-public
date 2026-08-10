@@ -13,6 +13,7 @@ import (
 	"pith/pkg/gui"
 	"pith/pkg/install"
 	"pith/pkg/parser"
+	"pith/pkg/pi"
 	"pith/pkg/runner"
 	"pith/pkg/selfupdate"
 	"pith/pkg/telemetry"
@@ -75,6 +76,15 @@ func NewRootCmd() *cobra.Command {
 		Short: "Identify commands that could benefit from dedicated parsers",
 		RunE:  runDiscover,
 	}
+
+	var piCmd = &cobra.Command{Use: "pi", Short: "Pi integration commands"}
+	var piTransformCmd = &cobra.Command{
+		Use:   "transform",
+		Short: "Transform a completed Pi tool result from JSON stdin",
+		Args:  cobra.NoArgs,
+		RunE:  runPiTransform,
+	}
+	piCmd.AddCommand(piTransformCmd)
 
 	var hookCmd = &cobra.Command{
 		Use:    "_hook",
@@ -143,6 +153,7 @@ func NewRootCmd() *cobra.Command {
 	installCmd.Flags().Bool("gemini", false, "Setup hook for Gemini CLI")
 	installCmd.Flags().Bool("claude", false, "Setup hook for Claude Code")
 	installCmd.Flags().Bool("codex", false, "Setup hook for Codex")
+	installCmd.Flags().Bool("pi", false, "Install the Pi tool_result hook")
 	installCmd.Flags().BoolP("global", "g", false, "Install hooks globally in the home directory")
 
 	dashboardCmd.Flags().IntP("port", "p", 8080, "Port to run the dashboard server on")
@@ -153,6 +164,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(gainCmd)
 	rootCmd.AddCommand(discoverCmd)
 	rootCmd.AddCommand(hookCmd)
+	rootCmd.AddCommand(piCmd)
 	rootCmd.AddCommand(installCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(versionCmd)
@@ -203,6 +215,30 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	defer tel.Close()
 	run := runner.NewRunner(cfg, tel)
 	return run.Run(args)
+}
+
+func runPiTransform(cmd *cobra.Command, args []string) error {
+	var input pi.HookRequest
+	decoder := json.NewDecoder(cmd.InOrStdin())
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&input); err != nil {
+		return fmt.Errorf("decode Pi transform request: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("decode Pi transform request: unexpected trailing JSON value")
+		}
+		return fmt.Errorf("decode Pi transform request: %w", err)
+	}
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return err
+	}
+	input.EnabledParsers = cfg.EnabledParsers
+	if input.StoragePath == "" {
+		input.StoragePath = cfg.StoragePath
+	}
+	return json.NewEncoder(cmd.OutOrStdout()).Encode(pi.OptimizeHook(input))
 }
 
 func runConfig(cmd *cobra.Command, args []string) error {
@@ -483,8 +519,9 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	gemini, _ := cmd.Flags().GetBool("gemini")
 	claude, _ := cmd.Flags().GetBool("claude")
 	codex, _ := cmd.Flags().GetBool("codex")
+	piHook, _ := cmd.Flags().GetBool("pi")
 	global, _ := cmd.Flags().GetBool("global")
-	if !all && !gemini && !claude && !codex {
+	if !all && !gemini && !claude && !codex && !piHook {
 		all = true
 		if !cmd.Flags().Changed("global") {
 			global = true
@@ -503,6 +540,11 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	if all || codex {
 		if err := install.SetupCodexHook(global); err != nil {
 			cmd.PrintErrf("Codex hook failed: %v\n", err)
+		}
+	}
+	if all || piHook {
+		if err := install.SetupPiHook(); err != nil {
+			cmd.PrintErrf("Pi hook failed: %v\n", err)
 		}
 	}
 	return nil
@@ -731,7 +773,9 @@ func runAuditAnomalies(cmd *cobra.Command, args []string) error {
 	lookbackMins, _ := cmd.Flags().GetInt("lookback")
 	lookback := time.Duration(lookbackMins) * time.Minute
 
-	if !jsonOutput { fmt.Printf("\nðŸ”  Auditing Overseer logs (last %d minutes)...\n", lookbackMins) }
+	if !jsonOutput {
+		fmt.Printf("\nðŸ”  Auditing Overseer logs (last %d minutes)...\n", lookbackMins)
+	}
 	anomalies, err := anomaly.AuditOverseerLogs(lookback)
 	if jsonOutput {
 		return json.NewEncoder(os.Stdout).Encode(anomalies)
@@ -768,5 +812,3 @@ func runAuditAnomalies(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
-
-
