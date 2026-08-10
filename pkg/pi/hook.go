@@ -1,6 +1,7 @@
 package pi
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -27,13 +28,21 @@ type HookResponse struct {
 	Passthrough bool   `json:"passthrough"`
 }
 
+func isStructuredOutput(output string) bool {
+	trimmed := strings.TrimSpace(output)
+	if !strings.HasPrefix(trimmed, "{") && !strings.HasPrefix(trimmed, "[") {
+		return false
+	}
+	return json.Valid([]byte(trimmed))
+}
+
 // OptimizeHook uses the Pith parser registry for safe successful results.
 // Raw requests, errors, and diffs are lossless except mandatory redaction.
 func OptimizeHook(req HookRequest) HookResponse {
 	started := time.Now()
 	cfg := PiConfig{Redact: true, RawBypass: req.RawBypass, Harness: HarnessPi}
 	result := HookResponse{Output: maybeRedact(req.Output, cfg), Passthrough: true}
-	if !req.RawBypass && req.ExitCode == 0 && !errorMarkerRegex.MatchString(req.Output) && !diffMarkerRegex.MatchString(req.Output) {
+	if !req.RawBypass && req.ExitCode == 0 && !errorMarkerRegex.MatchString(req.Output) && !diffMarkerRegex.MatchString(req.Output) && !isStructuredOutput(req.Output) {
 		parts := strings.Fields(req.Command)
 		if len(parts) > 0 {
 			for _, candidate := range parser.GetAllParsers() {

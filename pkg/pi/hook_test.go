@@ -38,6 +38,14 @@ func TestOptimizeHookTelemetryIsAggregateOnly(t *testing.T) {
 	}
 }
 
+func TestOptimizeHookPreservesStructuredJSON(t *testing.T) {
+	output := `{"state":"OPEN","title":"fix: restore reliable hook telemetry"}`
+	got := OptimizeHook(HookRequest{Command: "gh pr view --json state,title", Output: output})
+	if !got.Passthrough || got.Parser != "" || got.Output != output {
+		t.Fatalf("structured output must remain lossless, got %#v", got)
+	}
+}
+
 func TestOptimizeHookRecordsUnparsedCommandsForDiscovery(t *testing.T) {
 	dir := t.TempDir()
 	OptimizeHook(HookRequest{Command: "custom-tool --token=secret", Output: "verbose output", StoragePath: dir})
