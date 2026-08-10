@@ -125,13 +125,12 @@ func PiOptimizeWithConfig(command, output string, exitCode int, cfg PiConfig) (s
 			// Estimate tokens: ~4 chars per token (same heuristic as runner).
 			origTokens := int(float64(utf8.RuneCountInString(output)) / 4.0)
 			compTokens := int(float64(utf8.RuneCountInString(compressed)) / 4.0)
+			// Pi telemetry is aggregate-only: never persist raw or transformed output.
 			_ = tel.Record(telemetry.ExecutionRecord{
-				Command:           command,
-				OriginalTokens:    origTokens,
-				CompressedTokens:  compTokens,
-				OriginalContent:   output,
-				CompressedContent: compressed,
-				Harness:           harness,
+				Command:          command,
+				OriginalTokens:   origTokens,
+				CompressedTokens: compTokens,
+				Harness:          harness,
 			})
 		}
 	}
