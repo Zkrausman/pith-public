@@ -113,10 +113,10 @@ func TestSearchExecutions(t *testing.T) {
 		t.Errorf("Expected 1 result for 'git', got %d", len(results))
 	}
 
-	// Search by content
-	results, _ = tel.SearchExecutions("package", "all", 10)
+	// Search by command; output content is intentionally not retained.
+	results, _ = tel.SearchExecutions("main", "all", 10)
 	if len(results) != 1 || results[0].Command != "cat main.go" {
-		t.Errorf("Expected 1 result for 'package', got %d", len(results))
+		t.Errorf("Expected 1 result for 'main', got %d", len(results))
 	}
 
 	// Search with source filter

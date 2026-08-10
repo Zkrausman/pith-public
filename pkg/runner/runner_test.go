@@ -58,6 +58,7 @@ func TestMiddleOutTruncation(t *testing.T) {
 }
 
 func TestDetectSource(t *testing.T) {
+	t.Setenv("PITH_HARNESS", "")
 	// Gemini
 	t.Setenv("GEMINI_CLI", "1")
 	if DetectSource() != "gemini" {
@@ -71,6 +72,13 @@ func TestDetectSource(t *testing.T) {
 		t.Error("Expected claude source")
 	}
 	t.Setenv("CLAUDE_CODE", "")
+
+	// Explicit harness attribution for wrapper/embedded integrations.
+	t.Setenv("PITH_HARNESS", "codex")
+	if DetectSource() != "codex" {
+		t.Error("Expected explicit codex harness")
+	}
+	t.Setenv("PITH_HARNESS", "")
 
 	// Unknown
 	t.Setenv("GEMINI_CLI", "")

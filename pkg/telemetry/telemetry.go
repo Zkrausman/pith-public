@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -49,6 +50,12 @@ func normalizeHarness(h string) string {
 
 type Telemetry struct {
 	DB *sql.DB
+}
+
+var sensitiveCommandValue = regexp.MustCompile(`(?i)((?:--?(?:api[-_]?key|token|secret|password)(?:=|\s+)|(?:api[-_]?key|token|secret|password)\s*=\s*|authorization:\s*bearer\s+))[^\s"']+`)
+
+func redactCommand(command string) string {
+	return sensitiveCommandValue.ReplaceAllString(command, `${1}[REDACTED]`)
 }
 
 func NewTelemetry(storagePath string) (*Telemetry, error) {
@@ -109,6 +116,8 @@ func (t *Telemetry) init() error {
 	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN compressed_content TEXT")
 	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN source TEXT DEFAULT 'unknown'")
 	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN harness TEXT DEFAULT 'unknown'")
+	// Remove historical output retention when opening an existing telemetry store.
+	_, _ = t.DB.Exec("UPDATE executions SET original_content = '', compressed_content = '' WHERE original_content != '' OR compressed_content != ''")
 
 	// Uniqueness constraint to prevent duplication on sync
 	_, _ = t.DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_executions_unique ON executions(timestamp, command, duration_ms)")
@@ -157,6 +166,10 @@ func (t *Telemetry) init() error {
 }
 
 func (t *Telemetry) Record(rec ExecutionRecord) error {
+	rec.Command = redactCommand(rec.Command)
+	// Telemetry supports accounting and parser discovery, not output retention.
+	rec.OriginalContent = ""
+	rec.CompressedContent = ""
 	if rec.Harness != "" {
 		rec.Harness = normalizeHarness(rec.Harness)
 	}
@@ -230,6 +243,7 @@ func (t *Telemetry) GetUnparsedCommands(source string) ([]struct {
 	InvocationCount int
 	TotalRawTokens  int
 	Source          string
+	Harness         string
 }, error) {
 	whereClause := "WHERE is_passthrough = 1"
 	var args []interface{}
@@ -239,10 +253,10 @@ func (t *Telemetry) GetUnparsedCommands(source string) ([]struct {
 	}
 
 	query := fmt.Sprintf(`
-	SELECT command, COUNT(*), SUM(original_tokens), MAX(source)
+	SELECT command, COUNT(*), SUM(original_tokens), MAX(source), COALESCE(harness,'unknown')
 	FROM executions
 	%s
-	GROUP BY command
+	GROUP BY command, harness
 	ORDER BY SUM(original_tokens) DESC
 	`, whereClause)
 
@@ -257,6 +271,7 @@ func (t *Telemetry) GetUnparsedCommands(source string) ([]struct {
 		InvocationCount int
 		TotalRawTokens  int
 		Source          string
+		Harness         string
 	}
 
 	for rows.Next() {
@@ -265,8 +280,9 @@ func (t *Telemetry) GetUnparsedCommands(source string) ([]struct {
 			InvocationCount int
 			TotalRawTokens  int
 			Source          string
+			Harness         string
 		}
-		if err := rows.Scan(&r.Pattern, &r.InvocationCount, &r.TotalRawTokens, &r.Source); err != nil {
+		if err := rows.Scan(&r.Pattern, &r.InvocationCount, &r.TotalRawTokens, &r.Source, &r.Harness); err != nil {
 			return nil, err
 		}
 		results = append(results, r)

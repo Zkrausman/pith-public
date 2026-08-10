@@ -65,9 +65,10 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	var gainCmd = &cobra.Command{
-		Use:   "gain",
-		Short: "Show token savings analytics",
-		RunE:  runGain,
+		Use:     "gain",
+		Aliases: []string{"stats"},
+		Short:   "Show token savings analytics",
+		RunE:    runGain,
 	}
 	gainCmd.Flags().Bool("by-harness", false, "Group token savings by harness (pi separate from claude/gemini)")
 
@@ -284,6 +285,9 @@ func runGain(cmd *cobra.Command, args []string) error {
 	cmd.Printf("Est. USD Saved:    $%.2f (at $%.2f/M tokens)\n", usdSaved, cfg.USDPerMillionTokens)
 
 	byHarness, _ := cmd.Flags().GetBool("by-harness")
+	if cmd.CalledAs() == "stats" {
+		byHarness = true
+	}
 	if byHarness {
 		byH, err := tel.GetStatsByHarness()
 		if err == nil && len(byH) > 0 {
@@ -333,7 +337,7 @@ func runGain(cmd *cobra.Command, args []string) error {
 		for i := 0; i < limit; i++ {
 			r := unparsed[i]
 			estSavings := float64(r.TotalRawTokens) * 0.7
-			cmd.Printf("%-25s | %-12s | %-8d | %-12d | %-12.0f\n", r.Pattern, r.Source, r.InvocationCount, r.TotalRawTokens, estSavings)
+			cmd.Printf("%-25s | %-12s | %-8d | %-12d | %-12.0f\n", r.Pattern, r.Harness, r.InvocationCount, r.TotalRawTokens, estSavings)
 		}
 		if len(unparsed) > 10 {
 			cmd.Printf("... and %d more. Run 'pith discover' for full list.\n", len(unparsed)-10)
@@ -368,7 +372,7 @@ func runDiscover(cmd *cobra.Command, args []string) error {
 	for _, r := range unparsed {
 		estSavedTokens := float64(r.TotalRawTokens) * 0.7
 		estSavingsUSD := (estSavedTokens / 1000000.0) * cfg.USDPerMillionTokens
-		cmd.Printf("%-30s | %-12s | %-10d | %-15d | $%-15.3f\n", r.Pattern, r.Source, r.InvocationCount, r.TotalRawTokens, estSavingsUSD)
+		cmd.Printf("%-30s | %-12s | %-10d | %-15d | $%-15.3f\n", r.Pattern, r.Harness, r.InvocationCount, r.TotalRawTokens, estSavingsUSD)
 	}
 
 	return nil
@@ -498,6 +502,7 @@ func runHook(cmd *cobra.Command, args []string) error {
 			ParserUsed:       parserUsed,
 			IsPassthrough:    isPassthrough,
 			Source:           source,
+			Harness:          source,
 		})
 	}
 	if p == nil && !wasTruncated {

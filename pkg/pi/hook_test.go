@@ -16,7 +16,7 @@ func TestOptimizeHookUsesPithParser(t *testing.T) {
 }
 func TestOptimizeHookTelemetryIsAggregateOnly(t *testing.T) {
 	dir := t.TempDir()
-	OptimizeHook(HookRequest{Command: "git status --token=raw-secret", Output: strings.Repeat("secret-output\\n", 1000), TelemetryEnabled: true, StoragePath: dir})
+	OptimizeHook(HookRequest{Command: "git status --token=raw-secret", Output: strings.Repeat("secret-output\\n", 1000), StoragePath: dir})
 	tel, err := telemetry.NewTelemetry(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -30,11 +30,28 @@ func TestOptimizeHookTelemetryIsAggregateOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if detail.Command != "pi_transform" || strings.Contains(detail.Command, "raw-secret") {
-		t.Fatalf("Pi telemetry retained raw command: %#v", detail)
+	if detail.Command != "git status --token=[REDACTED]" || strings.Contains(detail.Command, "raw-secret") {
+		t.Fatalf("Pi telemetry did not retain a redacted command: %#v", detail)
 	}
 	if detail.OriginalContent != "" || detail.CompressedContent != "" {
 		t.Fatalf("Pi telemetry retained content: %#v", detail)
+	}
+}
+
+func TestOptimizeHookRecordsUnparsedCommandsForDiscovery(t *testing.T) {
+	dir := t.TempDir()
+	OptimizeHook(HookRequest{Command: "custom-tool --token=secret", Output: "verbose output", StoragePath: dir})
+	tel, err := telemetry.NewTelemetry(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tel.Close()
+	unparsed, err := tel.GetUnparsedCommands("")
+	if err != nil || len(unparsed) != 1 {
+		t.Fatalf("unparsed telemetry: %v %#v", err, unparsed)
+	}
+	if unparsed[0].Pattern != "custom-tool --token=[REDACTED]" || unparsed[0].Harness != HarnessPi {
+		t.Fatalf("unexpected discovery record: %#v", unparsed[0])
 	}
 }
 

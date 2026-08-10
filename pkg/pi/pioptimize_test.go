@@ -157,9 +157,9 @@ func TestPiShouldRedact_EvidencePaths(t *testing.T) {
 	}
 }
 
-func TestPiOptimizeTelemetryUsesFixedCommandCategory(t *testing.T) {
+func TestPiOptimizeTelemetryRecordsRedactedCommand(t *testing.T) {
 	dir := t.TempDir()
-	_, err := PiOptimizeWithConfig("echo raw-secret", "telemetry output", 0, PiConfig{
+	_, err := PiOptimizeWithConfig("echo --token=raw-secret", "telemetry output", 0, PiConfig{
 		TelemetryEnabled: true,
 		StoragePath:      dir,
 		Harness:          HarnessPi,
@@ -176,8 +176,8 @@ func TestPiOptimizeTelemetryUsesFixedCommandCategory(t *testing.T) {
 	if err != nil || len(records) != 1 {
 		t.Fatalf("records: %v %#v", err, records)
 	}
-	if records[0].Command != "pi_transform" {
-		t.Fatalf("Pi telemetry retained raw command: %#v", records[0])
+	if records[0].Command != "echo --token=[REDACTED]" {
+		t.Fatalf("Pi telemetry did not redact the command: %#v", records[0])
 	}
 }
 
