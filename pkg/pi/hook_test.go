@@ -16,7 +16,7 @@ func TestOptimizeHookUsesPithParser(t *testing.T) {
 }
 func TestOptimizeHookTelemetryIsAggregateOnly(t *testing.T) {
 	dir := t.TempDir()
-	OptimizeHook(HookRequest{Command: "git status", Output: strings.Repeat("secret-output\\n", 1000), TelemetryEnabled: true, StoragePath: dir})
+	OptimizeHook(HookRequest{Command: "git status --token=raw-secret", Output: strings.Repeat("secret-output\\n", 1000), TelemetryEnabled: true, StoragePath: dir})
 	tel, err := telemetry.NewTelemetry(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -30,8 +30,23 @@ func TestOptimizeHookTelemetryIsAggregateOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if detail.Command != "pi_transform" || strings.Contains(detail.Command, "raw-secret") {
+		t.Fatalf("Pi telemetry retained raw command: %#v", detail)
+	}
 	if detail.OriginalContent != "" || detail.CompressedContent != "" {
 		t.Fatalf("Pi telemetry retained content: %#v", detail)
+	}
+}
+
+func TestOptimizeHookHonorsEnabledParsers(t *testing.T) {
+	out := strings.Repeat("On branch main\n\nChanges not staged for commit:\n\tmodified: pkg/pi/hook.go\n", 200)
+	got := OptimizeHook(HookRequest{
+		Command:        "git status",
+		Output:         out,
+		EnabledParsers: map[string]bool{"git_status": false},
+	})
+	if !got.Passthrough || got.Parser != "" || got.Output != out {
+		t.Fatalf("disabled parser must preserve output, got %#v", got)
 	}
 }
 

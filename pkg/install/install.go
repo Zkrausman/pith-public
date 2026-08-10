@@ -11,44 +11,61 @@ import (
 )
 
 func Install() error {
-	home, err := os.UserHomeDir()
+	pithBinDir, err := installBinary()
 	if err != nil {
 		return err
-	}
-
-	pithBinDir := filepath.Join(home, ".pith", "bin")
-	if err := os.MkdirAll(pithBinDir, 0755); err != nil {
-		return fmt.Errorf("failed to create bin directory: %v", err)
-	}
-
-	exePath, err := os.Executable()
-	if err != nil {
-		return err
-	}
-
-	destPath := filepath.Join(pithBinDir, filepath.Base(exePath))
-
-	// Skip copy if we are already running from the destination path
-	absExe, _ := filepath.Abs(exePath)
-	absDest, _ := filepath.Abs(destPath)
-	if strings.EqualFold(absExe, absDest) {
-		fmt.Printf("Pith is already running from %s. Skipping copy.\n", destPath)
-	} else {
-		// Copy the executable to ~/.pith/bin
-		input, err := os.ReadFile(exePath)
-		if err != nil {
-			return fmt.Errorf("failed to read executable: %v", err)
-		}
-		if err := os.WriteFile(destPath, input, 0755); err != nil {
-			return fmt.Errorf("failed to copy executable: %v", err)
-		}
-		fmt.Printf("Copied Pith to %s\n", destPath)
 	}
 
 	if runtime.GOOS == "windows" {
 		return installWindows(pithBinDir)
 	}
-	return fmt.Errorf("install command not yet supported on %s", runtime.GOOS)
+	return nil
+}
+
+// installBinary copies the running Pith executable to the stable location used
+// by the Pi extension. The extension uses an absolute path, so it does not
+// depend on a shell PATH update on macOS or Linux.
+func installBinary() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	pithBinDir := filepath.Join(home, ".pith", "bin")
+	if err := os.MkdirAll(pithBinDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create bin directory: %v", err)
+	}
+
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	destPath := filepath.Join(pithBinDir, installedBinaryName())
+
+	// Skip copy if we are already running from the destination path.
+	absExe, _ := filepath.Abs(exePath)
+	absDest, _ := filepath.Abs(destPath)
+	if strings.EqualFold(absExe, absDest) {
+		fmt.Printf("Pith is already running from %s. Skipping copy.\n", destPath)
+		return pithBinDir, nil
+	}
+
+	input, err := os.ReadFile(exePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read executable: %v", err)
+	}
+	if err := os.WriteFile(destPath, input, 0755); err != nil {
+		return "", fmt.Errorf("failed to copy executable: %v", err)
+	}
+	fmt.Printf("Copied Pith to %s\n", destPath)
+	return pithBinDir, nil
+}
+
+func installedBinaryName() string {
+	if runtime.GOOS == "windows" {
+		return "pith.exe"
+	}
+	return "pith"
 }
 
 func installWindows(binDir string) error {

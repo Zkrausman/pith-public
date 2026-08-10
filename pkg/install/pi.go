@@ -27,36 +27,42 @@ func SetupPiHook() error {
 
 const piExtension = `import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 type Config = { enabled?: boolean; thresholdBytes?: number; telemetryEnabled?: boolean; rawBypass?: boolean };
-async function config(cwd: string, trusted: boolean): Promise<Config> {
-  if (!trusted) return {};
+async function config(cwd: string): Promise<Config> {
   try { return JSON.parse(await readFile(join(cwd, ".pi", "pith.json"), "utf8")); } catch { return {}; }
 }
 function transform(binary: string, request: unknown, signal?: AbortSignal): Promise<any> {
+  if (signal?.aborted) return Promise.reject(new Error("Pith transform aborted"));
   return new Promise((resolve, reject) => {
     const child = spawn(binary, ["pi", "transform"], { stdio: ["pipe", "pipe", "ignore"] });
     let out = "";
     child.stdout.on("data", (chunk) => { out += String(chunk); });
     child.once("error", reject);
-    child.once("close", (code) => code === 0 ? resolve(JSON.parse(out)) : reject(new Error("pith exited " + code)));
+    child.once("close", (code) => {
+      if (code !== 0) return reject(new Error("pith exited " + code));
+      try { resolve(JSON.parse(out)); } catch (error) { reject(error); }
+    });
     signal?.addEventListener("abort", () => child.kill(), { once: true });
     child.stdin.end(JSON.stringify(request));
   });
 }
 export default function (pi: ExtensionAPI) {
   pi.on("tool_result", async (event, ctx) => {
+    if (!ctx.isProjectTrusted()) return;
     const command = (event.input as { command?: unknown }).command;
     if (event.toolName !== "bash" || typeof command !== "string" || event.isError) return;
     const blocks = event.content as Array<{ type: string; text?: string }>;
-    if (!Array.isArray(blocks) || blocks.some((b) => b.type !== "text" || typeof b.text !== "string")) return;
-    const output = blocks.map((b) => b.text!).join("\n");
-    const cfg = await config(ctx.cwd, ctx.isProjectTrusted());
+    if (!Array.isArray(blocks) || blocks.length !== 1 || blocks[0]?.type !== "text" || typeof blocks[0].text !== "string") return;
+    const output = blocks[0].text;
+    const cfg = await config(ctx.cwd);
     if (cfg.enabled === false || cfg.rawBypass || output.length < (cfg.thresholdBytes ?? 8000)) return;
     try {
-      const response = await transform(process.env.PITH_BIN || "pith", { command, output, exitCode: Number((event.details as any)?.exitCode ?? 0), thresholdBytes: cfg.thresholdBytes, telemetryEnabled: cfg.telemetryEnabled === true }, ctx.signal);
+      const binary = process.env.PITH_BIN || join(homedir(), ".pith", "bin", process.platform === "win32" ? "pith.exe" : "pith");
+      const response = await transform(binary, { command, output, exitCode: Number((event.details as any)?.exitCode ?? 0), thresholdBytes: cfg.thresholdBytes, telemetryEnabled: cfg.telemetryEnabled === true }, ctx.signal);
       if (typeof response?.output !== "string") return;
       return { content: [{ type: "text", text: response.output }], details: { ...event.details, pith: { parser: response.parser, passthrough: response.passthrough } } };
     } catch { return; } // Pith failure always preserves Pi's original result.

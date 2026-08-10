@@ -224,6 +224,20 @@ func runPiTransform(cmd *cobra.Command, args []string) error {
 	if err := decoder.Decode(&input); err != nil {
 		return fmt.Errorf("decode Pi transform request: %w", err)
 	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("decode Pi transform request: unexpected trailing JSON value")
+		}
+		return fmt.Errorf("decode Pi transform request: %w", err)
+	}
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return err
+	}
+	input.EnabledParsers = cfg.EnabledParsers
+	if input.StoragePath == "" {
+		input.StoragePath = cfg.StoragePath
+	}
 	return json.NewEncoder(cmd.OutOrStdout()).Encode(pi.OptimizeHook(input))
 }
 

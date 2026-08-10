@@ -12,13 +12,14 @@ import (
 // HookRequest is the JSON stdin contract for `pith pi transform`. Pith only
 // transforms completed output and never executes Command.
 type HookRequest struct {
-	Command          string `json:"command"`
-	Output           string `json:"output"`
-	ExitCode         int    `json:"exitCode"`
-	RawBypass        bool   `json:"rawBypass"`
-	ThresholdBytes   int    `json:"thresholdBytes"`
-	TelemetryEnabled bool   `json:"telemetryEnabled"`
-	StoragePath      string `json:"storagePath"`
+	Command          string          `json:"command"`
+	Output           string          `json:"output"`
+	ExitCode         int             `json:"exitCode"`
+	RawBypass        bool            `json:"rawBypass"`
+	ThresholdBytes   int             `json:"thresholdBytes"`
+	TelemetryEnabled bool            `json:"telemetryEnabled"`
+	StoragePath      string          `json:"storagePath"`
+	EnabledParsers   map[string]bool `json:"-"`
 }
 
 type HookResponse struct {
@@ -37,7 +38,8 @@ func OptimizeHook(req HookRequest) HookResponse {
 		parts := strings.Fields(req.Command)
 		if len(parts) > 0 {
 			for _, candidate := range parser.GetAllParsers() {
-				if candidate.CanParse(parts[0], parts[1:]) {
+				enabled, configured := req.EnabledParsers[candidate.Name()]
+				if (!configured || enabled) && candidate.CanParse(parts[0], parts[1:]) {
 					result = HookResponse{Output: maybeRedact(candidate.Parse(req.Output), cfg), Parser: candidate.Name()}
 					break
 				}
@@ -47,7 +49,7 @@ func OptimizeHook(req HookRequest) HookResponse {
 	if req.TelemetryEnabled {
 		if tel, err := telemetry.NewTelemetry(req.StoragePath); err == nil {
 			defer tel.Close()
-			_ = tel.Record(telemetry.ExecutionRecord{Command: req.Command, OriginalTokens: runner.EstimateTokensWithHeuristic(req.Output, 4), CompressedTokens: runner.EstimateTokensWithHeuristic(result.Output, 4), DurationMs: time.Since(started).Milliseconds(), ParserUsed: result.Parser, IsPassthrough: result.Passthrough, Harness: HarnessPi})
+			_ = tel.Record(telemetry.ExecutionRecord{Command: piTelemetryCommand, OriginalTokens: runner.EstimateTokensWithHeuristic(req.Output, 4), CompressedTokens: runner.EstimateTokensWithHeuristic(result.Output, 4), DurationMs: time.Since(started).Milliseconds(), ParserUsed: result.Parser, IsPassthrough: result.Passthrough, Harness: HarnessPi})
 		}
 	}
 	return result

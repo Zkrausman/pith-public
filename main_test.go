@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"pith/pkg/telemetry"
 	"runtime"
 	"strings"
@@ -95,6 +96,52 @@ func TestHookInputSchema(t *testing.T) {
 	}
 	if inputOld.ToolCallRequest.Arguments == "" {
 		t.Error("Expected arguments to be populated")
+	}
+}
+
+func TestPiTransformRejectsTrailingJSONValues(t *testing.T) {
+	request := `{"command":"git status","output":"result","exitCode":0}`
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"pi", "transform"})
+	cmd.SetIn(strings.NewReader(request + request))
+	cmd.SetOut(new(bytes.Buffer))
+
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("pi transform accepted multiple JSON values")
+	}
+}
+
+func TestPiTransformHonorsPersistedEnabledParsers(t *testing.T) {
+	storage := t.TempDir()
+	t.Setenv("PITH_STORAGE", storage)
+	if err := os.WriteFile(filepath.Join(storage, "config.json"), []byte(`{"enabled_parsers":{"git_status":false}}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	request, err := json.Marshal(map[string]interface{}{
+		"command":  "git status",
+		"output":   strings.Repeat("On branch main\n\nChanges not staged for commit:\n\tmodified: pkg/pi/hook.go\n", 200),
+		"exitCode": 0,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := new(bytes.Buffer)
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"pi", "transform"})
+	cmd.SetIn(bytes.NewReader(request))
+	cmd.SetOut(out)
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	var response struct {
+		Parser      string `json:"parser"`
+		Passthrough bool   `json:"passthrough"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Parser != "" || !response.Passthrough {
+		t.Fatalf("disabled parser was used: %#v", response)
 	}
 }
 

@@ -157,6 +157,30 @@ func TestPiShouldRedact_EvidencePaths(t *testing.T) {
 	}
 }
 
+func TestPiOptimizeTelemetryUsesFixedCommandCategory(t *testing.T) {
+	dir := t.TempDir()
+	_, err := PiOptimizeWithConfig("echo raw-secret", "telemetry output", 0, PiConfig{
+		TelemetryEnabled: true,
+		StoragePath:      dir,
+		Harness:          HarnessPi,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tel, err := telemetry.NewTelemetry(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tel.Close()
+	records, err := tel.GetRecentExecutions(1, "")
+	if err != nil || len(records) != 1 {
+		t.Fatalf("records: %v %#v", err, records)
+	}
+	if records[0].Command != "pi_transform" {
+		t.Fatalf("Pi telemetry retained raw command: %#v", records[0])
+	}
+}
+
 func TestPiOptimize_NeverSpawnsCommand(t *testing.T) {
 	// Ensure it doesn't exec: command that would fail if spawned is treated as string.
 	// If PiOptimize spawned, this would be detectable, but we verify transform-only.
