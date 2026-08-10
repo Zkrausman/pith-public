@@ -14,6 +14,23 @@ func TestPiExtensionRejectsMalformedPithResponse(t *testing.T) {
 	}
 }
 
+func TestPiExtensionDelegatesAllCompletedBashResultsToPith(t *testing.T) {
+	for _, forbidden := range []string{
+		"thresholdBytes",
+		"output.length <",
+	} {
+		if strings.Contains(piExtension, forbidden) {
+			t.Errorf("Pi extension must not filter Pith input by %q", forbidden)
+		}
+	}
+	if !strings.Contains(piExtension, "telemetryEnabled: true") {
+		t.Error("Pi extension must enable Pith harness telemetry")
+	}
+	if !strings.Contains(piExtension, "event.isError ? 1 :") {
+		t.Error("Pi extension must classify Pi error results as nonzero exits")
+	}
+}
+
 func TestPiExtensionSafetyGuards(t *testing.T) {
 	for _, guard := range []string{
 		"if (!ctx.isProjectTrusted()) return;",

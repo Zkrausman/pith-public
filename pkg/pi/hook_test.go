@@ -14,6 +14,14 @@ func TestOptimizeHookUsesPithParser(t *testing.T) {
 		t.Fatalf("expected git parser, got %#v", got)
 	}
 }
+func TestOptimizeHookUsesPithParserForSmallSuccessfulOutput(t *testing.T) {
+	out := "On branch main\n\nnothing to commit, working tree clean\n"
+	got := OptimizeHook(HookRequest{Command: "git status", Output: out})
+	if got.Parser != "git_status" || got.Passthrough {
+		t.Fatalf("expected small successful output to reach the Pith parser, got %#v", got)
+	}
+}
+
 func TestOptimizeHookTelemetryIsAggregateOnly(t *testing.T) {
 	dir := t.TempDir()
 	OptimizeHook(HookRequest{Command: "git status --token=raw-secret", Output: strings.Repeat("secret-output\\n", 1000), TelemetryEnabled: true, StoragePath: dir})

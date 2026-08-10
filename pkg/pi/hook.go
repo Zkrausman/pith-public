@@ -16,7 +16,6 @@ type HookRequest struct {
 	Output           string          `json:"output"`
 	ExitCode         int             `json:"exitCode"`
 	RawBypass        bool            `json:"rawBypass"`
-	ThresholdBytes   int             `json:"thresholdBytes"`
 	TelemetryEnabled bool            `json:"telemetryEnabled"`
 	StoragePath      string          `json:"storagePath"`
 	EnabledParsers   map[string]bool `json:"-"`
@@ -32,9 +31,9 @@ type HookResponse struct {
 // Raw requests, errors, and diffs are lossless except mandatory redaction.
 func OptimizeHook(req HookRequest) HookResponse {
 	started := time.Now()
-	cfg := PiConfig{ThresholdBytes: req.ThresholdBytes, Redact: true, RawBypass: req.RawBypass, Harness: HarnessPi}
+	cfg := PiConfig{Redact: true, RawBypass: req.RawBypass, Harness: HarnessPi}
 	result := HookResponse{Output: maybeRedact(req.Output, cfg), Passthrough: true}
-	if !req.RawBypass && req.ExitCode == 0 && !errorMarkerRegex.MatchString(req.Output) && !diffMarkerRegex.MatchString(req.Output) && len(req.Output) >= cfg.threshold() {
+	if !req.RawBypass && req.ExitCode == 0 && !errorMarkerRegex.MatchString(req.Output) && !diffMarkerRegex.MatchString(req.Output) {
 		parts := strings.Fields(req.Command)
 		if len(parts) > 0 {
 			for _, candidate := range parser.GetAllParsers() {
