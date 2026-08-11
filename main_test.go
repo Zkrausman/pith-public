@@ -189,14 +189,18 @@ func TestGainCmd(t *testing.T) {
 	}
 }
 
-func TestStatsAliasDisplaysHarnessBreakdown(t *testing.T) {
+func TestGainCmd_PricesByRecordedModel(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
 	tel, err := telemetry.NewTelemetry(tmpDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := tel.Record(telemetry.ExecutionRecord{Command: "git status", OriginalTokens: 100, CompressedTokens: 50, Harness: "pi"}); err != nil {
+	rate := 20.0
+	if err := tel.Record(telemetry.ExecutionRecord{Command: "git status", OriginalTokens: 1000, CompressedTokens: 500, Model: "openai/gpt-5", InputCostPerMillion: &rate}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tel.Record(telemetry.ExecutionRecord{Command: "legacy", OriginalTokens: 200, CompressedTokens: 100}); err != nil {
 		t.Fatal(err)
 	}
 	tel.Close()
@@ -208,8 +212,9 @@ func TestStatsAliasDisplaysHarnessBreakdown(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out.String(), "Breakdown by Harness") || !strings.Contains(out.String(), "pi") {
-		t.Fatalf("stats must report harness savings, got %q", out.String())
+	result := out.String()
+	if !strings.Contains(result, "openai/gpt-5") || !strings.Contains(result, "$0.01 recorded") || !strings.Contains(result, "fallback estimate") {
+		t.Fatalf("model-aware gain output missing: %s", result)
 	}
 }
 

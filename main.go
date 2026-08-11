@@ -279,12 +279,33 @@ func runGain(cmd *cobra.Command, args []string) error {
 
 	saved := totalOrig - totalComp
 	percent := (float64(saved) / float64(totalOrig)) * 100
-	usdSaved := (float64(saved) / 1000000.0) * cfg.USDPerMillionTokens
+	modelSavings, err := tel.GetSavingsByModel()
+	if err != nil {
+		return err
+	}
+	var recordedUSD float64
+	var fallbackTokens int
+	for _, r := range modelSavings {
+		recordedUSD += r.RecordedUSD
+		fallbackTokens += r.FallbackTokens
+	}
+	fallbackUSD := (float64(fallbackTokens) / 1000000.0) * cfg.USDPerMillionTokens
 
 	cmd.Printf("Raw Tokens:        %d\n", totalOrig)
 	cmd.Printf("Compressed:        %d\n", totalComp)
 	cmd.Printf("Tokens Saved:      %d (%.2f%%)\n", saved, percent)
-	cmd.Printf("Est. USD Saved:    $%.2f (at $%.2f/M tokens)\n", usdSaved, cfg.USDPerMillionTokens)
+	cmd.Printf("USD Saved:         $%.2f recorded + $%.2f fallback estimate\n", recordedUSD, fallbackUSD)
+	if fallbackTokens > 0 {
+		cmd.Printf("Fallback rate:     $%.2f/M tokens (%d saved tokens without an execution-time rate)\n", cfg.USDPerMillionTokens, fallbackTokens)
+	}
+	if len(modelSavings) > 0 {
+		cmd.Printf("\n--- Savings by Model ---\n")
+		cmd.Printf("%-30s | %-10s | %-12s | %-12s\n", "Model", "Saved", "Recorded USD", "Fallback Tokens")
+		cmd.Println(strings.Repeat("-", 74))
+		for _, r := range modelSavings {
+			cmd.Printf("%-30s | %-10d | $%-11.3f | %-15d\n", r.Model, r.Original-r.Compressed, r.RecordedUSD, r.FallbackTokens)
+		}
+	}
 
 	byHarness, _ := cmd.Flags().GetBool("by-harness")
 	if cmd.CalledAs() == "stats" {
@@ -298,8 +319,7 @@ func runGain(cmd *cobra.Command, args []string) error {
 			cmd.Println(strings.Repeat("-", 62))
 			for _, r := range byH {
 				savings := r.Original - r.Compressed
-				usdH := (float64(savings) / 1000000.0) * cfg.USDPerMillionTokens
-				cmd.Printf("%-12s | %-10d | %-10d | %-10d | $%-10.3f\n", r.Harness, r.Original, r.Compressed, savings, usdH)
+				cmd.Printf("%-12s | %-10d | %-10d | %-10d | %-10s\n", r.Harness, r.Original, r.Compressed, savings, "see models")
 			}
 		}
 		// when by-harness requested, still show per-command breakdown but grouped deterministic: harness+command
@@ -318,9 +338,7 @@ func runGain(cmd *cobra.Command, args []string) error {
 		}
 		for i := 0; i < limit; i++ {
 			r := byCmd[i]
-			savings := r.Original - r.Compressed
-			usdCmd := (float64(savings) / 1000000.0) * cfg.USDPerMillionTokens
-			cmd.Printf("%-25s | %-12s | %-10d | %-10d | $%-10.3f\n", r.Command, r.Source, r.Original, r.Compressed, usdCmd)
+			cmd.Printf("%-25s | %-12s | %-10d | %-10d | %-10s\n", r.Command, r.Source, r.Original, r.Compressed, "see models")
 		}
 		if len(byCmd) > 20 {
 			cmd.Printf("... and %d more. Run 'pith dashboard' for full interactive breakdown.\n", len(byCmd)-20)
