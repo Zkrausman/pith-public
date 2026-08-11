@@ -2,6 +2,7 @@ package install
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -40,9 +41,10 @@ func installBinary() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// `go test` runs a temporary test executable; never allow it to replace a
-	// user's real installation.
-	if strings.HasSuffix(strings.ToLower(exePath), ".test") || strings.HasSuffix(strings.ToLower(exePath), ".test.exe") {
+	// `go test` runs a test executable; never allow it to replace a user's real
+	// installation. A copied test executable can be renamed to pith.exe, so do
+	// not rely on its filename alone.
+	if isGoTestExecutable(exePath) {
 		return "", fmt.Errorf("refusing to install from a Go test executable")
 	}
 	destPath := filepath.Join(pithBinDir, installedBinaryName())
@@ -64,6 +66,13 @@ func installBinary() (string, error) {
 	}
 	fmt.Printf("Copied Pith to %s\n", destPath)
 	return pithBinDir, nil
+}
+
+func isGoTestExecutable(exePath string) bool {
+	lowerPath := strings.ToLower(exePath)
+	return strings.HasSuffix(lowerPath, ".test") ||
+		strings.HasSuffix(lowerPath, ".test.exe") ||
+		flag.Lookup("test.v") != nil
 }
 
 func installedBinaryName() string {
