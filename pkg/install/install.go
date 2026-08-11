@@ -40,6 +40,11 @@ func installBinary() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// `go test` runs a temporary test executable; never allow it to replace a
+	// user's real installation.
+	if strings.HasSuffix(strings.ToLower(exePath), ".test") || strings.HasSuffix(strings.ToLower(exePath), ".test.exe") {
+		return "", fmt.Errorf("refusing to install from a Go test executable")
+	}
 	destPath := filepath.Join(pithBinDir, installedBinaryName())
 
 	// Skip copy if we are already running from the destination path.

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +17,42 @@ const repo = "Zkrausman/Pith"
 
 var githubAPI = "https://api.github.com"
 var osExecutable = os.Executable
+
+func isNewerVersion(candidate, current string) bool {
+	parse := func(v string) ([3]int, bool) {
+		var result [3]int
+		v = strings.TrimPrefix(strings.TrimSpace(v), "v")
+		if strings.ContainsAny(v, "-+") {
+			return result, false
+		}
+		parts := strings.Split(v, ".")
+		if len(parts) != 3 {
+			return result, false
+		}
+		for i, part := range parts {
+			n, err := strconv.Atoi(part)
+			if err != nil || n < 0 {
+				return result, false
+			}
+			result[i] = n
+		}
+		return result, true
+	}
+	candidateParts, ok := parse(candidate)
+	if !ok {
+		return false
+	}
+	currentParts, ok := parse(current)
+	if !ok {
+		return false
+	}
+	for i := range candidateParts {
+		if candidateParts[i] != currentParts[i] {
+			return candidateParts[i] > currentParts[i]
+		}
+	}
+	return false
+}
 
 type Release struct {
 	TagName string `json:"tag_name"`
@@ -80,9 +117,13 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 		return false, fmt.Errorf("no releases found")
 	}
 
-	release := releases[0] // Latest is first
-
-	if release.TagName == currentVersion {
+	var release *Release
+	for i := range releases {
+		if isNewerVersion(releases[i].TagName, currentVersion) && (release == nil || isNewerVersion(releases[i].TagName, release.TagName)) {
+			release = &releases[i]
+		}
+	}
+	if release == nil {
 		return false, nil
 	}
 
@@ -143,11 +184,13 @@ func CheckForUpdateSilent(currentVersion string) (string, error) {
 		return "", err
 	}
 
-	if len(releases) > 0 && releases[0].TagName != currentVersion {
-		return releases[0].TagName, nil
+	latest := ""
+	for _, release := range releases {
+		if isNewerVersion(release.TagName, currentVersion) && (latest == "" || isNewerVersion(release.TagName, latest)) {
+			latest = release.TagName
+		}
 	}
-
-	return "", nil
+	return latest, nil
 }
 
 func downloadAndReplace(url string, token string) error {
