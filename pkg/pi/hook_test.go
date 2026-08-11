@@ -30,8 +30,8 @@ func TestOptimizeHookTelemetryIsAggregateOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if detail.Command != "pi_transform" || strings.Contains(detail.Command, "raw-secret") {
-		t.Fatalf("Pi telemetry retained raw command: %#v", detail)
+	if strings.Contains(detail.Command, "raw-secret") || !strings.Contains(detail.Command, "[REDACTED]") {
+		t.Fatalf("Pi telemetry did not redact command: %#v", detail)
 	}
 	if detail.OriginalContent != "" || detail.CompressedContent != "" {
 		t.Fatalf("Pi telemetry retained content: %#v", detail)

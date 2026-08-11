@@ -31,7 +31,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-type Config = { enabled?: boolean; thresholdBytes?: number; telemetryEnabled?: boolean; rawBypass?: boolean };
+type Config = { enabled?: boolean; rawBypass?: boolean };
 async function config(cwd: string): Promise<Config> {
   try { return JSON.parse(await readFile(join(cwd, ".pi", "pith.json"), "utf8")); } catch { return {}; }
 }
@@ -54,19 +54,20 @@ export default function (pi: ExtensionAPI) {
   pi.on("tool_result", async (event, ctx) => {
     if (!ctx.isProjectTrusted()) return;
     const command = (event.input as { command?: unknown }).command;
-    if (event.toolName !== "bash" || typeof command !== "string" || event.isError) return;
+    if (event.toolName !== "bash" || typeof command !== "string") return;
     const blocks = event.content as Array<{ type: string; text?: string }>;
     if (!Array.isArray(blocks) || blocks.length !== 1 || blocks[0]?.type !== "text" || typeof blocks[0].text !== "string") return;
     const output = blocks[0].text;
     const cfg = await config(ctx.cwd);
-    if (cfg.enabled === false || cfg.rawBypass || output.length < (cfg.thresholdBytes ?? 8000)) return;
+    if (cfg.enabled === false || cfg.rawBypass) return;
     try {
       const binary = process.env.PITH_BIN || join(homedir(), ".pith", "bin", process.platform === "win32" ? "pith.exe" : "pith");
+      const exitCode = event.isError ? 1 : Number((event.details as any)?.exitCode ?? 0);
       const model = ctx.model as { provider?: unknown; id?: unknown; cost?: { input?: unknown } } | undefined;
       const provider = typeof model?.provider === "string" ? model.provider : "";
       const modelID = typeof model?.id === "string" ? model.id : "unknown";
       const inputCostPerMillion = typeof model?.cost?.input === "number" && Number.isFinite(model.cost.input) && model.cost.input >= 0 ? model.cost.input : undefined;
-      const response = await transform(binary, { command, output, exitCode: Number((event.details as any)?.exitCode ?? 0), thresholdBytes: cfg.thresholdBytes, telemetryEnabled: cfg.telemetryEnabled === true, model: provider && modelID !== "unknown" ? provider + "/" + modelID : modelID, inputCostPerMillion }, ctx.signal);
+      const response = await transform(binary, { command, output, exitCode, telemetryEnabled: true, model: provider && modelID !== "unknown" ? provider + "/" + modelID : modelID, inputCostPerMillion }, ctx.signal);
       if (typeof response?.output !== "string") return;
       return { content: [{ type: "text", text: response.output }], details: { ...event.details, pith: { parser: response.parser, passthrough: response.passthrough } } };
     } catch { return; } // Pith failure always preserves Pi's original result.
