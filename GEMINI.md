@@ -20,7 +20,7 @@ Before any structural code changes or major bug fixes, agents MUST:
 
 - Use **Linear** (`GeneralAiDev` / AIDEV issues) as the authoritative Pith issue tracker.
 - Use the **LLM Wiki** for durable architecture, decisions, discoveries, and handoffs.
-- Use GitHub pull requests for review and merge.
+- Use GitHub pull requests for review and merge; all changes must reach `main` through a PR, never a direct push.
 - Do not use Beads (`bd`) or Dolt for Pith work.
 
 ## Session Completion

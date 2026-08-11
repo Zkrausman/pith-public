@@ -10,5 +10,9 @@ vendor/
 .gemini/
 
 test_hook_input.json
+
+# Generated LLM Wiki artifacts; project knowledge pages remain tracked.
+/.llm-wiki/raw/
+/.llm-wiki/meta/
 *.exe
 *.exe.old.*
