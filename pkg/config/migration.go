@@ -7,6 +7,10 @@ import (
 	"path/filepath"
 )
 
+// migrationOutput keeps machine-readable command output, including Pi hook
+// transform responses, free of migration notices.
+var migrationOutput io.Writer = os.Stderr
+
 func MigrateStorage(targetPath string) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -44,7 +48,7 @@ func MigrateStorage(targetPath string) error {
 			continue
 		}
 
-		fmt.Printf("[Pith] Migrating %s to %s...\n", f, targetPath)
+		fmt.Fprintf(migrationOutput, "[Pith] Migrating %s to %s...\n", f, targetPath)
 		if err := copyFile(src, dst); err != nil {
 			return fmt.Errorf("failed to migrate %s: %w", f, err)
 		}

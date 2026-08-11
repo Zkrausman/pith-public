@@ -3,7 +3,9 @@ package install
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -117,6 +119,34 @@ func TestSetupHookGlobal(t *testing.T) {
 		t.Errorf("Global hook not created at %s", expectedPath)
 	}
 }
+func TestRenamedGoTestBinaryCannotInstall(t *testing.T) {
+	binaryName := "pith"
+	if runtime.GOOS == "windows" {
+		binaryName += ".exe"
+	}
+	binaryPath := filepath.Join(t.TempDir(), binaryName)
+
+	build := exec.Command("go", "test", "-c", "-o", binaryPath, ".")
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build renamed test binary: %v\n%s", err, output)
+	}
+
+	run := exec.Command(binaryPath, "-test.run", "^TestRenamedGoTestBinaryInstallHelper$")
+	run.Env = append(os.Environ(), "PITH_RENAMED_TEST_BINARY_HELPER=1")
+	if output, err := run.CombinedOutput(); err != nil {
+		t.Fatalf("renamed test binary installed successfully or failed unexpectedly: %v\n%s", err, output)
+	}
+}
+
+func TestRenamedGoTestBinaryInstallHelper(t *testing.T) {
+	if os.Getenv("PITH_RENAMED_TEST_BINARY_HELPER") != "1" {
+		return
+	}
+	if err := Install(); err == nil || !strings.Contains(err.Error(), "Go test executable") {
+		t.Fatalf("expected renamed test binary to be rejected, got %v", err)
+	}
+}
+
 func TestInstall(t *testing.T) {
 	tmpHome := t.TempDir()
 	t.Setenv("USERPROFILE", tmpHome)

@@ -1,12 +1,19 @@
 package config
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
 func TestMigrateStorage(t *testing.T) {
+	var notices bytes.Buffer
+	previousOutput := migrationOutput
+	migrationOutput = &notices
+	t.Cleanup(func() { migrationOutput = previousOutput })
+
 	// Create a temporary home directory
 	tempHome, err := os.MkdirTemp("", "pith-home-*")
 	if err != nil {
@@ -43,6 +50,9 @@ func TestMigrateStorage(t *testing.T) {
 	// Migrate
 	if err := MigrateStorage(targetPath); err != nil {
 		t.Fatalf("MigrateStorage failed: %v", err)
+	}
+	if !strings.Contains(notices.String(), "Migrating pith.db") || !strings.Contains(notices.String(), "Migrating config.json") {
+		t.Fatalf("expected migration notices on stderr writer, got %q", notices.String())
 	}
 
 	// Verify files in target
