@@ -14,11 +14,11 @@ import (
 // HookRequest is the JSON stdin contract for `pith pi transform`. Pith only
 // transforms completed output and never executes Command.
 type HookRequest struct {
-	Command          string          `json:"command"`
-	Output           string          `json:"output"`
-	ExitCode         int             `json:"exitCode"`
-	RawBypass        bool            `json:"rawBypass"`
-	TelemetryEnabled bool            `json:"telemetryEnabled"`
+	Command             string          `json:"command"`
+	Output              string          `json:"output"`
+	ExitCode            int             `json:"exitCode"`
+	RawBypass           bool            `json:"rawBypass"`
+	TelemetryEnabled    bool            `json:"telemetryEnabled"`
 	StoragePath         string          `json:"storagePath"`
 	Model               string          `json:"model"`
 	InputCostPerMillion *float64        `json:"inputCostPerMillion"`
@@ -60,7 +60,9 @@ func OptimizeHook(req HookRequest) HookResponse {
 	if tel, err := telemetry.NewTelemetry(req.StoragePath); err == nil {
 		defer tel.Close()
 		cost := req.InputCostPerMillion
-		if cost != nil && (*cost < 0 || math.IsNaN(*cost) || math.IsInf(*cost, 0)) { cost = nil }
+		if cost != nil && (*cost < 0 || math.IsNaN(*cost) || math.IsInf(*cost, 0)) {
+			cost = nil
+		}
 		_ = tel.Record(telemetry.ExecutionRecord{Command: req.Command, OriginalTokens: runner.EstimateTokensWithHeuristic(req.Output, 4), CompressedTokens: runner.EstimateTokensWithHeuristic(result.Output, 4), DurationMs: time.Since(started).Milliseconds(), ParserUsed: result.Parser, IsPassthrough: result.Passthrough, Source: HarnessPi, Harness: HarnessPi, Model: req.Model, InputCostPerMillion: cost})
 	}
 	return result
