@@ -16,18 +16,30 @@ import (
 )
 
 type ExecutionRecord struct {
-	ID                int64
-	Timestamp         time.Time
-	Command           string
-	OriginalTokens    int
-	CompressedTokens  int
-	OriginalContent   string
-	CompressedContent string
-	DurationMs        int64
-	ParserUsed        string
-	IsPassthrough     bool
-	Source            string
-	Harness           string
+	ID                  int64
+	Timestamp           time.Time
+	Command             string
+	OriginalTokens      int
+	CompressedTokens    int
+	OriginalContent     string
+	CompressedContent   string
+	DurationMs          int64
+	ParserUsed          string
+	IsPassthrough       bool
+	Source              string
+	Harness             string
+	Model               string   `json:"model"`
+	InputCostPerMillion *float64 `json:"inputCostPerMillion,omitempty"`
+}
+
+// ModelSavings separates execution-time prices from records that need a
+// configured fallback (including telemetry created before model pricing).
+type ModelSavings struct {
+	Model          string
+	Original       int
+	Compressed     int
+	RecordedUSD    float64
+	FallbackTokens int
 }
 
 // normalizeHarness returns canonical harness: pi|claude|gemini|codex|jules|unknown.
@@ -104,7 +116,9 @@ func (t *Telemetry) init() error {
 		parser_used TEXT,
 		is_passthrough BOOLEAN,
 		source TEXT DEFAULT 'unknown',
-		harness TEXT DEFAULT 'unknown'
+		harness TEXT DEFAULT 'unknown',
+		model TEXT DEFAULT 'unknown',
+		input_cost_per_million REAL
 	);`
 
 	_, err := t.DB.Exec(query)
@@ -119,6 +133,8 @@ func (t *Telemetry) init() error {
 	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN harness TEXT DEFAULT 'unknown'")
 	// Remove historical output retention when opening an existing telemetry store.
 	_, _ = t.DB.Exec("UPDATE executions SET original_content = '', compressed_content = '' WHERE original_content != '' OR compressed_content != ''")
+	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN model TEXT DEFAULT 'unknown'")
+	_, _ = t.DB.Exec("ALTER TABLE executions ADD COLUMN input_cost_per_million REAL")
 
 	// Uniqueness constraint to prevent duplication on sync
 	_, _ = t.DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_executions_unique ON executions(timestamp, command, duration_ms)")
@@ -180,10 +196,13 @@ func (t *Telemetry) Record(rec ExecutionRecord) error {
 	if rec.Source == "" {
 		rec.Source = "unknown"
 	}
-	query := `INSERT INTO executions (command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source, harness)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	if strings.TrimSpace(rec.Model) == "" {
+		rec.Model = "unknown"
+	}
+	query := `INSERT INTO executions (command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source, harness, model, input_cost_per_million)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	_, err := t.DB.Exec(query, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough, rec.Source, rec.Harness)
+	_, err := t.DB.Exec(query, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough, rec.Source, rec.Harness, rec.Model, rec.InputCostPerMillion)
 	return err
 }
 
@@ -486,6 +505,31 @@ func (t *Telemetry) GetStatsByCommand(source string) ([]struct {
 	return results, nil
 }
 
+func (t *Telemetry) GetSavingsByModel() ([]ModelSavings, error) {
+	query := `SELECT COALESCE(NULLIF(model, ''), 'unknown'),
+		COALESCE(SUM(original_tokens), 0), COALESCE(SUM(compressed_tokens), 0),
+		COALESCE(SUM(CASE WHEN input_cost_per_million IS NOT NULL
+			THEN (original_tokens - compressed_tokens) * input_cost_per_million / 1000000.0 ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN input_cost_per_million IS NULL
+			THEN original_tokens - compressed_tokens ELSE 0 END), 0)
+		FROM executions GROUP BY COALESCE(NULLIF(model, ''), 'unknown')
+		ORDER BY SUM(original_tokens) DESC`
+	rows, err := t.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []ModelSavings
+	for rows.Next() {
+		var r ModelSavings
+		if err := rows.Scan(&r.Model, &r.Original, &r.Compressed, &r.RecordedUSD, &r.FallbackTokens); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, rows.Err()
+}
+
 func (t *Telemetry) ResetAll() error {
 	_, err := t.DB.Exec("DELETE FROM executions")
 	return err
@@ -506,7 +550,7 @@ func (t *Telemetry) GetRecentExecutions(limit int, source string) ([]ExecutionRe
 	args = append(args, limit)
 
 	query := fmt.Sprintf(`
-	SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source, COALESCE(harness,'unknown')
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, COALESCE(parser_used,''), COALESCE(is_passthrough,0), COALESCE(source,'unknown'), COALESCE(harness,'unknown'), COALESCE(model,'unknown'), input_cost_per_million
 	FROM executions
 	%s
 	ORDER BY timestamp DESC
@@ -522,7 +566,7 @@ func (t *Telemetry) GetRecentExecutions(limit int, source string) ([]ExecutionRe
 
 	for rows.Next() {
 		var r ExecutionRecord
-		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness); err != nil {
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness, &r.Model, &r.InputCostPerMillion); err != nil {
 			return nil, err
 		}
 		if r.Harness == "" {
@@ -607,12 +651,12 @@ func (t *Telemetry) GetSources() ([]string, error) {
 
 func (t *Telemetry) GetExecutionDetails(id int64) (*ExecutionRecord, error) {
 	query := `
-	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, COALESCE(source,'unknown'), COALESCE(harness,'unknown')
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, COALESCE(original_content,''), COALESCE(compressed_content,''), duration_ms, COALESCE(parser_used,''), COALESCE(is_passthrough,0), COALESCE(source,'unknown'), COALESCE(harness,'unknown'), COALESCE(model,'unknown'), input_cost_per_million
 	FROM executions
 	WHERE id = ?`
 
 	var r ExecutionRecord
-	err := t.DB.QueryRow(query, id).Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness)
+	err := t.DB.QueryRow(query, id).Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness, &r.Model, &r.InputCostPerMillion)
 	if err != nil {
 		return nil, err
 	}
@@ -645,7 +689,7 @@ func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) 
 	args = append(args, limit)
 
 	sqlQuery := fmt.Sprintf(`
-	SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source, COALESCE(harness,'unknown')
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, COALESCE(parser_used,''), COALESCE(is_passthrough,0), COALESCE(source,'unknown'), COALESCE(harness,'unknown'), COALESCE(model,'unknown'), input_cost_per_million
 	FROM executions
 	%s
 	ORDER BY timestamp DESC
@@ -663,7 +707,7 @@ func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) 
 		fallbackArgs = append(fallbackArgs, limit)
 
 		fallbackSqlQuery := fmt.Sprintf(`
-		SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, parser_used, is_passthrough, source, COALESCE(harness,'unknown')
+		SELECT id, timestamp, command, original_tokens, compressed_tokens, duration_ms, COALESCE(parser_used,''), COALESCE(is_passthrough,0), COALESCE(source,'unknown'), COALESCE(harness,'unknown'), COALESCE(model,'unknown'), input_cost_per_million
 		FROM executions
 		%s
 		ORDER BY timestamp DESC
@@ -679,7 +723,7 @@ func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) 
 	var results []ExecutionRecord
 	for rows.Next() {
 		var r ExecutionRecord
-		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness); err != nil {
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness, &r.Model, &r.InputCostPerMillion); err != nil {
 			return nil, err
 		}
 		if r.Harness == "" {
@@ -693,7 +737,7 @@ func (t *Telemetry) SearchExecutions(queryStr string, source string, limit int) 
 
 func (t *Telemetry) ExportJSONL(w io.Writer) error {
 	query := `
-	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source, COALESCE(harness,'unknown')
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, COALESCE(original_content,''), COALESCE(compressed_content,''), duration_ms, COALESCE(parser_used,''), COALESCE(is_passthrough,0), COALESCE(source,'unknown'), COALESCE(harness,'unknown'), COALESCE(model,'unknown'), input_cost_per_million
 	FROM executions
 	ORDER BY id ASC`
 
@@ -706,7 +750,7 @@ func (t *Telemetry) ExportJSONL(w io.Writer) error {
 	encoder := json.NewEncoder(w)
 	for rows.Next() {
 		var r ExecutionRecord
-		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness); err != nil {
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness, &r.Model, &r.InputCostPerMillion); err != nil {
 			return err
 		}
 		if err := encoder.Encode(r); err != nil {
@@ -726,8 +770,8 @@ func (t *Telemetry) ImportJSONL(r io.Reader) error {
 
 	decoder := json.NewDecoder(r)
 	query := `
-	INSERT OR IGNORE INTO executions (timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source, harness)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	INSERT OR IGNORE INTO executions (timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source, harness, model, input_cost_per_million)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	stmt, err := tx.Prepare(query)
 	if err != nil {
@@ -756,7 +800,10 @@ func (t *Telemetry) ImportJSONL(r io.Reader) error {
 		if rec.Source == "" {
 			rec.Source = "unknown"
 		}
-		_, err = stmt.Exec(tVal, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough, rec.Source, rec.Harness)
+		if strings.TrimSpace(rec.Model) == "" {
+			rec.Model = "unknown"
+		}
+		_, err = stmt.Exec(tVal, rec.Command, rec.OriginalTokens, rec.CompressedTokens, rec.OriginalContent, rec.CompressedContent, rec.DurationMs, rec.ParserUsed, rec.IsPassthrough, rec.Source, rec.Harness, rec.Model, rec.InputCostPerMillion)
 		if err != nil {
 			return err
 		}
@@ -767,7 +814,7 @@ func (t *Telemetry) ImportJSONL(r io.Reader) error {
 
 func (t *Telemetry) ExportJSONLSince(w io.Writer, sinceID int64) error {
 	query := `
-	SELECT id, timestamp, command, original_tokens, compressed_tokens, original_content, compressed_content, duration_ms, parser_used, is_passthrough, source, COALESCE(harness,'unknown')
+	SELECT id, timestamp, command, original_tokens, compressed_tokens, COALESCE(original_content,''), COALESCE(compressed_content,''), duration_ms, COALESCE(parser_used,''), COALESCE(is_passthrough,0), COALESCE(source,'unknown'), COALESCE(harness,'unknown'), COALESCE(model,'unknown'), input_cost_per_million
 	FROM executions
 	WHERE id > ?
 	ORDER BY id ASC`
@@ -781,7 +828,7 @@ func (t *Telemetry) ExportJSONLSince(w io.Writer, sinceID int64) error {
 	encoder := json.NewEncoder(w)
 	for rows.Next() {
 		var r ExecutionRecord
-		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness); err != nil {
+		if err := rows.Scan(&r.ID, &r.Timestamp, &r.Command, &r.OriginalTokens, &r.CompressedTokens, &r.OriginalContent, &r.CompressedContent, &r.DurationMs, &r.ParserUsed, &r.IsPassthrough, &r.Source, &r.Harness, &r.Model, &r.InputCostPerMillion); err != nil {
 			return err
 		}
 		if err := encoder.Encode(r); err != nil {

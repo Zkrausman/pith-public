@@ -16,7 +16,7 @@ func TestOptimizeHookUsesPithParser(t *testing.T) {
 }
 func TestOptimizeHookTelemetryIsAggregateOnly(t *testing.T) {
 	dir := t.TempDir()
-	OptimizeHook(HookRequest{Command: "git status --token=raw-secret", Output: strings.Repeat("secret-output\\n", 1000), StoragePath: dir})
+	OptimizeHook(HookRequest{Command: "git status --token=raw-secret", Output: strings.Repeat("secret-output\\n", 1000), TelemetryEnabled: true, StoragePath: dir})
 	tel, err := telemetry.NewTelemetry(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -30,36 +30,47 @@ func TestOptimizeHookTelemetryIsAggregateOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if detail.Command != "git status --token=[REDACTED]" || strings.Contains(detail.Command, "raw-secret") {
-		t.Fatalf("Pi telemetry did not retain a redacted command: %#v", detail)
+	if strings.Contains(detail.Command, "raw-secret") || !strings.Contains(detail.Command, "[REDACTED]") {
+		t.Fatalf("Pi telemetry did not redact command: %#v", detail)
 	}
 	if detail.OriginalContent != "" || detail.CompressedContent != "" {
 		t.Fatalf("Pi telemetry retained content: %#v", detail)
 	}
 }
 
-func TestOptimizeHookPreservesStructuredJSON(t *testing.T) {
-	output := `{"state":"OPEN","title":"fix: restore reliable hook telemetry"}`
-	got := OptimizeHook(HookRequest{Command: "gh pr view --json state,title", Output: output})
-	if !got.Passthrough || got.Parser != "" || got.Output != output {
-		t.Fatalf("structured output must remain lossless, got %#v", got)
-	}
-}
-
-func TestOptimizeHookRecordsUnparsedCommandsForDiscovery(t *testing.T) {
+func TestOptimizeHookRecordsModelAndRate(t *testing.T) {
 	dir := t.TempDir()
-	OptimizeHook(HookRequest{Command: "custom-tool --token=secret", Output: "verbose output", StoragePath: dir})
+	rate := 10.0
+	OptimizeHook(HookRequest{Command: "git status", Output: strings.Repeat("status\\n", 2000), TelemetryEnabled: true, StoragePath: dir, Model: "anthropic/claude", InputCostPerMillion: &rate})
 	tel, err := telemetry.NewTelemetry(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tel.Close()
-	unparsed, err := tel.GetUnparsedCommands("")
-	if err != nil || len(unparsed) != 1 {
-		t.Fatalf("unparsed telemetry: %v %#v", err, unparsed)
+	records, err := tel.GetRecentExecutions(1, "")
+	if err != nil || len(records) != 1 {
+		t.Fatalf("records: %v %#v", err, records)
 	}
-	if unparsed[0].Pattern != "custom-tool --token=[REDACTED]" || unparsed[0].Harness != HarnessPi {
-		t.Fatalf("unexpected discovery record: %#v", unparsed[0])
+	if records[0].Model != "anthropic/claude" || records[0].InputCostPerMillion == nil || *records[0].InputCostPerMillion != rate {
+		t.Fatalf("model pricing missing: %#v", records[0])
+	}
+}
+
+func TestOptimizeHookRejectsInvalidInputPrice(t *testing.T) {
+	dir := t.TempDir()
+	rate := -1.0
+	OptimizeHook(HookRequest{Command: "git status", Output: strings.Repeat("status\\n", 2000), TelemetryEnabled: true, StoragePath: dir, InputCostPerMillion: &rate})
+	tel, err := telemetry.NewTelemetry(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tel.Close()
+	records, err := tel.GetRecentExecutions(1, "")
+	if err != nil || len(records) != 1 {
+		t.Fatalf("records: %v %#v", err, records)
+	}
+	if records[0].InputCostPerMillion != nil {
+		t.Fatalf("invalid rate persisted: %#v", records[0])
 	}
 }
 

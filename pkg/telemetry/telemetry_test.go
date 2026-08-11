@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"database/sql"
 	"os"
 	"path/filepath"
 	"strings"
@@ -146,6 +147,97 @@ func TestTelemetryFull(t *testing.T) {
 	origReset, _, _ := tel.GetStats("all")
 	if origReset != 0 {
 		t.Error("ResetAll did not clear all records")
+	}
+}
+
+func TestTelemetryModelPricingAndJSONL(t *testing.T) {
+	tel, err := NewTelemetry(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tel.Close()
+	rate := 15.0
+	if err := tel.Record(ExecutionRecord{Command: "priced", OriginalTokens: 1000, CompressedTokens: 400, Model: "openai/gpt-5", InputCostPerMillion: &rate}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tel.Record(ExecutionRecord{Command: "legacy", OriginalTokens: 500, CompressedTokens: 100}); err != nil {
+		t.Fatal(err)
+	}
+
+	models, err := tel.GetSavingsByModel()
+	if err != nil || len(models) != 2 {
+		t.Fatalf("model savings: %v %#v", err, models)
+	}
+	var priced, unknown ModelSavings
+	for _, model := range models {
+		if model.Model == "openai/gpt-5" {
+			priced = model
+		} else if model.Model == "unknown" {
+			unknown = model
+		}
+	}
+	if priced.RecordedUSD != 0.009 || priced.FallbackTokens != 0 {
+		t.Fatalf("priced savings = %#v", priced)
+	}
+	if unknown.FallbackTokens != 400 {
+		t.Fatalf("unknown savings = %#v", unknown)
+	}
+
+	var export strings.Builder
+	if err := tel.ExportJSONL(&export); err != nil {
+		t.Fatal(err)
+	}
+	copy, err := NewTelemetry(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer copy.Close()
+	if err := copy.ImportJSONL(strings.NewReader(export.String())); err != nil {
+		t.Fatal(err)
+	}
+	records, err := copy.GetRecentExecutions(10, "all")
+	if err != nil || len(records) != 2 {
+		t.Fatalf("imported records: %v %#v", err, records)
+	}
+	for _, record := range records {
+		if record.Model == "openai/gpt-5" && (record.InputCostPerMillion == nil || *record.InputCostPerMillion != rate) {
+			t.Fatalf("price was not preserved: %#v", record)
+		}
+	}
+}
+
+func TestTelemetryMigratesLegacySchema(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "legacy.db")
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`CREATE TABLE executions (
+		id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+		command TEXT, original_tokens INTEGER, compressed_tokens INTEGER, duration_ms INTEGER,
+		parser_used TEXT, is_passthrough BOOLEAN
+	)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.Exec(`INSERT INTO executions (command, original_tokens, compressed_tokens, duration_ms) VALUES ('legacy', 100, 50, 1)`); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	tel, err := NewTelemetryWithPath(dbPath)
+	if err != nil {
+		t.Fatalf("migrate legacy DB: %v", err)
+	}
+	defer tel.Close()
+	records, err := tel.GetRecentExecutions(1, "all")
+	if err != nil || len(records) != 1 {
+		t.Fatalf("legacy records: %v %#v", err, records)
+	}
+	if records[0].Model != "unknown" || records[0].InputCostPerMillion != nil {
+		t.Fatalf("legacy pricing: %#v", records[0])
 	}
 }
 

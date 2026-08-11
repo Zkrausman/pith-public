@@ -63,7 +63,11 @@ export default function (pi: ExtensionAPI) {
     try {
       const binary = process.env.PITH_BIN || join(homedir(), ".pith", "bin", process.platform === "win32" ? "pith.exe" : "pith");
       const exitCode = event.isError ? 1 : Number((event.details as any)?.exitCode ?? 0);
-      const response = await transform(binary, { command, output, exitCode, telemetryEnabled: true }, ctx.signal);
+      const model = ctx.model as { provider?: unknown; id?: unknown; cost?: { input?: unknown } } | undefined;
+      const provider = typeof model?.provider === "string" ? model.provider : "";
+      const modelID = typeof model?.id === "string" ? model.id : "unknown";
+      const inputCostPerMillion = typeof model?.cost?.input === "number" && Number.isFinite(model.cost.input) && model.cost.input >= 0 ? model.cost.input : undefined;
+      const response = await transform(binary, { command, output, exitCode, telemetryEnabled: true, model: provider && modelID !== "unknown" ? provider + "/" + modelID : modelID, inputCostPerMillion }, ctx.signal);
       if (typeof response?.output !== "string") return;
       return { content: [{ type: "text", text: response.output }], details: { ...event.details, pith: { parser: response.parser, passthrough: response.passthrough } } };
     } catch { return; } // Pith failure always preserves Pi's original result.
