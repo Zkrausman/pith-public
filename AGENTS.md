@@ -1,68 +1,32 @@
 # Agent Onboarding - Pith
 
-Welcome, AI Agent! **Pith** is a high-performance Go application. Below are the core instructions for developing and interacting with this repository.
+Pith is a high-performance Go CLI proxy that compresses command output before returning it to an LLM caller.
 
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:b9766037 -->
-## Beads Issue Tracker
+## Work Tracking and Knowledge
 
-This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
+- **Linear is the authoritative issue tracker.** Create, update, and close Pith work in the `GeneralAiDev` team (AIDEV issues).
+- **The LLM Wiki is the durable knowledge base.** Recall relevant context at task start; record meaningful decisions, discoveries, and completions when work ends.
+- **GitHub pull requests** are the review and merge workflow.
+- Do not use Beads (`bd`) or Dolt for Pith task tracking.
 
-### Quick Reference
+## Landing the Plane
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>         # Complete work
-```
+Before ending a code-changing session:
 
-### Rules
-
-- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
-- Run `bd prime` for detailed command reference and session close protocol
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
-
-## Landing the Plane (Session Completion)
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd dolt push
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-<!-- END BEADS INTEGRATION -->
+1. Create Linear issues for remaining work and update the completed issue.
+2. Run applicable tests, linters, and builds.
+3. Commit work and open/update a GitHub PR when appropriate.
+4. Push changes: `git pull --rebase`, `git push`, then verify `git status` is up to date with origin.
+5. Record the handoff and durable insights in the wiki.
 
 ## Build & Test
 
--   **Binary**: The project builds into `pith.exe`.
--   **Build**: `go build -o pith.exe main.go`
--   **Test**: `go test ./...`
+- Binary: `pith.exe`
+- Build: `go build -o pith.exe main.go`
+- Test: `go test ./...`
 
-## Architecture Overview
+## Conventions
 
-Pith is a CLI proxy that intercepts command output and compresses it before passing it back to the caller (usually an LLM agent). It uses a modular parser system in `pkg/parser` to handle specific commands like `git`, `docker`, `npm`, etc.
-
-## Conventions & Patterns
-
--   **Parsers**: All parsers must implement the `Parser` interface in `pkg/parser/interface.go`.
--   **Telemetry**: Usage statistics are tracked in a local SQLite database (`~/.pith/pith.db`).
--   **Hooks**: Pith integrates with LLM CLIs by injecting itself as a tool hook in their `settings.json` files.
-
-Use 'bd' for task tracking
+- Parsers implement `pkg/parser/interface.go`.
+- Telemetry is stored in `~/.pith/pith.db`.
+- Pith integrates with LLM CLIs through hook configuration in their `settings.json` files.

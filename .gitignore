@@ -9,12 +9,6 @@ vendor/
 # Tool configs
 .gemini/
 
-# Dolt database files (added by bd init)
-.dolt/
-.beads/
 test_hook_input.json
-
-# Beads / Dolt files (added by bd init)
-.beads-credential-key
 *.exe
 *.exe.old.*
