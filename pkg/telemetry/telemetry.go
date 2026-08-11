@@ -35,11 +35,12 @@ type ExecutionRecord struct {
 // ModelSavings separates execution-time prices from records that need a
 // configured fallback (including telemetry created before model pricing).
 type ModelSavings struct {
-	Model          string
-	Original       int
-	Compressed     int
-	RecordedUSD    float64
-	FallbackTokens int
+	Model               string
+	Original            int
+	Compressed          int
+	RecordedUSD         float64
+	FallbackTokens      int
+	InputCostPerMillion *float64
 }
 
 // normalizeHarness returns canonical harness: pi|claude|gemini|codex|jules|unknown.
@@ -511,7 +512,8 @@ func (t *Telemetry) GetSavingsByModel() ([]ModelSavings, error) {
 		COALESCE(SUM(CASE WHEN input_cost_per_million IS NOT NULL
 			THEN (original_tokens - compressed_tokens) * input_cost_per_million / 1000000.0 ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN input_cost_per_million IS NULL
-			THEN original_tokens - compressed_tokens ELSE 0 END), 0)
+			THEN original_tokens - compressed_tokens ELSE 0 END), 0),
+		CASE WHEN COUNT(DISTINCT input_cost_per_million) = 1 THEN MIN(input_cost_per_million) END
 		FROM executions GROUP BY COALESCE(NULLIF(model, ''), 'unknown')
 		ORDER BY SUM(original_tokens) DESC`
 	rows, err := t.DB.Query(query)
@@ -522,7 +524,7 @@ func (t *Telemetry) GetSavingsByModel() ([]ModelSavings, error) {
 	var results []ModelSavings
 	for rows.Next() {
 		var r ModelSavings
-		if err := rows.Scan(&r.Model, &r.Original, &r.Compressed, &r.RecordedUSD, &r.FallbackTokens); err != nil {
+		if err := rows.Scan(&r.Model, &r.Original, &r.Compressed, &r.RecordedUSD, &r.FallbackTokens, &r.InputCostPerMillion); err != nil {
 			return nil, err
 		}
 		results = append(results, r)

@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-const version = "v2.2.0"
+const version = "v2.2.1"
 
 type HookInput struct {
 	ToolResponse struct {
@@ -300,10 +300,18 @@ func runGain(cmd *cobra.Command, args []string) error {
 	}
 	if len(modelSavings) > 0 {
 		cmd.Printf("\n--- Savings by Model ---\n")
-		cmd.Printf("%-30s | %-10s | %-12s | %-12s\n", "Model", "Saved", "Recorded USD", "Fallback Tokens")
-		cmd.Println(strings.Repeat("-", 74))
+		cmd.Printf("%-30s | %-14s | %-10s | %-12s | %-12s\n", "Model", "Input Cost / 1M", "Saved", "Recorded USD", "Fallback Tokens")
+		cmd.Println(strings.Repeat("-", 92))
 		for _, r := range modelSavings {
-			cmd.Printf("%-30s | %-10d | $%-11.3f | %-15d\n", r.Model, r.Original-r.Compressed, r.RecordedUSD, r.FallbackTokens)
+			cost := "unknown"
+			if r.InputCostPerMillion != nil {
+				cost = fmt.Sprintf("$%.2f", *r.InputCostPerMillion)
+			} else if r.FallbackTokens > 0 {
+				cost = fmt.Sprintf("fallback $%.2f", cfg.USDPerMillionTokens)
+			} else if r.RecordedUSD > 0 {
+				cost = "mixed"
+			}
+			cmd.Printf("%-30s | %-14s | %-10d | $%-11.3f | %-15d\n", r.Model, cost, r.Original-r.Compressed, r.RecordedUSD, r.FallbackTokens)
 		}
 	}
 
