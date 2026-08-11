@@ -438,6 +438,8 @@ func TestHookCmd_OutputPrefix(t *testing.T) {
 func TestInstallCmd_Individual(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 
 	cmd := NewRootCmd()
 	cmd.SetArgs([]string{"install", "--claude"})
@@ -451,6 +453,8 @@ func TestInstallCmd_Individual(t *testing.T) {
 func TestInstallCmd_NoFlags(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 
 	cmd := NewRootCmd()
 	cmd.SetArgs([]string{"install"})
@@ -460,6 +464,8 @@ func TestInstallCmd_NoFlags(t *testing.T) {
 func TestInstallCmd_All(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 
 	cmd := NewRootCmd()
 	cmd.SetArgs([]string{"install", "--all", "--global"})
@@ -472,6 +478,8 @@ func TestInstallCmd_All(t *testing.T) {
 func TestInstallCmd(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PITH_STORAGE", tmpDir)
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 
 	cmd := NewRootCmd()
 	cmd.SetArgs([]string{"install", "--gemini", "--global"})
