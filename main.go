@@ -632,7 +632,7 @@ func runReset(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("remove diagnostic log: %w", err)
 			}
 		}
-		cmd.Println("All telemetry and opted-in diagnostic log data has been reset.")
+		cmd.Println("All telemetry data has been reset.")
 		return nil
 	}
 	if passthrough {
