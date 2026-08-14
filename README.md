@@ -2,7 +2,7 @@
 > Skip the peel, get to the pith.
 
 [![CI and Release](https://github.com/Zkrausman/pith-public/actions/workflows/test.yml/badge.svg)](https://github.com/Zkrausman/pith-public/actions/workflows/test.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Zkrausman/pith-public/blob/main/LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://github.com/Zkrausman/pith-public/blob/main/LICENSE)
 
 `pith` is a high-performance CLI tool that intercepts terminal command outputs, compresses them, and filters out noise to save tokens for LLMs (like Claude Code, Gemini CLI, etc.).
 
