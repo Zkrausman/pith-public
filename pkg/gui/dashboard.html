@@ -199,7 +199,12 @@
         let costRate = 3.0; // Default
         let isSearchActive = false;
 
+        function escapeHTML(value) {
+            return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         function highlightText(text, search) {
+            text = escapeHTML(text);
             if (!search) return text;
             const terms = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split(/\s+/).filter(t => t.length > 0 && t.toUpperCase() !== 'AND' && t.toUpperCase() !== 'OR' && !t.includes('*'));
             if (terms.length === 0) return text;
@@ -350,7 +355,7 @@
                             ${isHit ? 'Optimized' : 'Passthrough'}
                         </span>
                     </div>
-                    <div class="mono text-xs text-slate-300 truncate mb-1" title="${item.Command}">${cmdHtml}</div>
+                    <div class="mono text-xs text-slate-300 truncate mb-1" title="${escapeHTML(item.Command)}">${cmdHtml}</div>
                     <div class="text-[10px] text-slate-500">
                         ${item.OriginalTokens.toLocaleString()} tokens &rarr; 
                         <span class="${isHit ? 'text-emerald-400 font-bold' : ''}">${item.CompressedTokens.toLocaleString()}</span>
@@ -477,7 +482,7 @@
                 const estSavedTokens = Math.round(row.TotalRawTokens * 0.7); // Assume 70% compression for unparsed
                 const estSavedUSD = (estSavedTokens / 1000000) * costRate;
                 tr.innerHTML = `
-                    <td class="py-4 mono text-sky-400 group-hover:text-sky-300">${row.Pattern}</td>
+                    <td class="py-4 mono text-sky-400 group-hover:text-sky-300">${escapeHTML(row.Pattern)}</td>
                     <td class="py-4 text-slate-400">${row.InvocationCount}</td>
                     <td class="py-4 text-right text-slate-300">${row.TotalRawTokens.toLocaleString()}</td>
                     <td class="py-4 text-right font-bold accent-emerald">$${estSavedUSD.toFixed(3)}</td>

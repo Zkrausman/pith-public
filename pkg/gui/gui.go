@@ -19,13 +19,14 @@ var staticFiles embed.FS
 func StartDashboard(cfg *config.Config, tel *telemetry.Telemetry, port int) error {
 	registerHandlers(cfg, tel)
 
-	url := fmt.Sprintf("http://localhost:%d", port)
-	fmt.Printf("Starting Pith Dashboard at %s\n", url)
+	// The dashboard exposes telemetry; never bind it to the network by default.
+	url := fmt.Sprintf("http://127.0.0.1:%d", port)
+	fmt.Printf("Starting Pith Dashboard at %s (loopback only)\n", url)
 
 	// Open browser in background
 	go openBrowser(url)
 
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	return http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", port), nil)
 }
 
 func registerHandlers(cfg *config.Config, tel *telemetry.Telemetry) {
@@ -83,6 +84,10 @@ func registerHandlers(cfg *config.Config, tel *telemetry.Telemetry) {
 	})
 
 	http.HandleFunc("/api/telemetry/push", func(w http.ResponseWriter, r *http.Request) {
+		// Dashboard service-mode mutation is intentionally disabled. Use the
+		// explicit CLI import command for local files instead.
+		http.Error(w, "telemetry import is unavailable from the dashboard", http.StatusForbidden)
+		return
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
@@ -98,6 +103,8 @@ func registerHandlers(cfg *config.Config, tel *telemetry.Telemetry) {
 	})
 
 	http.HandleFunc("/api/telemetry/pull", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "telemetry export is unavailable from the dashboard", http.StatusForbidden)
+		return
 		sinceIDStr := r.URL.Query().Get("since_id")
 		var sinceID int64
 		if sinceIDStr != "" {
@@ -112,6 +119,8 @@ func registerHandlers(cfg *config.Config, tel *telemetry.Telemetry) {
 	})
 
 	http.HandleFunc("/api/telemetry/sync", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "telemetry sync is unavailable from the dashboard", http.StatusForbidden)
+		return
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
