@@ -6,10 +6,25 @@ diet.exe
 vendor/
 *.db
 
-# Tool configs
+# Local configuration and machine-specific hook settings
+.env
+.env.*
+!.env.example
 .gemini/
+.claude/
+.codex/
 
+# Generated test, coverage, diagnostics, and skill-package artifacts
 test_hook_input.json
+coverage
+coverage.out
+coverage.txt
+cov.html
+tests/report.md
+snags.json
+ModuleAnalysisCache
+*.skill
+docs/logs/
 
 # Generated LLM Wiki artifacts; project knowledge pages remain tracked.
 /.llm-wiki/raw/

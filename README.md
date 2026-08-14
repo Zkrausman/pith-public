@@ -146,7 +146,7 @@ main.go README.md
 Pith uses [promptfoo](https://promptfoo.dev/) to evaluate the performance and quality of its token-optimization strategies.
 
 - **Status:** **Work In Progress (WIP)** 🛠️
-- **Latest Evaluation:** [tests/report.md](tests/report.md)
+- **Run evaluations locally:** `npx promptfoo eval` (generated reports are intentionally not committed).
 
 ## 📊 Analytics Dashboard
 Pith includes an interactive web dashboard to visualize your token savings and discover new optimization opportunities.

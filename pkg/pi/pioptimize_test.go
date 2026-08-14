@@ -105,7 +105,7 @@ func TestPiOptimize_Deterministic(t *testing.T) {
 func TestPiOptimize_RedactApiKey(t *testing.T) {
 	s := "api_key=sk-example-redaction-fixture\n"
 	red := PiRedact(s)
-	if strings.Contains(red, "sk-1234567890") {
+	if strings.Contains(red, "sk-example-redaction-fixture") {
 		t.Fatalf("api_key not redacted: %q", red)
 	}
 	if !strings.Contains(red, "[REDACTED]") {
@@ -128,7 +128,7 @@ func TestPiRedact_TokenPatterns(t *testing.T) {
 		"token=secretvalue123",
 		"secret: mysecret",
 		"password = hunter2",
-		"Bearer eyJhbGci.abc.def",
+		"Bearer example.bearer.token",
 		"ghp_example_token",
 		"sk-example-token",
 	}
@@ -141,7 +141,7 @@ func TestPiRedact_TokenPatterns(t *testing.T) {
 		if red == c {
 			t.Errorf("should redact %q", c)
 		}
-		if strings.Contains(red, "123456") || strings.Contains(red, "hunter2") || strings.Contains(red, "eyJhb") {
+		if strings.Contains(red, "secretvalue123") || strings.Contains(red, "hunter2") || strings.Contains(red, "example.bearer.token") {
 			// If secret leaked
 			// Allow ghp/sk to be fully replaced
 		}
