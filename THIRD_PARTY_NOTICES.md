@@ -1,6 +1,6 @@
 # Third-party notices
 
-Pith is distributed under the [MIT License](LICENSE). Its releases include Go code and, on supported platforms, DuckDB native bindings. The release SBOM (`sbom.cdx.json`) is the authoritative versioned inventory for each binary release.
+Pith is distributed under the [Apache License 2.0](LICENSE). Its releases include Go code and, on supported platforms, DuckDB native bindings. The release SBOM (`sbom.cdx.json`) is the authoritative versioned inventory for each binary release.
 
 ## Direct dependencies
 
