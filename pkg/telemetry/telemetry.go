@@ -72,6 +72,11 @@ func redactCommand(command string) string {
 	return sensitiveCommandValue.ReplaceAllString(command, `${1}[REDACTED]`)
 }
 
+// RedactForStorage removes common credential values before text is persisted.
+func RedactForStorage(text string) string {
+	return redactCommand(text)
+}
+
 func NewTelemetry(storagePath string) (*Telemetry, error) {
 	if storagePath == "" {
 		home, err := os.UserHomeDir()

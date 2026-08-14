@@ -58,7 +58,7 @@ func TestRunner_LogForSnag_EmptyPath(t *testing.T) {
 	t.Setenv("USERPROFILE", tmpHome)
 	t.Setenv("HOME", tmpHome)
 
-	r := &Runner{cfg: &config.Config{StoragePath: ""}}
+	r := &Runner{cfg: &config.Config{StoragePath: "", SnagLogging: true}}
 	r.LogForSnag("test cmd", "test output", 0)
 
 	logPath := filepath.Join(tmpHome, ".pith", "pith.log")
@@ -69,7 +69,7 @@ func TestRunner_LogForSnag_EmptyPath(t *testing.T) {
 
 func TestRunner_LogForSnag_NoNewline(t *testing.T) {
 	tmpDir := t.TempDir()
-	r := &Runner{cfg: &config.Config{StoragePath: tmpDir}}
+	r := &Runner{cfg: &config.Config{StoragePath: tmpDir, SnagLogging: true}}
 	r.LogForSnag("test cmd", "output without newline", 0)
 
 	data, _ := os.ReadFile(filepath.Join(tmpDir, "pith.log"))
@@ -83,7 +83,7 @@ func TestRunner_LogForSnag_OpenError(t *testing.T) {
 	logPath := filepath.Join(tmpDir, "pith.log")
 	os.MkdirAll(logPath, 0755)
 
-	r := &Runner{cfg: &config.Config{StoragePath: tmpDir}}
+	r := &Runner{cfg: &config.Config{StoragePath: tmpDir, SnagLogging: true}}
 	r.LogForSnag("test cmd", "output", 0)
 }
 
@@ -107,7 +107,7 @@ func TestRunner_RunWithOptions_GenericError(t *testing.T) {
 	tmpDir := t.TempDir()
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	defer tel.Close()
-	cfg := &config.Config{StoragePath: tmpDir}
+	cfg := &config.Config{StoragePath: tmpDir, SnagLogging: true}
 	r := NewRunner(cfg, tel)
 
 	err := r.RunWithOptions([]string{tmpDir}, false)
@@ -118,7 +118,7 @@ func TestRunner_RunWithOptions_GenericError(t *testing.T) {
 
 func TestRunner_LogForSnag_EmptyOutput(t *testing.T) {
 	tmpDir := t.TempDir()
-	r := &Runner{cfg: &config.Config{StoragePath: tmpDir}}
+	r := &Runner{cfg: &config.Config{StoragePath: tmpDir, SnagLogging: true}}
 	r.LogForSnag("test cmd", "", 0)
 
 	data, _ := os.ReadFile(filepath.Join(tmpDir, "pith.log"))
@@ -131,7 +131,7 @@ func TestRunner_RunWithOptions_ChainMatch(t *testing.T) {
 	tmpDir := t.TempDir()
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	defer tel.Close()
-	cfg := &config.Config{StoragePath: tmpDir}
+	cfg := &config.Config{StoragePath: tmpDir, SnagLogging: true}
 	r := NewRunner(cfg, tel)
 
 	// Command that should trigger ChainParser and find a sub-parser (git)
@@ -151,7 +151,7 @@ func TestRunner_RunWithOptions_NoParts(t *testing.T) {
 	tmpDir := t.TempDir()
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	defer tel.Close()
-	r := NewRunner(&config.Config{StoragePath: tmpDir}, tel)
+	r := NewRunner(&config.Config{StoragePath: tmpDir, SnagLogging: true}, tel)
 
 	err := r.RunWithOptions([]string{"   "}, false)
 	if err == nil {

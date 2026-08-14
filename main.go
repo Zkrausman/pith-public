@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"pith/pkg/advisor"
 	"pith/pkg/anomaly"
 	"pith/pkg/config"
@@ -625,6 +626,11 @@ func runReset(cmd *cobra.Command, args []string) error {
 	if all {
 		if err := tel.ResetAll(); err != nil {
 			return err
+		}
+		for _, name := range []string{"pith.log", "pith.log.1"} {
+			if err := os.Remove(filepath.Join(cfg.StoragePath, name)); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("remove diagnostic log: %w", err)
+			}
 		}
 		cmd.Println("All telemetry data has been reset.")
 		return nil
