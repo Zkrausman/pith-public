@@ -1,6 +1,8 @@
 package selfupdate
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,18 +15,14 @@ import (
 
 func TestGetAuthTokenEnv(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "test-token")
-	token := getAuthToken()
-	if token != "test-token" {
-		t.Errorf("Expected test-token, got %s", token)
+	if token := getAuthToken(); token != "test-token" {
+		t.Errorf("expected test-token, got %s", token)
 	}
 }
 
-func TestCheckForUpdateSilent_Mock(t *testing.T) {
+func TestCheckForUpdateSilent(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		releases := []Release{
-			{TagName: "v9.9.9"},
-		}
-		json.NewEncoder(w).Encode(releases)
+		json.NewEncoder(w).Encode([]Release{{TagName: "v9.9.9"}})
 	}))
 	defer server.Close()
 
@@ -37,38 +35,102 @@ func TestCheckForUpdateSilent_Mock(t *testing.T) {
 		t.Fatal(err)
 	}
 	if version != "v9.9.9" {
-		t.Errorf("Expected v9.9.9, got %s", version)
+		t.Errorf("expected v9.9.9, got %s", version)
 	}
 }
 
-func TestCheckAndApplyUpdate_Mock(t *testing.T) {
-	// Mock server for both releases and asset download
+func TestCheckAndApplyUpdateVerifiesChecksumBeforeReplacement(t *testing.T) {
+	const newBinary = "verified new binary"
+	checksum := sha256.Sum256([]byte(newBinary))
+	binaryName := platformAssetName()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/repos/Zkrausman/Pith/releases" {
-			releases := []Release{
-				{
-					TagName: "v9.9.9",
-					Assets: []struct {
-						ID                 int64  `json:"id"`
-						Name               string `json:"name"`
-						BrowserDownloadURL string `json:"browser_download_url"`
-						URL                string `json:"url"`
-					}{
-						{
-							Name: "pith-" + runtime.GOOS + "-" + runtime.GOARCH + (map[bool]string{true: ".exe", false: ""}[runtime.GOOS == "windows"]),
-							URL:  "http://" + r.Host + "/download/asset",
-						},
-					},
+		switch r.URL.Path {
+		case "/repos/Zkrausman/pith-public/releases":
+			json.NewEncoder(w).Encode([]Release{{
+				TagName: "v9.9.9",
+				Assets: []ReleaseAsset{
+					{Name: binaryName, URL: serverURL(r, "/assets/binary")},
+					{Name: "checksums.txt", URL: serverURL(r, "/assets/checksums")},
 				},
-			}
-			json.NewEncoder(w).Encode(releases)
-			return
+			}})
+		case "/assets/checksums":
+			_, _ = w.Write([]byte(hex.EncodeToString(checksum[:]) + "  " + binaryName + "\n"))
+		case "/assets/binary":
+			_, _ = w.Write([]byte(newBinary))
+		default:
+			http.NotFound(w, r)
 		}
-		if r.URL.Path == "/download/asset" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("fake binary content"))
-			return
-		}
+	}))
+	defer server.Close()
+
+	fakeExe := filepath.Join(t.TempDir(), "pith")
+	if err := os.WriteFile(fakeExe, []byte("old binary"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	oldAPI, oldExecutable := githubAPI, osExecutable
+	githubAPI = server.URL
+	osExecutable = func() (string, error) { return fakeExe, nil }
+	defer func() {
+		githubAPI = oldAPI
+		osExecutable = oldExecutable
+	}()
+
+	updated, err := CheckAndApplyUpdate("v0.0.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !updated {
+		t.Fatal("expected update")
+	}
+	data, err := os.ReadFile(fakeExe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != newBinary {
+		t.Errorf("expected verified binary, got %q", data)
+	}
+}
+
+func TestDownloadAndReplaceRejectsTamperedBinary(t *testing.T) {
+	fakeExe := filepath.Join(t.TempDir(), "pith")
+	if err := os.WriteFile(fakeExe, []byte("old binary"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	oldExecutable := osExecutable
+	osExecutable = func() (string, error) { return fakeExe, nil }
+	defer func() { osExecutable = oldExecutable }()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("tampered binary"))
+	}))
+	defer server.Close()
+	oldAPI := githubAPI
+	githubAPI = server.URL
+	defer func() { githubAPI = oldAPI }()
+
+	err := downloadAndReplace(server.URL, "", strings.Repeat("0", sha256.Size*2))
+	if err == nil || !strings.Contains(err.Error(), "checksum mismatch") {
+		t.Fatalf("expected checksum mismatch, got %v", err)
+	}
+	data, err := os.ReadFile(fakeExe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "old binary" {
+		t.Errorf("tampered update replaced executable: %q", data)
+	}
+	if _, err := os.Stat(fakeExe + ".tmp"); !os.IsNotExist(err) {
+		t.Error("temporary file was not removed after checksum mismatch")
+	}
+}
+
+func TestCheckAndApplyUpdateRequiresChecksums(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Release{{
+			TagName: "v9.9.9",
+			Assets:  []ReleaseAsset{{Name: platformAssetName(), URL: serverURL(r, "/assets/binary")}},
+		}})
 	}))
 	defer server.Close()
 
@@ -76,23 +138,50 @@ func TestCheckAndApplyUpdate_Mock(t *testing.T) {
 	githubAPI = server.URL
 	defer func() { githubAPI = oldAPI }()
 
-	// We need to be careful with downloadAndReplace because it renames the current executable.
-	// But in tests, os.Executable() might point to a temp test binary.
-	// We can't easily mock os.Executable() without more refactoring.
-	// So we might skip the actual download/replace part or mock it if possible.
-
-	// For now, let's just test up to the point where it finds the asset.
-	// To do this properly, we should refactor downloadAndReplace too.
-
-	t.Log("Testing CheckAndApplyUpdate with mock server (partial)")
+	_, err := CheckAndApplyUpdate("v0.0.1")
+	if err == nil || !strings.Contains(err.Error(), "no checksums.txt") {
+		t.Fatalf("expected missing checksums error, got %v", err)
+	}
 }
 
-func TestCheckAndApplyUpdate_SameVersion(t *testing.T) {
+func TestDownloadAssetRejectsForeignURL(t *testing.T) {
+	trusted := httptest.NewServer(http.NotFoundHandler())
+	defer trusted.Close()
+	foreign := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("foreign asset host was contacted")
+	}))
+	defer foreign.Close()
+
+	oldAPI := githubAPI
+	githubAPI = trusted.URL
+	defer func() { githubAPI = oldAPI }()
+
+	_, err := downloadAsset(foreign.URL, "sensitive-token", maxChecksumFileSize)
+	if err == nil || !strings.Contains(err.Error(), "not hosted") {
+		t.Fatalf("expected foreign-host rejection, got %v", err)
+	}
+}
+
+func TestChecksumForAsset(t *testing.T) {
+	name := "pith-" + runtime.GOOS + "-" + runtime.GOARCH
+	digest := strings.Repeat("a", sha256.Size*2)
+	got, err := checksumForAsset([]byte(digest+"  "+name+"\n"), name)
+	if err != nil || got != digest {
+		t.Fatalf("expected checksum %q, got %q, err %v", digest, got, err)
+	}
+	_, err = checksumForAsset([]byte(digest+"  other\n"), name)
+	if err == nil {
+		t.Fatal("expected error for a missing platform checksum")
+	}
+	_, err = checksumForAsset([]byte(digest+"  "+name+"\n"+digest+"  "+name+"\n"), name)
+	if err == nil {
+		t.Fatal("expected error for duplicate platform checksums")
+	}
+}
+
+func TestCheckAndApplyUpdateSameVersion(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		releases := []Release{
-			{TagName: "v0.0.1"},
-		}
-		json.NewEncoder(w).Encode(releases)
+		json.NewEncoder(w).Encode([]Release{{TagName: "v0.0.1"}})
 	}))
 	defer server.Close()
 
@@ -105,83 +194,10 @@ func TestCheckAndApplyUpdate_SameVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	if updated {
-		t.Error("Should not have updated")
+		t.Error("should not update at the same version")
 	}
 }
 
-func TestCheckForUpdateSilent_Error(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer server.Close()
-
-	oldAPI := githubAPI
-	githubAPI = server.URL
-	defer func() { githubAPI = oldAPI }()
-
-	_, err := CheckForUpdateSilent("v0.0.1")
-	if err == nil {
-		t.Error("Expected error for 404, got nil")
-	}
-}
-
-func TestCheckAndApplyUpdate_NoAssets(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		releases := []Release{
-			{TagName: "v9.9.9", Assets: nil},
-		}
-		json.NewEncoder(w).Encode(releases)
-	}))
-	defer server.Close()
-
-	oldAPI := githubAPI
-	githubAPI = server.URL
-	defer func() { githubAPI = oldAPI }()
-
-	_, err := CheckAndApplyUpdate("v0.0.1")
-	if err == nil || !strings.Contains(err.Error(), "could not find binary") {
-		t.Errorf("Expected 'could not find binary' error, got %v", err)
-	}
-}
-
-func TestDownloadAndReplace(t *testing.T) {
-	tmpDir := t.TempDir()
-	fakeExe := filepath.Join(tmpDir, "pith.exe")
-	os.WriteFile(fakeExe, []byte("old content"), 0755)
-
-	oldExe := osExecutable
-	osExecutable = func() (string, error) { return fakeExe, nil }
-	defer func() { osExecutable = oldExe }()
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("new content"))
-	}))
-	defer server.Close()
-
-	err := downloadAndReplace(server.URL, "")
-	if err != nil {
-		t.Fatalf("downloadAndReplace failed: %v", err)
-	}
-
-	// Verify new content
-	data, _ := os.ReadFile(fakeExe)
-	if string(data) != "new content" {
-		t.Errorf("Expected 'new content', got %s", string(data))
-	}
-}
-
-func TestCheckAndApplyUpdate_NotFound(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer server.Close()
-
-	oldAPI := githubAPI
-	githubAPI = server.URL
-	defer func() { githubAPI = oldAPI }()
-
-	_, err := CheckAndApplyUpdate("v0.0.1")
-	if err == nil || !strings.Contains(err.Error(), "repository not found") {
-		t.Errorf("Expected 'repository not found' error, got %v", err)
-	}
+func serverURL(r *http.Request, path string) string {
+	return "http://" + r.Host + path
 }

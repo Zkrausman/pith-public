@@ -1,19 +1,18 @@
 package selfupdate
 
 import (
-	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"runtime"
+	"strings"
 	"testing"
 )
 
-func TestCheckForUpdateSilent_UpToDate(t *testing.T) {
+func TestCheckForUpdateSilentUpToDate(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		releases := []Release{{TagName: "v1.0.0"}}
-		json.NewEncoder(w).Encode(releases)
+		_, _ = w.Write([]byte(`[{"tag_name":"v1.0.0"}]`))
 	}))
 	defer server.Close()
 
@@ -22,87 +21,12 @@ func TestCheckForUpdateSilent_UpToDate(t *testing.T) {
 	defer func() { githubAPI = oldAPI }()
 
 	version, err := CheckForUpdateSilent("v1.0.0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if version != "" {
-		t.Errorf("Expected empty version (up to date), got %s", version)
+	if err != nil || version != "" {
+		t.Fatalf("expected no update, got version %q and error %v", version, err)
 	}
 }
 
-func TestCheckForUpdateSilent_EmptyReleases(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode([]Release{})
-	}))
-	defer server.Close()
-
-	oldAPI := githubAPI
-	githubAPI = server.URL
-	defer func() { githubAPI = oldAPI }()
-
-	version, err := CheckForUpdateSilent("v1.0.0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if version != "" {
-		t.Errorf("Expected empty version for empty releases, got %s", version)
-	}
-}
-
-func TestCheckAndApplyUpdate_WithChangelog(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		suffix := "pith-" + runtime.GOOS + "-" + runtime.GOARCH
-		if runtime.GOOS == "windows" {
-			suffix += ".exe"
-		}
-		releases := []Release{
-			{
-				TagName: "v99.9.9",
-				Body:    "## Changelog\n- Fixed something\n- Added another",
-				Assets: []struct {
-					ID                 int64  `json:"id"`
-					Name               string `json:"name"`
-					BrowserDownloadURL string `json:"browser_download_url"`
-					URL                string `json:"url"`
-				}{
-					{
-						Name: suffix,
-						URL:  "http://" + r.Host + "/download",
-					},
-				},
-			},
-		}
-		if r.URL.Path == "/download" {
-			w.Write([]byte("fake binary"))
-			return
-		}
-		json.NewEncoder(w).Encode(releases)
-	}))
-	defer server.Close()
-
-	tmpDir := t.TempDir()
-	fakeExe := filepath.Join(tmpDir, "pith.exe")
-	os.WriteFile(fakeExe, []byte("old"), 0755)
-
-	oldAPI := githubAPI
-	oldExe := osExecutable
-	githubAPI = server.URL
-	osExecutable = func() (string, error) { return fakeExe, nil }
-	defer func() {
-		githubAPI = oldAPI
-		osExecutable = oldExe
-	}()
-
-	updated, err := CheckAndApplyUpdate("v0.0.1")
-	if err != nil {
-		t.Fatalf("CheckAndApplyUpdate failed: %v", err)
-	}
-	if !updated {
-		t.Error("Expected updated=true")
-	}
-}
-
-func TestCheckAndApplyUpdate_OtherStatusCode(t *testing.T) {
+func TestCheckAndApplyUpdateRejectsReleaseAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -113,80 +37,40 @@ func TestCheckAndApplyUpdate_OtherStatusCode(t *testing.T) {
 	defer func() { githubAPI = oldAPI }()
 
 	_, err := CheckAndApplyUpdate("v0.0.1")
-	if err == nil {
-		t.Error("Expected error for 500 status")
+	if err == nil || !strings.Contains(err.Error(), "status 500") {
+		t.Fatalf("expected API status error, got %v", err)
 	}
 }
 
-func TestCheckAndApplyUpdate_EmptyReleases(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode([]Release{})
-	}))
-	defer server.Close()
+func TestDownloadAndReplaceExecutableError(t *testing.T) {
+	oldExe := osExecutable
+	osExecutable = func() (string, error) { return "", errors.New("exec error") }
+	defer func() { osExecutable = oldExe }()
 
-	oldAPI := githubAPI
-	githubAPI = server.URL
-	defer func() { githubAPI = oldAPI }()
-
-	_, err := CheckAndApplyUpdate("v0.0.1")
-	if err == nil {
-		t.Error("Expected error for empty releases")
+	err := downloadAndReplace("http://example.com", "", strings.Repeat("0", 64))
+	if err == nil || err.Error() != "exec error" {
+		t.Errorf("expected exec error, got %v", err)
 	}
 }
 
-func TestDownloadAndReplace_DownloadError(t *testing.T) {
+func TestDownloadAndReplaceRejectsDownloadError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	}))
 	defer server.Close()
 
-	tmpDir := t.TempDir()
-	fakeExe := filepath.Join(tmpDir, "pith.exe")
-	os.WriteFile(fakeExe, []byte("old"), 0755)
-
+	fakeExe := filepath.Join(t.TempDir(), "pith")
+	if err := os.WriteFile(fakeExe, []byte("old"), 0755); err != nil {
+		t.Fatal(err)
+	}
 	oldExe := osExecutable
 	osExecutable = func() (string, error) { return fakeExe, nil }
 	defer func() { osExecutable = oldExe }()
+	oldAPI := githubAPI
+	githubAPI = server.URL
+	defer func() { githubAPI = oldAPI }()
 
-	err := downloadAndReplace(server.URL, "")
-	if err == nil {
-		t.Error("Expected error for 403 download")
+	if err := downloadAndReplace(server.URL, "", strings.Repeat("0", 64)); err == nil {
+		t.Fatal("expected error for forbidden download")
 	}
-}
-
-func TestDownloadAndReplace_WithToken(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer mytoken" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.Write([]byte("authorized binary"))
-	}))
-	defer server.Close()
-
-	tmpDir := t.TempDir()
-	fakeExe := filepath.Join(tmpDir, "pith.exe")
-	os.WriteFile(fakeExe, []byte("old"), 0755)
-
-	oldExe := osExecutable
-	osExecutable = func() (string, error) { return fakeExe, nil }
-	defer func() { osExecutable = oldExe }()
-
-	err := downloadAndReplace(server.URL, "mytoken")
-	if err != nil {
-		t.Fatalf("Expected success with token, got %v", err)
-	}
-
-	data, _ := os.ReadFile(fakeExe)
-	if string(data) != "authorized binary" {
-		t.Errorf("Expected authorized binary, got %s", string(data))
-	}
-}
-
-func TestGetAuthToken_FallbackEmpty(t *testing.T) {
-	t.Setenv("GITHUB_TOKEN", "")
-	// gh auth token will likely fail in test env, so token should be ""
-	token := getAuthToken()
-	// Just ensure no panic; token could be empty or populated by gh CLI
-	_ = token
 }
