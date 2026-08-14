@@ -1,8 +1,8 @@
 # Pith: Token-Optimized CLI Proxy
 > Skip the peel, get to the pith.
 
-[![Test and Release](https://github.com/Zkrausman/Pith/actions/workflows/test.yml/badge.svg)](https://github.com/Zkrausman/Pith/actions/workflows/test.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Zkrausman/Pith/blob/main/LICENSE)
+[![CI and Release](https://github.com/Zkrausman/pith-public/actions/workflows/test.yml/badge.svg)](https://github.com/Zkrausman/pith-public/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Zkrausman/pith-public/blob/main/LICENSE)
 
 `pith` is a high-performance CLI tool that intercepts terminal command outputs, compresses them, and filters out noise to save tokens for LLMs (like Claude Code, Gemini CLI, etc.).
 
@@ -20,7 +20,7 @@
 - **Interactive Dashboard:** Launch a local web-based analytics dashboard via `pith dashboard`.
 
 ## 📦 Installation
-1. Download the latest `pith.exe` from [Releases](https://github.com/Zkrausman/Pith/releases).
+1. Download the asset for your operating system and architecture from [Releases](https://github.com/Zkrausman/pith-public/releases).
 2. Run the installer (defaults to global install for all CLIs):
    ```bash
    ./pith.exe install
