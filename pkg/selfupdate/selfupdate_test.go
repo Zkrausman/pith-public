@@ -13,13 +13,6 @@ import (
 	"testing"
 )
 
-func TestGetAuthTokenEnv(t *testing.T) {
-	t.Setenv("GITHUB_TOKEN", "test-token")
-	if token := getAuthToken(); token != "test-token" {
-		t.Errorf("expected test-token, got %s", token)
-	}
-}
-
 func TestCheckForUpdateSilent(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode([]Release{{TagName: "v9.9.9"}})

@@ -1,7 +1,6 @@
 package selfupdate
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -10,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -76,20 +74,6 @@ type Release struct {
 	TagName string         `json:"tag_name"`
 	Body    string         `json:"body"`
 	Assets  []ReleaseAsset `json:"assets"`
-}
-
-func getAuthToken() string {
-	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
-		return token
-	}
-
-	cmd := exec.Command("gh", "auth", "token")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	if err := cmd.Run(); err == nil {
-		return strings.TrimSpace(out.String())
-	}
-	return ""
 }
 
 func newRequest(url, token string) (*http.Request, error) {
@@ -247,7 +231,9 @@ func checksumForAsset(checksums []byte, assetName string) (string, error) {
 }
 
 func CheckAndApplyUpdate(currentVersion string) (bool, error) {
-	token := getAuthToken()
+	// pith-public releases are public. Do not read GITHUB_TOKEN or invoke gh:
+	// an update check must never silently acquire local credentials.
+	token := ""
 	releases, err := getReleases(token)
 	if err != nil {
 		return false, err
@@ -291,7 +277,8 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 }
 
 func CheckForUpdateSilent(currentVersion string) (string, error) {
-	releases, err := getReleases(getAuthToken())
+	// Silent checks intentionally use anonymous public GitHub API requests.
+	releases, err := getReleases("")
 	if err != nil {
 		return "", err
 	}

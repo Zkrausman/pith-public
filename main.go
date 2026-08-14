@@ -819,7 +819,8 @@ func newAuditCmd() *cobra.Command {
 		RunE:  runAuditAnomalies,
 	}
 	anomaliesCmd.Flags().Int("lookback", 60, "Lookback window in minutes")
-	anomaliesCmd.Flags().Bool("diagnose", false, "Run autonomous AI diagnostics on detected anomalies")
+	anomaliesCmd.Flags().Bool("diagnose", false, "Prepare local anomaly diagnostics")
+	anomaliesCmd.Flags().Bool("allow-external-ai", false, "Explicitly allow sending bounded diagnostic data to Gemini")
 	anomaliesCmd.Flags().Bool("json", false, "Output results in JSON format")
 
 	auditCmd.AddCommand(anomaliesCmd)
@@ -850,6 +851,10 @@ func runAuditAnomalies(cmd *cobra.Command, args []string) error {
 	fmt.Printf("âš ï¸  Detected %d Anomalies:\n", len(anomalies))
 	fmt.Println(strings.Repeat("-", 60))
 	diagnose, _ := cmd.Flags().GetBool("diagnose")
+	allowExternalAI, _ := cmd.Flags().GetBool("allow-external-ai")
+	if diagnose && !allowExternalAI {
+		return fmt.Errorf("external AI diagnostics require --allow-external-ai; no telemetry was sent")
+	}
 
 	for _, a := range anomalies {
 		fmt.Printf("[%s] [%s] %s\n", a.Timestamp.Format("15:04:05"), a.Project, a.Reason)
