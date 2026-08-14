@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const repo = "Zkrausman/Pith"
+const repo = "Zkrausman/pith-public"
 
 var githubAPI = "https://api.github.com"
 var osExecutable = os.Executable
