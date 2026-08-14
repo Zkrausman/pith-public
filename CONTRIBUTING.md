@@ -8,4 +8,6 @@ Thanks for contributing. Please open an issue before substantial work, keep chan
 - Test: `go test ./...`
 - Do not commit credentials, local telemetry, generated coverage, or machine-specific agent configuration.
 
-By submitting a contribution, you certify that you have the right to contribute it under this repository's MIT license.
+## Developer Certificate of Origin
+
+By submitting a contribution, you certify that you have the right to contribute it under this repository's MIT license and agree to the [Developer Certificate of Origin 1.1](https://developercertificate.org/). Add a `Signed-off-by: Your Name <email@example.com>` trailer to every commit (for example, `git commit -s`).
