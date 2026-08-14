@@ -102,7 +102,7 @@ func TestRunWithOptions_Simple(t *testing.T) {
 	tmpDir := t.TempDir()
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	defer tel.Close()
-	cfg := &config.Config{StoragePath: tmpDir}
+	cfg := &config.Config{StoragePath: tmpDir, SnagLogging: true}
 	run := NewRunner(cfg, tel)
 
 	var args []string
@@ -122,7 +122,7 @@ func TestRunWithOptions_Shell(t *testing.T) {
 	tmpDir := t.TempDir()
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	defer tel.Close()
-	cfg := &config.Config{StoragePath: tmpDir}
+	cfg := &config.Config{StoragePath: tmpDir, SnagLogging: true}
 	run := NewRunner(cfg, tel)
 
 	// Run composite command
@@ -134,7 +134,7 @@ func TestRunWithOptions_Shell(t *testing.T) {
 
 func TestRunWithOptions_Chain(t *testing.T) {
 	tmpDir := t.TempDir()
-	cfg := &config.Config{StoragePath: tmpDir}
+	cfg := &config.Config{StoragePath: tmpDir, SnagLogging: true}
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	defer tel.Close()
 	r := NewRunner(cfg, tel)
@@ -154,7 +154,7 @@ func TestRunWithOptions_Chain(t *testing.T) {
 
 func TestRunWithOptions_Error(t *testing.T) {
 	tmpDir := t.TempDir()
-	cfg := &config.Config{StoragePath: tmpDir}
+	cfg := &config.Config{StoragePath: tmpDir, SnagLogging: true}
 	tel, _ := telemetry.NewTelemetry(tmpDir)
 	defer tel.Close()
 	r := NewRunner(cfg, tel)
@@ -188,7 +188,7 @@ func TestLogForSnag_Default(t *testing.T) {
 	t.Setenv("USERPROFILE", tmpHome)
 	t.Setenv("HOME", tmpHome)
 
-	r := &Runner{cfg: &config.Config{}} // Empty storage path
+	r := &Runner{cfg: &config.Config{SnagLogging: true}} // Empty storage path
 	r.LogForSnag("test cmd", "test output", 0)
 
 	logPath := filepath.Join(tmpHome, ".pith", "pith.log")
@@ -199,7 +199,7 @@ func TestLogForSnag_Default(t *testing.T) {
 
 func TestLogForSnag_Truncate(t *testing.T) {
 	tmpDir := t.TempDir()
-	r := &Runner{cfg: &config.Config{StoragePath: tmpDir}}
+	r := &Runner{cfg: &config.Config{StoragePath: tmpDir, SnagLogging: true}}
 
 	output := ""
 	for i := 0; i < 100; i++ {

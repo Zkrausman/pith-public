@@ -17,6 +17,10 @@ type Config struct {
 	USDPerMillionTokens float64         `json:"usd_per_million_tokens"`
 	TokenHeuristic      float64         `json:"token_heuristic"`
 	SyncServerURL       string          `json:"sync_server_url"`
+	// SnagLogging retains redacted diagnostic logs only when explicitly enabled.
+	SnagLogging bool `json:"snag_logging"`
+	// SnagLogMaxBytes bounds retained diagnostic logs; zero uses 1 MiB.
+	SnagLogMaxBytes int64 `json:"snag_log_max_bytes"`
 }
 
 var TheBrainBase = "E:\\"

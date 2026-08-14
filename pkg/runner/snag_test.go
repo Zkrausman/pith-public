@@ -17,6 +17,7 @@ func TestLogForSnag(t *testing.T) {
 
 	cfg := &config.Config{
 		StoragePath: tmpDir,
+		SnagLogging: true,
 	}
 	r := &Runner{cfg: cfg}
 
@@ -49,6 +50,7 @@ func TestLogForSnagTruncation(t *testing.T) {
 
 	cfg := &config.Config{
 		StoragePath: tmpDir,
+		SnagLogging: true,
 	}
 	r := &Runner{cfg: cfg}
 

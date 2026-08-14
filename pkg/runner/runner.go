@@ -50,6 +50,10 @@ func (r *Runner) Run(args []string) error {
 }
 
 func (r *Runner) LogForSnag(cmdStr string, output string, exitCode int) {
+	// Diagnostic logs may contain sensitive terminal context. They are opt-in.
+	if r.cfg == nil || !r.cfg.SnagLogging {
+		return
+	}
 	logDir := r.cfg.StoragePath
 	if logDir == "" {
 		home, err := os.UserHomeDir()
@@ -59,16 +63,30 @@ func (r *Runner) LogForSnag(cmdStr string, output string, exitCode int) {
 		logDir = filepath.Join(home, ".pith")
 	}
 
-	_ = os.MkdirAll(logDir, 0755)
+	if err := os.MkdirAll(logDir, 0700); err != nil {
+		return
+	}
+	_ = os.Chmod(logDir, 0700)
 
 	logPath := filepath.Join(logDir, "pith.log")
+	maxBytes := r.cfg.SnagLogMaxBytes
+	if maxBytes <= 0 {
+		maxBytes = 1 << 20
+	}
+	if info, err := os.Stat(logPath); err == nil && info.Size() >= maxBytes {
+		_ = os.Remove(logPath + ".1")
+		_ = os.Rename(logPath, logPath+".1")
+	}
 
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return
 	}
 	defer f.Close()
 
+	// Redact before any persistence, then bound each entry.
+	cmdStr = telemetry.RedactForStorage(cmdStr)
+	output = telemetry.RedactForStorage(output)
 	// Truncate output for Snag to the last 50 lines to prevent log bloat
 	lines := strings.Split(output, "\n")
 	if len(lines) > 50 {
