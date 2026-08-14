@@ -39,9 +39,6 @@ jobs:
           - runner: windows-latest
             target: windows-amd64
             extension: .exe
-          - runner: macos-13
-            target: darwin-amd64
-            extension: ""
           - runner: macos-14
             target: darwin-arm64
             extension: ""
