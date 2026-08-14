@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-//go:embed dashboard.html
+//go:embed dashboard.html static/*
 var staticFiles embed.FS
 
 func StartDashboard(cfg *config.Config, tel *telemetry.Telemetry, port int) error {
@@ -30,6 +30,7 @@ func StartDashboard(cfg *config.Config, tel *telemetry.Telemetry, port int) erro
 }
 
 func registerHandlers(cfg *config.Config, tel *telemetry.Telemetry) {
+	http.Handle("/static/", http.FileServer(http.FS(staticFiles)))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		data, err := staticFiles.ReadFile("dashboard.html")
 		if err != nil {

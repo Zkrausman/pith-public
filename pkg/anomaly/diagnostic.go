@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -12,9 +13,8 @@ import (
 func Diagnose(a Anomaly) (string, error) {
 	fmt.Printf("\n    [Pith Diagnostics] Querying Thneed for context related to '%s'...\n", a.Project)
 
-	// 1. Gather context from Thneed
-	// We use the project name and a snippet of the prompt as the query
-	query := fmt.Sprintf("%s anomaly: %s", a.Project, a.Prompt)
+	// 1. Gather only a bounded, redacted prompt summary for local context.
+	query := fmt.Sprintf("%s anomaly: %s", diagnosticSnippet(a.Project), diagnosticSnippet(a.Prompt))
 	thneedCmd := exec.Command("thneed", "query", query, "--depth", "1")
 	var thneedOut bytes.Buffer
 	thneedCmd.Stdout = &thneedOut
@@ -44,8 +44,8 @@ An anomaly was detected in our LLM telemetry stream. Your task is to diagnose th
 
 Please provide a concise, structured Root Cause Analysis and a proposed fix.`,
 		a.Project, a.Severity, a.Reason, a.Model,
-		a.Prompt, a.Response,
-		contextPack)
+		diagnosticSnippet(a.Prompt), diagnosticSnippet(a.Response),
+		diagnosticSnippet(contextPack))
 
 	fmt.Println("    [Pith Diagnostics] Consulting the Oracle for Root Cause Analysis...")
 
@@ -66,4 +66,18 @@ Please provide a concise, structured Root Cause Analysis and a proposed fix.`,
 	}
 
 	return strings.TrimSpace(out.String()), nil
+}
+
+var diagnosticSecretPattern = regexp.MustCompile(`(?i)(api[_-]?key|token|password|secret)\s*[:=]\s*[^\s]+`)
+
+// diagnosticSnippet keeps external diagnostic payloads small and removes
+// common credential assignments. It is deliberately conservative: callers
+// must still explicitly opt in before anything leaves the machine.
+func diagnosticSnippet(value string) string {
+	value = diagnosticSecretPattern.ReplaceAllString(value, "$1=[REDACTED]")
+	const maxBytes = 512
+	if len(value) > maxBytes {
+		return value[:maxBytes] + "…[truncated]"
+	}
+	return value
 }

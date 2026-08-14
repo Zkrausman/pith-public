@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pith Dashboard 2.0</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Dashboard dependencies are bundled to avoid browser network requests. -->
+    <link href="/static/tailwind.min.css" rel="stylesheet">
+    <script src="/static/chart.umd.min.js"></script>
     <style>
-        body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        body { background-color: #020617; color: #f8fafc; font-family: system-ui, sans-serif; }
         .bento-card { background-color: #0f172a; border: 1px solid #1e293b; border-radius: 1rem; padding: 1.5rem; transition: all 0.2s; }
         .bento-card:hover { border-color: #334155; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4); }
         .accent-emerald { color: #10b981; }
         .accent-sky { color: #0ea5e9; }
         .accent-amber { color: #f59e0b; }
-        .mono { font-family: 'Fira Code', monospace; }
+        .mono { font-family: ui-monospace, monospace; }
         
         /* Ring Gauge */
         .gauge-container { position: relative; width: 160px; height: 160px; }
