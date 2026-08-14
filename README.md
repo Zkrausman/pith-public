@@ -10,7 +10,7 @@
 - **Zero-Overhead Proxy:** Fast Go-based binary for near-instant command interception.
 - **Smart Parsers:** 20+ specialized optimizers for common developer commands, now featuring **High Fidelity Parsing** for source code and test results.
 - **Reasoning Over Brevity Standard:** Built-in mandate that prioritizes comprehensive technical depth over brevity to prevent LLM intelligence loss.
-- **Configurable Storage:** Centralized storage for telemetry and configuration at `E:\TheBrain\PithBackup`.
+- **Configurable Storage:** Telemetry and configuration are stored locally under `~/.pith` by default (or `PITH_STORAGE_PATH` if set).
 - **Composite Commands:** Intelligent handling of shell-joined commands (e.g., `git status & git log`).
 - **Escape Hatch (`pith raw`):** Bypass all parsers when you need the exact, unformatted truth.
 - **Middle-Out Truncation:** Automatically keep the start and end of massive outputs, removing the redundant middle.
@@ -20,10 +20,10 @@
 - **Interactive Dashboard:** Launch a local web-based analytics dashboard via `pith dashboard`.
 
 ## 📦 Installation
-1. Download the asset for your operating system and architecture from [Releases](https://github.com/Zkrausman/pith-public/releases).
-2. Run the installer (defaults to global install for all CLIs):
+1. Download the matching asset from [Releases](https://github.com/Zkrausman/pith-public/releases) and verify it with the release `checksums.txt`.
+2. Run the installer (defaults to global install for all CLIs). On Windows use `pith-windows-amd64.exe`; on Linux/macOS use the matching executable:
    ```bash
-   ./pith.exe install
+   ./pith install
    ```
    *Note: Pith safely **merges** hooks into your existing `settings.json` files and automatically creates a `.bak` backup before any modification. It will NOT overwrite your existing configurations or other hooks.*
 3. Restart your terminal.
@@ -147,6 +147,14 @@ Pith uses [promptfoo](https://promptfoo.dev/) to evaluate the performance and qu
 
 - **Status:** **Work In Progress (WIP)** 🛠️
 - **Run evaluations locally:** `npx promptfoo eval` (generated reports are intentionally not committed).
+
+## Security, privacy, and supported platforms
+
+Pith releases are currently built and tested for **Linux amd64**, **Windows amd64**, and **macOS arm64**. Unsupported platforms are not offered release binaries.
+
+The dashboard binds to loopback by default and is intended for the local machine only. Diagnostic logs are disabled by default; update/network behavior and retention limits are described in [PRIVACY.md](PRIVACY.md). Release dependency inventory and license evidence are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the attached CycloneDX SBOM.
+
+“Pith” is an independent project name and is not affiliated with, endorsed by, or sponsored by any LLM provider, terminal client, or third-party dependency named here.
 
 ## 📊 Analytics Dashboard
 Pith includes an interactive web dashboard to visualize your token savings and discover new optimization opportunities.
