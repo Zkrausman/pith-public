@@ -1,9 +1,15 @@
 package selfupdate
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -32,7 +38,7 @@ func TestCheckForUpdateSilent(t *testing.T) {
 	}
 }
 
-func TestCheckAndApplyUpdateVerifiesChecksumBeforeReplacement(t *testing.T) {
+func TestCheckAndApplyUpdateRequiresSignedManifest(t *testing.T) {
 	const newBinary = "verified new binary"
 	checksum := sha256.Sum256([]byte(newBinary))
 	binaryName := platformAssetName()
@@ -70,18 +76,15 @@ func TestCheckAndApplyUpdateVerifiesChecksumBeforeReplacement(t *testing.T) {
 	}()
 
 	updated, err := CheckAndApplyUpdate("v0.0.1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !updated {
-		t.Fatal("expected update")
+	if err == nil || !strings.Contains(err.Error(), "no signed checksum manifest") {
+		t.Fatalf("expected unsigned-manifest refusal, got updated=%v err=%v", updated, err)
 	}
 	data, err := os.ReadFile(fakeExe)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(data) != newBinary {
-		t.Errorf("expected verified binary, got %q", data)
+	if string(data) != "old binary" {
+		t.Errorf("unsigned update replaced executable: %q", data)
 	}
 }
 
@@ -193,4 +196,29 @@ func TestCheckAndApplyUpdateSameVersion(t *testing.T) {
 
 func serverURL(r *http.Request, path string) string {
 	return "http://" + r.Host + path
+}
+
+func TestVerifyManifestSignatureWithKey(t *testing.T) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	der, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := []byte("manifest")
+	digest := sha256.Sum256(manifest)
+	sig, err := ecdsa.SignASN1(rand.Reader, key, digest[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})
+	encoded := []byte(base64.StdEncoding.EncodeToString(sig))
+	if err := verifyManifestSignatureWithKey(pub, manifest, encoded); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyManifestSignatureWithKey(pub, []byte("tampered"), encoded); err == nil {
+		t.Fatal("expected signature failure")
+	}
 }

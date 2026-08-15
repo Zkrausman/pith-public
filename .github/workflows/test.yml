@@ -82,10 +82,15 @@ jobs:
           merge-multiple: true
       - name: Generate CycloneDX SBOM
         run: go run github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.8.0 mod -json -licenses -output dist/sbom.cdx.json .
-      - name: Generate checksums
+      - name: Generate checksums and signed manifest
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
           cd dist
           sha256sum pith-* > checksums.txt
+          go install github.com/sigstore/cosign/v2/cmd/cosign@v2.4.1
+          cosign sign-blob --yes --key env://COSIGN_PRIVATE_KEY --output-signature checksums.txt.sig checksums.txt
       - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.3.2
         with:
           generate_release_notes: true
