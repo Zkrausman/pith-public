@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-const repo = "Zkrausman/pith-public"
+const repo = "Zkrausman/Pith"
 
 const (
 	maxChecksumFileSize = 1 << 20
@@ -231,7 +231,7 @@ func checksumForAsset(checksums []byte, assetName string) (string, error) {
 }
 
 func CheckAndApplyUpdate(currentVersion string) (bool, error) {
-	// pith-public releases are public. Do not read GITHUB_TOKEN or invoke gh:
+	// Pith releases are public. Do not read GITHUB_TOKEN or invoke gh:
 	// an update check must never silently acquire local credentials.
 	token := ""
 	releases, err := getReleases(token)
