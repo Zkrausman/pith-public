@@ -1,5 +1,4 @@
 # Pith: Token-Optimized CLI Proxy
-> Skip the peel, get to the pith.
 
 [![CI and Release](https://github.com/Zkrausman/Pith/actions/workflows/test.yml/badge.svg)](https://github.com/Zkrausman/Pith/actions/workflows/test.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://github.com/Zkrausman/Pith/blob/main/LICENSE)
