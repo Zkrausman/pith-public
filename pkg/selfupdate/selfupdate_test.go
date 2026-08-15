@@ -45,7 +45,7 @@ func TestCheckAndApplyUpdateRequiresSignedManifest(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/repos/Zkrausman/pith-public/releases":
+		case "/repos/Zkrausman/Pith/releases":
 			json.NewEncoder(w).Encode([]Release{{
 				TagName: "v9.9.9",
 				Assets: []ReleaseAsset{
