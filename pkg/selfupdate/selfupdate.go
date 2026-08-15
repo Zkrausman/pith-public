@@ -260,9 +260,20 @@ func CheckAndApplyUpdate(currentVersion string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("release %s has no checksums.txt: refusing unverified update", release.TagName)
 	}
+	signatureAsset, err := findAsset(release.Assets, "checksums.txt.sig")
+	if err != nil {
+		return false, fmt.Errorf("release %s has no signed checksum manifest: refusing update", release.TagName)
+	}
 	checksums, err := downloadAsset(checksumAsset.URL, token, maxChecksumFileSize)
 	if err != nil {
 		return false, fmt.Errorf("download release checksums: %w", err)
+	}
+	signature, err := downloadAsset(signatureAsset.URL, token, maxChecksumFileSize)
+	if err != nil {
+		return false, fmt.Errorf("download release manifest signature: %w", err)
+	}
+	if err := verifyManifestSignature(checksums, signature); err != nil {
+		return false, fmt.Errorf("verify signed release manifest: %w", err)
 	}
 	expectedChecksum, err := checksumForAsset(checksums, binaryName)
 	if err != nil {

@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.4] - 2026-08-14
+### Security
+- Verify a Cosign-signed release checksum manifest before installing updates.
+
 ## [2.2.3] - 2026-08-14
 ### Security
 - Verify the SHA-256 checksum from the release manifest before replacing the executable; refuse releases without a platform checksum.
