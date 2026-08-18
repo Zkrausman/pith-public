@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.2] - 2026-08-18
+### Added
+- **Antigravity Model Attribution:** `hook-pretool` now extracts `modelName` from the Antigravity hook payload and forwards `--model` to the Pith runner.
+- **Model Pricing Resolution:** Added default token cost lookup for Gemini, Claude, and OpenAI model families with `--model-cost` override support.
+
 ## [2.3.1] - 2026-08-18
 ### Fixed
 - **Telemetry Harness Normalization:** Added `antigravity` canonical harness mapping to `normalizeHarness` so stats and gains are properly categorized under the `antigravity` harness breakdown.

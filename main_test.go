@@ -614,6 +614,37 @@ func TestHookPreTool_StandardCommand(t *testing.T) {
 	}
 }
 
+func TestHookPreTool_WithModelName(t *testing.T) {
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"hook-pretool", "--source", "antigravity"})
+
+	payload := `{"toolCall":{"name":"run_command","args":{"CommandLine":"git diff"}},"modelName":"gemini-3.7-flash"}`
+	inBuf := bytes.NewBufferString(payload)
+	outBuf := new(bytes.Buffer)
+	cmd.SetIn(inBuf)
+	cmd.SetOut(outBuf)
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("hook-pretool execution failed: %v", err)
+	}
+
+	var resp PreToolHookOutput
+	if err := json.Unmarshal(outBuf.Bytes(), &resp); err != nil {
+		t.Fatalf("Unmarshal response failed: %v", err)
+	}
+
+	if resp.Decision != "allow" {
+		t.Errorf("Expected decision allow, got %s", resp.Decision)
+	}
+	if resp.Overwrite == nil || resp.Overwrite["CommandLine"] == nil {
+		t.Fatalf("Expected CommandLine overwrite in response")
+	}
+	overwritten := resp.Overwrite["CommandLine"].(string)
+	if !strings.Contains(overwritten, "--model gemini-3.7-flash") {
+		t.Errorf("Expected --model gemini-3.7-flash in overwritten command, got: %s", overwritten)
+	}
+}
+
 func TestHookPreTool_DaemonCommand(t *testing.T) {
 	cmd := NewRootCmd()
 	cmd.SetArgs([]string{"hook-pretool"})

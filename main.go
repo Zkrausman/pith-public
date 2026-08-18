@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-const version = "v2.3.1"
+const version = "v2.3.2"
 
 type HookInput struct {
 	ToolResponse struct {
@@ -78,6 +78,8 @@ func NewRootCmd() *cobra.Command {
 		RunE:    runRoot,
 	}
 	rootCmd.PersistentFlags().String("source", "", "Explicit source attribution for telemetry")
+	rootCmd.PersistentFlags().String("model", "", "Model name for telemetry attribution")
+	rootCmd.PersistentFlags().Float64("model-cost", 0, "Input cost per 1M tokens for the model")
 
 	var configCmd = &cobra.Command{
 		Use:   "config",
@@ -256,6 +258,13 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	run := runner.NewRunner(cfg, tel)
 	if src, _ := cmd.Flags().GetString("source"); src != "" {
 		run.Source = src
+	}
+	if model, _ := cmd.Flags().GetString("model"); model != "" {
+		run.Model = model
+	}
+	if cmd.Flags().Changed("model-cost") {
+		cost, _ := cmd.Flags().GetFloat64("model-cost")
+		run.InputCostPerMillion = &cost
 	}
 	return run.Run(args)
 }
@@ -647,13 +656,18 @@ func runHookPreTool(cmd *cobra.Command, args []string) error {
 		source = "antigravity"
 	}
 
+	modelArg := ""
+	if input.ModelName != "" && input.ModelName != "unknown" {
+		modelArg = fmt.Sprintf(" --model %s", input.ModelName)
+	}
+
 	var rewritten string
 	if runtime.GOOS == "windows" {
 		escaped := strings.ReplaceAll(rawCmd, "'", "''")
-		rewritten = fmt.Sprintf("& \"%s\" --source %s -- '%s'", exePath, source, escaped)
+		rewritten = fmt.Sprintf("& \"%s\" --source %s%s -- '%s'", exePath, source, modelArg, escaped)
 	} else {
 		escaped := strings.ReplaceAll(rawCmd, "'", "'\\''")
-		rewritten = fmt.Sprintf("\"%s\" --source %s -- '%s'", exePath, source, escaped)
+		rewritten = fmt.Sprintf("\"%s\" --source %s%s -- '%s'", exePath, source, modelArg, escaped)
 	}
 
 	output := PreToolHookOutput{

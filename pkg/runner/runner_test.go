@@ -214,3 +214,40 @@ func TestLogForSnag_Truncate(t *testing.T) {
 		t.Error("Expected log truncation message")
 	}
 }
+
+func TestLookupModelCost(t *testing.T) {
+	tests := []struct {
+		model    string
+		expected *float64
+	}{
+		{"gemini-3.7-flash", float64Ptr(0.15)},
+		{"gemini-2.5-flash-lite", float64Ptr(0.075)},
+		{"gemini-2.5-pro", float64Ptr(2.50)},
+		{"claude-3-7-sonnet", float64Ptr(2.50)},
+		{"claude-3-5-haiku", float64Ptr(0.15)},
+		{"gpt-4o", float64Ptr(2.50)},
+		{"o3-mini", float64Ptr(0.15)},
+		{"unknown", nil},
+		{"", nil},
+		{"auto", nil},
+	}
+
+	for _, tt := range tests {
+		got := LookupModelCost(tt.model)
+		if tt.expected == nil {
+			if got != nil {
+				t.Errorf("LookupModelCost(%q) expected nil, got %v", tt.model, *got)
+			}
+		} else {
+			if got == nil {
+				t.Errorf("LookupModelCost(%q) expected %v, got nil", tt.model, *tt.expected)
+			} else if *got != *tt.expected {
+				t.Errorf("LookupModelCost(%q) expected %v, got %v", tt.model, *tt.expected, *got)
+			}
+		}
+	}
+}
+
+func float64Ptr(v float64) *float64 {
+	return &v
+}

@@ -16,10 +16,33 @@ import (
 )
 
 type Runner struct {
-	cfg       *config.Config
-	telemetry *telemetry.Telemetry
-	parsers   []parser.Parser
-	Source    string
+	cfg                 *config.Config
+	telemetry           *telemetry.Telemetry
+	parsers             []parser.Parser
+	Source              string
+	Model               string
+	InputCostPerMillion *float64
+}
+
+func LookupModelCost(model string) *float64 {
+	m := strings.ToLower(strings.TrimSpace(model))
+	if m == "" || m == "unknown" || m == "auto" {
+		return nil
+	}
+	var rate float64
+	switch {
+	case strings.Contains(m, "flash-lite"):
+		rate = 0.075
+	case strings.Contains(m, "flash") || strings.Contains(m, "-mini") || strings.Contains(m, "haiku"):
+		rate = 0.15
+	case strings.Contains(m, "pro") || strings.Contains(m, "sonnet") || strings.Contains(m, "gpt-4o"):
+		rate = 2.50
+	case strings.Contains(m, "opus") || strings.Contains(m, "o1") || strings.Contains(m, "o3"):
+		rate = 15.00
+	default:
+		return nil
+	}
+	return &rate
 }
 
 func NewRunner(cfg *config.Config, tel *telemetry.Telemetry) *Runner {
@@ -28,6 +51,7 @@ func NewRunner(cfg *config.Config, tel *telemetry.Telemetry) *Runner {
 		telemetry: tel,
 		parsers:   parser.GetAllParsers(),
 		Source:    DetectSource(),
+		Model:     "unknown",
 	}
 }
 
@@ -281,16 +305,28 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	// Output to stdout
 	fmt.Print(finalOutput)
 
+	cost := r.InputCostPerMillion
+	if cost == nil && r.Model != "" {
+		cost = LookupModelCost(r.Model)
+	}
+
+	modelName := r.Model
+	if modelName == "" {
+		modelName = "unknown"
+	}
+
 	// Record telemetry
 	record := telemetry.ExecutionRecord{
-		Command:          strings.Join(args, " "),
-		OriginalTokens:   originalTokens,
-		CompressedTokens: compressedTokens,
-		DurationMs:       duration,
-		ParserUsed:       parserUsed,
-		IsPassthrough:    isPassthrough,
-		Source:           r.Source,
-		Harness:          r.Source,
+		Command:             strings.Join(args, " "),
+		OriginalTokens:      originalTokens,
+		CompressedTokens:    compressedTokens,
+		DurationMs:          duration,
+		ParserUsed:          parserUsed,
+		IsPassthrough:       isPassthrough,
+		Source:              r.Source,
+		Harness:             r.Source,
+		Model:               modelName,
+		InputCostPerMillion: cost,
 	}
 
 	_ = r.telemetry.Record(record)
