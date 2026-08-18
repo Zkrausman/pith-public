@@ -265,3 +265,69 @@ func SetupCodexHook(global bool) error {
 	}
 	return err
 }
+
+func SetupAntigravityHook(global bool) error {
+	var configDir string
+	if global {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		configDir = filepath.Join(home, ".gemini", "config")
+	} else {
+		configDir = ".agents"
+	}
+
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return err
+	}
+
+	hooksPath := filepath.Join(configDir, "hooks.json")
+	var hooksMap map[string]interface{}
+
+	if data, err := os.ReadFile(hooksPath); err == nil {
+		backupPath := hooksPath + ".bak"
+		_ = os.WriteFile(backupPath, data, 0644)
+		_ = json.Unmarshal(data, &hooksMap)
+	}
+
+	if hooksMap == nil {
+		hooksMap = make(map[string]interface{})
+	}
+
+	home, _ := os.UserHomeDir()
+	exePath := filepath.Join(home, ".pith", "bin", "pith.exe")
+	if runtime.GOOS != "windows" {
+		exePath = filepath.Join(home, ".pith", "bin", "pith")
+	}
+
+	pithHookEntry := map[string]interface{}{
+		"enabled": true,
+		"PreToolUse": []map[string]interface{}{
+			{
+				"matcher": "run_command",
+				"hooks": []map[string]interface{}{
+					{
+						"type":    "command",
+						"command": fmt.Sprintf("%s hook-pretool --source antigravity", exePath),
+						"timeout": 10,
+					},
+				},
+			},
+		},
+	}
+
+	hooksMap["pith-optimizer"] = pithHookEntry
+
+	finalData, err := json.MarshalIndent(hooksMap, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(hooksPath, finalData, 0644); err != nil {
+		return err
+	}
+
+	fmt.Printf("Successfully updated %s with Pith Antigravity hook.\n", hooksPath)
+	return nil
+}

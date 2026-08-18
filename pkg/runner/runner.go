@@ -31,9 +31,38 @@ func NewRunner(cfg *config.Config, tel *telemetry.Telemetry) *Runner {
 	}
 }
 
+func getWindowsShellCmd(fullCmd string) *exec.Cmd {
+	trimmed := strings.TrimSpace(fullCmd)
+	if strings.HasPrefix(trimmed, "cmd ") || strings.HasPrefix(trimmed, "cmd.exe ") {
+		return exec.Command("cmd", "/c", strings.TrimPrefix(strings.TrimPrefix(trimmed, "cmd.exe "), "cmd "))
+	}
+	if strings.HasPrefix(trimmed, "powershell ") || strings.HasPrefix(trimmed, "powershell.exe ") ||
+		strings.HasPrefix(trimmed, "pwsh ") || strings.HasPrefix(trimmed, "pwsh.exe ") {
+		if pwshPath, err := exec.LookPath("pwsh.exe"); err == nil && pwshPath != "" {
+			return exec.Command(pwshPath, "-NoProfile", "-NonInteractive", "-Command", fullCmd)
+		}
+		if psPath, err := exec.LookPath("powershell.exe"); err == nil && psPath != "" {
+			return exec.Command(psPath, "-NoProfile", "-NonInteractive", "-Command", fullCmd)
+		}
+	}
+	// If it uses PowerShell specific syntax like ';' statement chaining, cmdlets, or '$' variables
+	if strings.Contains(fullCmd, ";") || strings.Contains(fullCmd, "$") {
+		if pwshPath, err := exec.LookPath("pwsh.exe"); err == nil && pwshPath != "" {
+			return exec.Command(pwshPath, "-NoProfile", "-NonInteractive", "-Command", fullCmd)
+		}
+		if psPath, err := exec.LookPath("powershell.exe"); err == nil && psPath != "" {
+			return exec.Command(psPath, "-NoProfile", "-NonInteractive", "-Command", fullCmd)
+		}
+	}
+	return exec.Command("cmd", "/c", fullCmd)
+}
+
 func DetectSource() string {
 	if harness := strings.TrimSpace(os.Getenv("PITH_HARNESS")); harness != "" {
 		return harness
+	}
+	if os.Getenv("ANTIGRAVITY") != "" || os.Getenv("ANTIGRAVITY_IDE") != "" || os.Getenv("GEMINI_SESSION_ID") != "" {
+		return "antigravity"
 	}
 	if os.Getenv("GEMINI_CLI") != "" || os.Getenv("GOOGLE_API_KEY") != "" {
 		return "gemini"
@@ -116,10 +145,10 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	start := time.Now()
 
 	var cmd *exec.Cmd
-	// If it's a composite command or has shell redirects, run through shell
-	if strings.ContainsAny(fullCmd, ";|&><") {
+	// If it's a composite command or has shell redirects/operators, run through shell
+	if strings.ContainsAny(fullCmd, ";|&><$") {
 		if runtime.GOOS == "windows" {
-			cmd = exec.Command("cmd", "/c", fullCmd)
+			cmd = getWindowsShellCmd(fullCmd)
 		} else {
 			cmd = exec.Command("sh", "-c", fullCmd)
 		}
@@ -127,14 +156,28 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 		// IMPORTANT: If 'args' has more than one element, they are the arguments.
 		// If 'args' has only one element but it contains spaces, it's a combined string
 		// that needs splitting (often happens when called via proxy).
+		var bin string
+		var binArgs []string
 		if len(args) == 1 && strings.Contains(args[0], " ") {
 			parts := strings.Fields(args[0])
 			if len(parts) == 0 {
 				return fmt.Errorf("no command provided")
 			}
-			cmd = exec.Command(parts[0], parts[1:]...)
+			bin = parts[0]
+			binArgs = parts[1:]
 		} else {
-			cmd = exec.Command(args[0], args[1:]...)
+			bin = args[0]
+			binArgs = args[1:]
+		}
+
+		if runtime.GOOS == "windows" {
+			if _, err := exec.LookPath(bin); err != nil {
+				cmd = getWindowsShellCmd(fullCmd)
+			} else {
+				cmd = exec.Command(bin, binArgs...)
+			}
+		} else {
+			cmd = exec.Command(bin, binArgs...)
 		}
 	}
 

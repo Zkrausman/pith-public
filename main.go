@@ -18,11 +18,12 @@ import (
 	"pith/pkg/runner"
 	"pith/pkg/selfupdate"
 	"pith/pkg/telemetry"
+	"runtime"
 	"strings"
 	"time"
 )
 
-const version = "v2.2.5"
+const version = "v2.3.0"
 
 type HookInput struct {
 	ToolResponse struct {
@@ -38,6 +39,24 @@ type HookOutput struct {
 	Decision      string `json:"decision"`
 	Reason        string `json:"reason"`
 	SystemMessage string `json:"systemMessage"`
+}
+
+type PreToolHookInput struct {
+	ToolCall struct {
+		Name string                 `json:"name"`
+		Args map[string]interface{} `json:"args"`
+	} `json:"toolCall"`
+	StepIdx        int      `json:"stepIdx"`
+	ConversationID string   `json:"conversationId"`
+	WorkspacePaths []string `json:"workspacePaths"`
+	TranscriptPath string   `json:"transcriptPath"`
+	ModelName      string   `json:"modelName"`
+}
+
+type PreToolHookOutput struct {
+	Decision  string                 `json:"decision"`
+	Reason    string                 `json:"reason,omitempty"`
+	Overwrite map[string]interface{} `json:"overwrite,omitempty"`
 }
 
 type ToolArgs struct {
@@ -58,6 +77,7 @@ func NewRootCmd() *cobra.Command {
 		Args:    cobra.ArbitraryArgs,
 		RunE:    runRoot,
 	}
+	rootCmd.PersistentFlags().String("source", "", "Explicit source attribution for telemetry")
 
 	var configCmd = &cobra.Command{
 		Use:   "config",
@@ -96,6 +116,14 @@ func NewRootCmd() *cobra.Command {
 		Hidden: true,
 		RunE:   runHook,
 	}
+
+	var hookPreToolCmd = &cobra.Command{
+		Use:    "hook-pretool",
+		Short:  "Internal PreToolUse hook for Antigravity",
+		Hidden: true,
+		RunE:   runHookPreTool,
+	}
+	hookPreToolCmd.Flags().String("source", "antigravity", "The agent triggering the hook")
 
 	var installCmd = &cobra.Command{
 		Use:   "install",
@@ -157,6 +185,7 @@ func NewRootCmd() *cobra.Command {
 	installCmd.Flags().Bool("gemini", false, "Setup hook for Gemini CLI")
 	installCmd.Flags().Bool("claude", false, "Setup hook for Claude Code")
 	installCmd.Flags().Bool("codex", false, "Setup hook for Codex")
+	installCmd.Flags().Bool("antigravity", false, "Setup hook for Antigravity")
 	installCmd.Flags().Bool("pi", false, "Install the Pi tool_result hook")
 	installCmd.Flags().BoolP("global", "g", false, "Install hooks globally in the home directory")
 
@@ -168,6 +197,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(gainCmd)
 	rootCmd.AddCommand(discoverCmd)
 	rootCmd.AddCommand(hookCmd)
+	rootCmd.AddCommand(hookPreToolCmd)
 	rootCmd.AddCommand(piCmd)
 	rootCmd.AddCommand(installCmd)
 	rootCmd.AddCommand(updateCmd)
@@ -197,6 +227,12 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
 		return cmd.Help()
 	}
+	if len(args) > 0 && args[0] == "--" {
+		args = args[1:]
+		if len(args) == 0 {
+			return cmd.Help()
+		}
+	}
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return err
@@ -218,6 +254,9 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	}
 	defer tel.Close()
 	run := runner.NewRunner(cfg, tel)
+	if src, _ := cmd.Flags().GetString("source"); src != "" {
+		run.Source = src
+	}
 	return run.Run(args)
 }
 
@@ -564,6 +603,68 @@ func runHook(cmd *cobra.Command, args []string) error {
 	return json.NewEncoder(cmd.OutOrStdout()).Encode(output)
 }
 
+func runHookPreTool(cmd *cobra.Command, args []string) error {
+	inputData, err := io.ReadAll(cmd.InOrStdin())
+	if err != nil {
+		return json.NewEncoder(cmd.OutOrStdout()).Encode(PreToolHookOutput{Decision: "allow"})
+	}
+
+	var input PreToolHookInput
+	if err := json.Unmarshal(inputData, &input); err != nil {
+		return json.NewEncoder(cmd.OutOrStdout()).Encode(PreToolHookOutput{Decision: "allow"})
+	}
+
+	if input.ToolCall.Name != "run_command" {
+		return json.NewEncoder(cmd.OutOrStdout()).Encode(PreToolHookOutput{Decision: "allow"})
+	}
+
+	if isDaemon, ok := input.ToolCall.Args["IsDaemon"].(bool); ok && isDaemon {
+		return json.NewEncoder(cmd.OutOrStdout()).Encode(PreToolHookOutput{Decision: "allow"})
+	}
+
+	rawCmd, ok := input.ToolCall.Args["CommandLine"].(string)
+	if !ok || strings.TrimSpace(rawCmd) == "" {
+		return json.NewEncoder(cmd.OutOrStdout()).Encode(PreToolHookOutput{Decision: "allow"})
+	}
+
+	trimmed := strings.TrimSpace(rawCmd)
+	if strings.HasPrefix(trimmed, "pith") ||
+		strings.HasPrefix(trimmed, "pith.exe") ||
+		strings.Contains(trimmed, "\\pith.exe") ||
+		strings.Contains(trimmed, "/pith") ||
+		(strings.HasPrefix(trimmed, "& \"") && strings.Contains(trimmed, "pith")) {
+		return json.NewEncoder(cmd.OutOrStdout()).Encode(PreToolHookOutput{Decision: "allow"})
+	}
+
+	home, _ := os.UserHomeDir()
+	exePath := filepath.Join(home, ".pith", "bin", "pith.exe")
+	if runtime.GOOS != "windows" {
+		exePath = filepath.Join(home, ".pith", "bin", "pith")
+	}
+
+	source, _ := cmd.Flags().GetString("source")
+	if source == "" {
+		source = "antigravity"
+	}
+
+	var rewritten string
+	if runtime.GOOS == "windows" {
+		escaped := strings.ReplaceAll(rawCmd, "'", "''")
+		rewritten = fmt.Sprintf("& \"%s\" --source %s -- '%s'", exePath, source, escaped)
+	} else {
+		escaped := strings.ReplaceAll(rawCmd, "'", "'\\''")
+		rewritten = fmt.Sprintf("\"%s\" --source %s -- '%s'", exePath, source, escaped)
+	}
+
+	output := PreToolHookOutput{
+		Decision: "allow",
+		Overwrite: map[string]interface{}{
+			"CommandLine": rewritten,
+		},
+	}
+	return json.NewEncoder(cmd.OutOrStdout()).Encode(output)
+}
+
 func runInstall(cmd *cobra.Command, args []string) error {
 	if err := install.Install(); err != nil {
 		return err
@@ -573,8 +674,9 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	claude, _ := cmd.Flags().GetBool("claude")
 	codex, _ := cmd.Flags().GetBool("codex")
 	piHook, _ := cmd.Flags().GetBool("pi")
+	antigravity, _ := cmd.Flags().GetBool("antigravity")
 	global, _ := cmd.Flags().GetBool("global")
-	if !all && !gemini && !claude && !codex && !piHook {
+	if !all && !gemini && !claude && !codex && !piHook && !antigravity {
 		all = true
 		if !cmd.Flags().Changed("global") {
 			global = true
@@ -598,6 +700,11 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	if all || piHook {
 		if err := install.SetupPiHook(); err != nil {
 			cmd.PrintErrf("Pi hook failed: %v\n", err)
+		}
+	}
+	if all || antigravity {
+		if err := install.SetupAntigravityHook(global); err != nil {
+			cmd.PrintErrf("Antigravity hook failed: %v\n", err)
 		}
 	}
 	return nil
