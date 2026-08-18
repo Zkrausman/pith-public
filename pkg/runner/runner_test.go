@@ -229,7 +229,8 @@ func TestLookupModelCost(t *testing.T) {
 		{"o3-mini", float64Ptr(0.15)},
 		{"unknown", nil},
 		{"", nil},
-		{"auto", nil},
+		{"auto", float64Ptr(0.15)},
+		{"gemini-auto", float64Ptr(0.15)},
 	}
 
 	for _, tt := range tests {
