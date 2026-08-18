@@ -656,10 +656,11 @@ func runHookPreTool(cmd *cobra.Command, args []string) error {
 		source = "antigravity"
 	}
 
-	modelArg := ""
-	if input.ModelName != "" && input.ModelName != "unknown" {
-		modelArg = fmt.Sprintf(" --model %s", input.ModelName)
+	modelName := input.ModelName
+	if modelName == "" || modelName == "unknown" || modelName == "auto" {
+		modelName = "gemini-auto"
 	}
+	modelArg := fmt.Sprintf(" --model %s", modelName)
 
 	var rewritten string
 	if runtime.GOOS == "windows" {

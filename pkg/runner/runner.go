@@ -26,14 +26,14 @@ type Runner struct {
 
 func LookupModelCost(model string) *float64 {
 	m := strings.ToLower(strings.TrimSpace(model))
-	if m == "" || m == "unknown" || m == "auto" {
+	if m == "" || m == "unknown" {
 		return nil
 	}
 	var rate float64
 	switch {
 	case strings.Contains(m, "flash-lite"):
 		rate = 0.075
-	case strings.Contains(m, "flash") || strings.Contains(m, "-mini") || strings.Contains(m, "haiku"):
+	case strings.Contains(m, "flash") || strings.Contains(m, "-mini") || strings.Contains(m, "haiku") || strings.Contains(m, "auto"):
 		rate = 0.15
 	case strings.Contains(m, "pro") || strings.Contains(m, "sonnet") || strings.Contains(m, "gpt-4o"):
 		rate = 2.50
@@ -305,14 +305,20 @@ func (r *Runner) RunWithOptions(args []string, skipParsing bool) error {
 	// Output to stdout
 	fmt.Print(finalOutput)
 
-	cost := r.InputCostPerMillion
-	if cost == nil && r.Model != "" {
-		cost = LookupModelCost(r.Model)
+	modelName := r.Model
+	if modelName == "" || modelName == "unknown" {
+		if r.Source == "antigravity" {
+			modelName = "gemini-auto"
+		} else {
+			modelName = "unknown"
+		}
+	} else if modelName == "auto" && r.Source == "antigravity" {
+		modelName = "gemini-auto"
 	}
 
-	modelName := r.Model
-	if modelName == "" {
-		modelName = "unknown"
+	cost := r.InputCostPerMillion
+	if cost == nil && modelName != "" {
+		cost = LookupModelCost(modelName)
 	}
 
 	// Record telemetry
