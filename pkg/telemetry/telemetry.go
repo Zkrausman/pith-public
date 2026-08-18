@@ -57,6 +57,8 @@ func normalizeHarness(h string) string {
 		return "codex"
 	case "jules":
 		return "jules"
+	case "antigravity":
+		return "antigravity"
 	default:
 		return "unknown"
 	}
