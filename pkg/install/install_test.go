@@ -200,3 +200,62 @@ func TestSetupHook_Existing(t *testing.T) {
 		t.Errorf("setupHook failed on existing: %v", err)
 	}
 }
+
+func TestSetupAntigravityHook_GlobalAndLocal(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("USERPROFILE", tmpHome)
+	t.Setenv("HOME", tmpHome)
+
+	origCwd, _ := os.Getwd()
+	tmpWorkspace := t.TempDir()
+	os.Chdir(tmpWorkspace)
+	defer os.Chdir(origCwd)
+
+	// 1. Test local workspace setup with existing custom hook
+	os.MkdirAll(".agents", 0755)
+	existingContent := []byte(`{"other-hook": {"enabled": true}}`)
+	os.WriteFile(filepath.Join(".agents", "hooks.json"), existingContent, 0644)
+
+	if err := SetupAntigravityHook(false); err != nil {
+		t.Fatalf("SetupAntigravityHook(false) failed: %v", err)
+	}
+
+	// Verify backup
+	if _, err := os.Stat(filepath.Join(".agents", "hooks.json.bak")); os.IsNotExist(err) {
+		t.Error("Backup .agents/hooks.json.bak was not created")
+	}
+
+	// Verify content preserved and pith-optimizer added
+	localData, err := os.ReadFile(filepath.Join(".agents", "hooks.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var localMap map[string]interface{}
+	if err := json.Unmarshal(localData, &localMap); err != nil {
+		t.Fatal(err)
+	}
+	if localMap["other-hook"] == nil {
+		t.Error("Existing other-hook was lost in .agents/hooks.json")
+	}
+	if localMap["pith-optimizer"] == nil {
+		t.Error("pith-optimizer was not added to .agents/hooks.json")
+	}
+
+	// 2. Test global setup
+	if err := SetupAntigravityHook(true); err != nil {
+		t.Fatalf("SetupAntigravityHook(true) failed: %v", err)
+	}
+	globalPath := filepath.Join(tmpHome, ".gemini", "config", "hooks.json")
+	globalData, err := os.ReadFile(globalPath)
+	if err != nil {
+		t.Fatalf("Failed to read global hooks.json: %v", err)
+	}
+	var globalMap map[string]interface{}
+	if err := json.Unmarshal(globalData, &globalMap); err != nil {
+		t.Fatal(err)
+	}
+	if globalMap["pith-optimizer"] == nil {
+		t.Error("pith-optimizer was not added to global hooks.json")
+	}
+}
+

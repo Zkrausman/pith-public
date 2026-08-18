@@ -13,7 +13,7 @@
 - **Composite Commands:** Intelligent handling of shell-joined commands (e.g., `git status & git log`).
 - **Escape Hatch (`pith raw`):** Bypass all parsers when you need the exact, unformatted truth.
 - **Middle-Out Truncation:** Automatically keep the start and end of massive outputs, removing the redundant middle.
-- **Multi-LLM Integration:** Automated hook setup for Gemini CLI, Claude Code, and Codex.
+- **Multi-LLM Integration:** Automated hook setup for Antigravity 2.0, Antigravity CLI, Gemini CLI, Claude Code, Codex, and Pi.
 - **Telemetry & Discovery:** Tracks exact token savings and identifies new optimization targets.
 - **Interactive Configuration:** Toggle parsers and adjust truncation limits via `pith config`.
 - **Interactive Dashboard:** Launch a local web-based analytics dashboard via `pith dashboard`.
@@ -24,7 +24,7 @@
    ```bash
    ./pith install
    ```
-   *Note: Pith safely **merges** hooks into your existing `settings.json` files and automatically creates a `.bak` backup before any modification. It will NOT overwrite your existing configurations or other hooks.*
+   *Note: Pith safely **merges** hooks into your existing `hooks.json` and `settings.json` files and automatically creates a `.bak` backup before any modification. It will NOT overwrite your existing configurations or other hooks.*
 3. Restart your terminal.
 
 ---
@@ -33,9 +33,10 @@
 
 ### 1. Targeted Installation
 If you only want to install hooks for a specific CLI or only for the current project:
+- **Antigravity 2.0 / CLI:** `pith install --antigravity --global`
 - **Local Install (current folder):** `pith install --gemini`
 - **Global Install (specific CLI):** `pith install --claude --global`
-- **Full Global Sync:** Use `pith install` to ensure all system-wide `settings.json` files are up-to-date.
+- **Full Global Sync:** Use `pith install` to ensure all system-wide hooks and settings are up-to-date.
 
 ### 2. The Escape Hatch (`pith raw`)
 If a parser is being too aggressive and you need to see the raw, bit-for-bit output of a command, prefix it with `raw`:

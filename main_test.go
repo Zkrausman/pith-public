@@ -582,3 +582,110 @@ func TestRootCmd_Empty(t *testing.T) {
 	cmd.SetErr(b)
 	_ = cmd.Execute()
 }
+
+func TestHookPreTool_StandardCommand(t *testing.T) {
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"hook-pretool", "--source", "antigravity"})
+
+	payload := `{"toolCall":{"name":"run_command","args":{"CommandLine":"git status","Cwd":"/test","IsDaemon":false}}}`
+	inBuf := bytes.NewBufferString(payload)
+	outBuf := new(bytes.Buffer)
+	cmd.SetIn(inBuf)
+	cmd.SetOut(outBuf)
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("hook-pretool execution failed: %v", err)
+	}
+
+	var resp PreToolHookOutput
+	if err := json.Unmarshal(outBuf.Bytes(), &resp); err != nil {
+		t.Fatalf("Unmarshal response failed: %v", err)
+	}
+
+	if resp.Decision != "allow" {
+		t.Errorf("Expected decision allow, got %s", resp.Decision)
+	}
+	if resp.Overwrite == nil || resp.Overwrite["CommandLine"] == nil {
+		t.Fatalf("Expected CommandLine overwrite in response")
+	}
+	overwritten := resp.Overwrite["CommandLine"].(string)
+	if !strings.Contains(overwritten, "pith") || !strings.Contains(overwritten, "git status") || !strings.Contains(overwritten, "--source antigravity") {
+		t.Errorf("Overwritten CommandLine unexpected: %s", overwritten)
+	}
+}
+
+func TestHookPreTool_DaemonCommand(t *testing.T) {
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"hook-pretool"})
+
+	payload := `{"toolCall":{"name":"run_command","args":{"CommandLine":"npm start","IsDaemon":true}}}`
+	inBuf := bytes.NewBufferString(payload)
+	outBuf := new(bytes.Buffer)
+	cmd.SetIn(inBuf)
+	cmd.SetOut(outBuf)
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("hook-pretool execution failed: %v", err)
+	}
+
+	var resp PreToolHookOutput
+	if err := json.Unmarshal(outBuf.Bytes(), &resp); err != nil {
+		t.Fatalf("Unmarshal response failed: %v", err)
+	}
+
+	if resp.Decision != "allow" {
+		t.Errorf("Expected decision allow, got %s", resp.Decision)
+	}
+	if resp.Overwrite != nil && len(resp.Overwrite) > 0 {
+		t.Errorf("Daemon process should not have overwrite, got %v", resp.Overwrite)
+	}
+}
+
+func TestHookPreTool_RecursionGuard(t *testing.T) {
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"hook-pretool"})
+
+	payload := `{"toolCall":{"name":"run_command","args":{"CommandLine":"pith.exe git status"}}}`
+	inBuf := bytes.NewBufferString(payload)
+	outBuf := new(bytes.Buffer)
+	cmd.SetIn(inBuf)
+	cmd.SetOut(outBuf)
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("hook-pretool execution failed: %v", err)
+	}
+
+	var resp PreToolHookOutput
+	if err := json.Unmarshal(outBuf.Bytes(), &resp); err != nil {
+		t.Fatalf("Unmarshal response failed: %v", err)
+	}
+
+	if resp.Overwrite != nil && len(resp.Overwrite) > 0 {
+		t.Errorf("Pith command should not be re-wrapped, got %v", resp.Overwrite)
+	}
+}
+
+func TestHookPreTool_NonRunCommand(t *testing.T) {
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"hook-pretool"})
+
+	payload := `{"toolCall":{"name":"view_file","args":{"AbsolutePath":"/test/file"}}}`
+	inBuf := bytes.NewBufferString(payload)
+	outBuf := new(bytes.Buffer)
+	cmd.SetIn(inBuf)
+	cmd.SetOut(outBuf)
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("hook-pretool execution failed: %v", err)
+	}
+
+	var resp PreToolHookOutput
+	if err := json.Unmarshal(outBuf.Bytes(), &resp); err != nil {
+		t.Fatalf("Unmarshal response failed: %v", err)
+	}
+
+	if resp.Overwrite != nil && len(resp.Overwrite) > 0 {
+		t.Errorf("Non run_command should not have overwrite, got %v", resp.Overwrite)
+	}
+}
+

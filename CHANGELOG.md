@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-08-18
+### Added
+- **Antigravity 2.0 & Antigravity CLI Integration:** Added `hook-pretool` subcommand implementing Antigravity's `PreToolUse` lifecycle hook specification to intercept and compress `run_command` output while preserving daemon and self-invocation guards.
+- **Automated Antigravity Hook Installation:** Added `pith install --antigravity` to configure `~/.gemini/config/hooks.json` or `.agents/hooks.json` non-destructively.
+- **PowerShell Runner Resilience:** Enhanced Windows runner execution to support PowerShell/pwsh statement chaining (`;`), cmdlets, and environment variable expansion.
+- **Source Attribution:** Telemetry and gain reporting now tracks executions and token savings under the `antigravity` source.
+- **Compiler Compatibility:** Added Windows GCC 16 CGo emutls linker compatibility for DuckDB static bindings.
+
 ## [2.2.5] - 2026-08-15
 ### Changed
 - Use `Zkrausman/Pith` as the canonical public repository for updates, documentation, and support links.
